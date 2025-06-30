@@ -197,22 +197,7 @@ const similarities = items
 
 ## Fixing Data Quality Issues
 
-### 1. **Micah's Resume Fix**
-
-The `fix_micah_resume.js` script addresses the specific issue with Micah's resume:
-
-```javascript
-// Run this script to fix Micah's resume data
-node fix_micah_resume.js
-```
-
-**What it does:**
-- Regenerates comprehensive searchable text from all resume fields
-- Extracts skills from the full content
-- Generates new embeddings with better quality
-- Tests the search functionality
-
-### 2. **Data Quality Improvements**
+### 1. **Data Quality Improvements**
 
 For all resumes, ensure:
 
@@ -220,6 +205,8 @@ For all resumes, ensure:
 2. **Skill Extraction**: Skills are properly identified and stored
 3. **Quality Embeddings**: Embeddings are generated from comprehensive text
 4. **Regular Updates**: Periodic re-processing of data
+
+
 
 ## Best Practices
 
