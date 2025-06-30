@@ -1315,4 +1315,176 @@ export const testResumeMapping = action({
       }
     }
   },
+});
+
+// Update resume data in MongoDB
+export const updateResume = action({
+  args: {
+    resumeId: v.string(),
+    updates: v.object({
+      name: v.optional(v.string()),
+      email: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      location: v.optional(v.string()),
+      yearsOfExperience: v.optional(v.number()),
+      professionalSummary: v.optional(v.string()),
+      workExperience: v.optional(v.string()),
+      education: v.optional(v.string()),
+      skills: v.optional(v.string()),
+      certifications: v.optional(v.string()),
+      projects: v.optional(v.string()),
+      languages: v.optional(v.string()),
+      additionalInformation: v.optional(v.string()),
+    }),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    updatedResume: v.optional(v.any()),
+  }),
+  handler: async (ctx: any, args: { resumeId: string; updates: any }):
+     Promise<{ success: boolean; message: string; updatedResume?: any }> => {
+    let client;
+    
+    try {
+      console.log(`Updating resume with ID: "${args.resumeId}"`);
+      console.log('Updates:', args.updates);
+      
+      // Connect to MongoDB
+      client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        ssl: true,
+      });
+      
+      await client.connect();
+      const db = client.db('workdemos');
+      const resumesCollection = db.collection('resumes');
+      
+      // Find the resume by ID
+      let resume = null;
+      try {
+        const objectId = new ObjectId(args.resumeId);
+        resume = await resumesCollection.findOne({ _id: objectId });
+      } catch (e) {
+        // If not a valid ObjectId, try to find by name
+        resume = await resumesCollection.findOne({ 
+          "processedMetadata.name": args.resumeId 
+        });
+      }
+      
+      if (!resume) {
+        throw new Error("Resume not found");
+      }
+      
+      // Prepare the update object
+      const updateData: any = {
+        lastUpdated: new Date(),
+      };
+      
+      // Update processedMetadata if personal info is being updated
+      if (args.updates.name || args.updates.email || args.updates.phone || args.updates.location || args.updates.yearsOfExperience) {
+        updateData.processedMetadata = {
+          ...resume.processedMetadata,
+          ...(args.updates.name && { name: args.updates.name }),
+          ...(args.updates.email && { email: args.updates.email }),
+          ...(args.updates.phone && { phone: args.updates.phone }),
+          ...(args.updates.location && { location: args.updates.location }),
+          ...(args.updates.yearsOfExperience && { yearsOfExperience: args.updates.yearsOfExperience }),
+        };
+      }
+      
+      // Update other fields
+      if (args.updates.professionalSummary) {
+        updateData.professionalSummary = args.updates.professionalSummary;
+      }
+      if (args.updates.workExperience) {
+        updateData.workExperience = args.updates.workExperience;
+      }
+      if (args.updates.education) {
+        updateData.education = args.updates.education;
+      }
+      if (args.updates.skills) {
+        updateData.skills = args.updates.skills;
+      }
+      if (args.updates.certifications) {
+        updateData.certifications = args.updates.certifications;
+      }
+      if (args.updates.projects) {
+        updateData.projects = args.updates.projects;
+      }
+      if (args.updates.languages) {
+        updateData.languages = args.updates.languages;
+      }
+      if (args.updates.additionalInformation) {
+        updateData.additionalInformation = args.updates.additionalInformation;
+      }
+      
+      // Generate new searchable text from updated content
+      const fields = [
+        updateData.professionalSummary || resume.professionalSummary || '',
+        updateData.skills || resume.skills || '',
+        updateData.education || resume.education || '',
+        updateData.certifications || resume.certifications || '',
+        updateData.workExperience || resume.workExperience || '',
+        updateData.projects || resume.projects || '',
+        updateData.languages || resume.languages || '',
+        updateData.additionalInformation || resume.additionalInformation || '',
+        (updateData.processedMetadata?.name || resume.processedMetadata?.name || ''),
+      ];
+      
+      const combinedText = fields.filter(Boolean).join(' ');
+      
+      if (combinedText.trim()) {
+        // Generate new embedding for the updated content
+        const newEmbedding = await generateQueryEmbedding(combinedText);
+        updateData.searchableText = combinedText;
+        updateData.embedding = newEmbedding;
+        updateData.embeddingGeneratedAt = new Date();
+      }
+      
+      // Update the resume in MongoDB
+      const updateResult = await resumesCollection.updateOne(
+        { _id: resume._id },
+        { $set: updateData }
+      );
+      
+      if (updateResult.modifiedCount === 0) {
+        throw new Error("Failed to update resume - no changes were made");
+      }
+      
+      // Fetch the updated resume
+      const updatedResume = await resumesCollection.findOne({ _id: resume._id });
+      const mappedResume = mapResumeDataForFrontend(updatedResume);
+      
+      console.log('Resume updated successfully');
+      
+      return {
+        success: true,
+        message: "Resume updated successfully",
+        updatedResume: mappedResume,
+      };
+      
+    } catch (error) {
+      console.error('Error updating resume:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to update resume",
+      };
+    } finally {
+      if (client) {
+        await client.close();
+      }
+    }
+  },
 }); 

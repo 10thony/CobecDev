@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useAction } from "convex/react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
-import { Upload, FileText, Database, Search, Trash2, Download, Filter } from 'lucide-react';
+import { Upload, FileText, Database, Search, Trash2, Download, Filter, ChevronDown, ChevronRight, User, Briefcase } from 'lucide-react';
+import { openDB, IDBPDatabase } from 'idb';
+
+/*
+INDEXEDDB CACHING SOLUTION WITH COMPRESSION:
+
+This implementation uses IndexedDB for much larger storage capacity (50MB+ vs 5-10MB for localStorage)
+while still compressing data to maximize space efficiency.
+
+Key Features:
+- IndexedDB storage with 50MB+ capacity
+- Data compression to remove large fields and truncate text
+- Automatic cache expiration (30 minutes)
+- Graceful fallback to fresh data if IndexedDB fails
+- Size monitoring and logging
+*/
 
 // Import types from a shared location
 interface JobPosting {
@@ -84,6 +100,8 @@ interface SearchCriteria {
 }
 
 export function DataManagementPage() {
+  const navigate = useNavigate();
+  
   // Use Convex actions for database operations
   const getAllJobPostingsAction = useAction(api.mongoSearch.getAllJobPostings);
   const getAllResumesAction = useAction(api.mongoSearch.getAllResumes);
@@ -99,24 +117,276 @@ export function DataManagementPage() {
   const [message, setMessage] = useState('');
   const [searchCriteria, setSearchCriteria] = useState<SearchCriteria>({});
   const [filteredJobs, setFilteredJobs] = useState<JobPosting[]>([]);
+  const [dataCached, setDataCached] = useState(false);
+  const [lastCacheTime, setLastCacheTime] = useState<Date | null>(null);
+  const [cachingDisabled, setCachingDisabled] = useState(false);
+  
+  // Collapsible state
+  const [jobsSectionCollapsed, setJobsSectionCollapsed] = useState(false);
+  const [resumesSectionCollapsed, setResumesSectionCollapsed] = useState(false);
 
-  // Load data on component mount
-  useEffect(() => {
-    loadData();
-  }, []);
+  // IndexedDB configuration
+  const DB_NAME = 'dataManagementCache';
+  const DB_VERSION = 1;
+  const STORE_NAMES = {
+    JOB_POSTINGS: 'jobPostings',
+    RESUMES: 'resumes',
+    METADATA: 'metadata'
+  };
 
-  // Load all data from MongoDB cluster
-  const loadData = async () => {
-    setLoading(true);
+  // Maximum cache size (50MB in bytes) - IndexedDB can handle much more
+  const MAX_CACHE_SIZE = 50 * 1024 * 1024;
+
+  // Helper function to estimate data size
+  const estimateDataSize = (data: any): number => {
+    return new Blob([JSON.stringify(data)]).size;
+  };
+
+  // Helper function to compress data by removing large fields
+  const compressDataForCache = (data: any[], dataType: 'jobPostings' | 'resumes'): any[] => {
+    return data.map(item => {
+      const compressed = { ...item };
+      
+      // Remove large fields that aren't essential for display
+      if (dataType === 'jobPostings') {
+        delete compressed.searchableText;
+        delete compressed.extractedSkills;
+        delete compressed.embedding;
+        // Keep only essential fields for display
+        const essentialFields = {
+          _id: compressed._id,
+          jobTitle: compressed.jobTitle,
+          location: compressed.location,
+          salary: compressed.salary,
+          department: compressed.department,
+          jobType: compressed.jobType,
+          openDate: compressed.openDate,
+          closeDate: compressed.closeDate,
+          jobLink: compressed.jobLink,
+          // Truncate long text fields
+          jobSummary: compressed.jobSummary?.substring(0, 200) + (compressed.jobSummary?.length > 200 ? '...' : ''),
+          duties: compressed.duties?.substring(0, 200) + (compressed.duties?.length > 200 ? '...' : ''),
+          requirements: compressed.requirements?.substring(0, 200) + (compressed.requirements?.length > 200 ? '...' : ''),
+          qualifications: compressed.qualifications?.substring(0, 200) + (compressed.qualifications?.length > 200 ? '...' : ''),
+          education: compressed.education?.substring(0, 200) + (compressed.education?.length > 200 ? '...' : ''),
+          howToApply: compressed.howToApply?.substring(0, 200) + (compressed.howToApply?.length > 200 ? '...' : ''),
+          additionalInformation: compressed.additionalInformation?.substring(0, 200) + (compressed.additionalInformation?.length > 200 ? '...' : ''),
+          seriesGrade: compressed.seriesGrade,
+          travelRequired: compressed.travelRequired,
+          workSchedule: compressed.workSchedule,
+          securityClearance: compressed.securityClearance,
+          experienceRequired: compressed.experienceRequired,
+          educationRequired: compressed.educationRequired,
+          applicationDeadline: compressed.applicationDeadline,
+          contactInfo: compressed.contactInfo,
+          _metadata: compressed._metadata
+        };
+        return essentialFields;
+      } else {
+        delete compressed.searchableText;
+        delete compressed.extractedSkills;
+        delete compressed.embedding;
+        delete compressed.originalText;
+        // Keep only essential fields for display
+        const essentialFields = {
+          _id: compressed._id,
+          filename: compressed.filename,
+          personalInfo: compressed.personalInfo,
+          // Truncate long text fields
+          professionalSummary: compressed.professionalSummary?.substring(0, 200) + (compressed.professionalSummary?.length > 200 ? '...' : ''),
+          education: compressed.education,
+          experience: compressed.experience?.map((exp: any) => ({
+            title: exp.title,
+            company: exp.company,
+            location: exp.location,
+            duration: exp.duration,
+            responsibilities: exp.responsibilities?.slice(0, 3) // Keep only first 3 responsibilities
+          })),
+          skills: compressed.skills,
+          certifications: compressed.certifications?.substring(0, 200) + (compressed.certifications?.length > 200 ? '...' : ''),
+          professionalMemberships: compressed.professionalMemberships?.substring(0, 200) + (compressed.professionalMemberships?.length > 200 ? '...' : ''),
+          securityClearance: compressed.securityClearance,
+          _metadata: compressed._metadata
+        };
+        return essentialFields;
+      }
+    });
+  };
+
+  // Initialize IndexedDB
+  const initDB = async (): Promise<IDBPDatabase> => {
+    return openDB(DB_NAME, DB_VERSION, {
+      upgrade(db) {
+        // Create object stores
+        if (!db.objectStoreNames.contains(STORE_NAMES.JOB_POSTINGS)) {
+          db.createObjectStore(STORE_NAMES.JOB_POSTINGS, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(STORE_NAMES.RESUMES)) {
+          db.createObjectStore(STORE_NAMES.RESUMES, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(STORE_NAMES.METADATA)) {
+          db.createObjectStore(STORE_NAMES.METADATA, { keyPath: 'id' });
+        }
+      },
+    });
+  };
+
+  // Check if cached data should be used
+  const shouldUseCachedData = async (): Promise<boolean> => {
     try {
+      const db = await initDB();
+      const metadata = await db.get(STORE_NAMES.METADATA, 'cacheInfo');
+      
+      if (!metadata) return false;
+      
+      const cacheAge = Date.now() - metadata.timestamp;
+      const maxCacheAge = 30 * 60 * 1000; // 30 minutes
+      
+      return cacheAge < maxCacheAge;
+    } catch (error) {
+      console.warn('Error checking cache validity:', error);
+      return false;
+    }
+  };
+
+  // Load data from IndexedDB cache
+  const loadFromCache = async (): Promise<{ jobPostings: JobPosting[], resumes: Resume[], cacheTime: Date } | null> => {
+    try {
+      const db = await initDB();
+      
+      const [jobPostingsData, resumesData, metadata] = await Promise.all([
+        db.get(STORE_NAMES.JOB_POSTINGS, 'all'),
+        db.get(STORE_NAMES.RESUMES, 'all'),
+        db.get(STORE_NAMES.METADATA, 'cacheInfo')
+      ]);
+      
+      if (!jobPostingsData || !resumesData || !metadata) {
+        return null;
+      }
+      
+      return {
+        jobPostings: jobPostingsData.data,
+        resumes: resumesData.data,
+        cacheTime: new Date(metadata.timestamp)
+      };
+    } catch (error) {
+      console.error('Error loading from IndexedDB cache:', error);
+      return null;
+    }
+  };
+
+  // Save data to IndexedDB cache with compression
+  const saveToCache = async (jobPostingsData: JobPosting[], resumesData: Resume[]): Promise<boolean> => {
+    try {
+      // First, try to save the full data
+      const fullJobPostingsSize = estimateDataSize(jobPostingsData);
+      const fullResumesSize = estimateDataSize(resumesData);
+      const totalSize = fullJobPostingsSize + fullResumesSize;
+      
+      console.log(`Cache size estimation: Job postings ${(fullJobPostingsSize / 1024 / 1024).toFixed(2)}MB, Resumes ${(fullResumesSize / 1024 / 1024).toFixed(2)}MB, Total ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
+      
+      let dataToCache = {
+        jobPostings: jobPostingsData,
+        resumes: resumesData,
+        compressed: false
+      };
+      
+      // If data is too large, compress it
+      if (totalSize > MAX_CACHE_SIZE) {
+        console.log('Data too large, compressing for cache...');
+        const compressedJobPostings = compressDataForCache(jobPostingsData, 'jobPostings');
+        const compressedResumes = compressDataForCache(resumesData, 'resumes');
+        
+        const compressedJobPostingsSize = estimateDataSize(compressedJobPostings);
+        const compressedResumesSize = estimateDataSize(compressedResumes);
+        const compressedTotalSize = compressedJobPostingsSize + compressedResumesSize;
+        
+        console.log(`Compressed cache size: Job postings ${(compressedJobPostingsSize / 1024 / 1024).toFixed(2)}MB, Resumes ${(compressedResumesSize / 1024 / 1024).toFixed(2)}MB, Total ${(compressedTotalSize / 1024 / 1024).toFixed(2)}MB`);
+        
+        if (compressedTotalSize <= MAX_CACHE_SIZE) {
+          dataToCache = {
+            jobPostings: compressedJobPostings,
+            resumes: compressedResumes,
+            compressed: true
+          };
+          console.log('Saved compressed data to IndexedDB cache');
+        } else {
+          console.warn('Data too large even after compression, skipping cache');
+          return false;
+        }
+      } else {
+        console.log('Saved full data to IndexedDB cache');
+      }
+      
+      // Save to IndexedDB
+      const db = await initDB();
+      const timestamp = Date.now();
+      
+      await Promise.all([
+        db.put(STORE_NAMES.JOB_POSTINGS, { id: 'all', data: dataToCache.jobPostings }),
+        db.put(STORE_NAMES.RESUMES, { id: 'all', data: dataToCache.resumes }),
+        db.put(STORE_NAMES.METADATA, { 
+          id: 'cacheInfo', 
+          timestamp,
+          compressed: dataToCache.compressed,
+          jobPostingsCount: dataToCache.jobPostings.length,
+          resumesCount: dataToCache.resumes.length
+        })
+      ]);
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving to IndexedDB cache:', error);
+      return false;
+    }
+  };
+
+  // Load data from cache or database
+  const loadData = async (forceRefresh = false) => {
+    setLoading(true);
+    
+    try {
+      // Check if we should use cached data
+      if (!forceRefresh && await shouldUseCachedData()) {
+        const cachedData = await loadFromCache();
+        if (cachedData) {
+          setJobPostings(cachedData.jobPostings);
+          setResumes(cachedData.resumes);
+          setFilteredJobs(cachedData.jobPostings);
+          setDataCached(true);
+          setLastCacheTime(cachedData.cacheTime);
+          setCachingDisabled(false);
+          setMessage(`Loaded ${cachedData.jobPostings.length} job postings and ${cachedData.resumes.length} resumes from IndexedDB cache (cached at ${cachedData.cacheTime.toLocaleString()})`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fetch fresh data from database
       const [jobs, resumeData] = await Promise.all([
         getAllJobPostingsAction(),
         getAllResumesAction()
       ]);
-      setJobPostings(jobs as unknown as JobPosting[]);
-      setResumes(resumeData as unknown as Resume[]);
-      setFilteredJobs(jobs as unknown as JobPosting[]);
-      setMessage(`Loaded ${jobs.length} job postings and ${resumeData.length} resumes from MongoDB`);
+      
+      const jobPostingsData = jobs as unknown as JobPosting[];
+      const resumesData = resumeData as unknown as Resume[];
+      
+      setJobPostings(jobPostingsData);
+      setResumes(resumesData);
+      setFilteredJobs(jobPostingsData);
+      setDataCached(false);
+      setLastCacheTime(new Date());
+      
+      // Save to IndexedDB cache
+      const cacheSuccess = await saveToCache(jobPostingsData, resumesData);
+      if (!cacheSuccess) {
+        console.warn('Failed to save data to IndexedDB cache due to size limitations');
+        setCachingDisabled(true);
+        setMessage(`Loaded ${jobPostingsData.length} job postings and ${resumesData.length} resumes from MongoDB (caching disabled due to data size)`);
+      } else {
+        setCachingDisabled(false);
+        setMessage(`Loaded ${jobPostingsData.length} job postings and ${resumesData.length} resumes from MongoDB`);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -125,6 +395,34 @@ export function DataManagementPage() {
       setLoading(false);
     }
   };
+
+  // Clear cache
+  const clearCache = async () => {
+    try {
+      const db = await initDB();
+      await Promise.all([
+        db.clear(STORE_NAMES.JOB_POSTINGS),
+        db.clear(STORE_NAMES.RESUMES),
+        db.clear(STORE_NAMES.METADATA)
+      ]);
+      setDataCached(false);
+      setLastCacheTime(null);
+      setCachingDisabled(false);
+    } catch (error) {
+      console.error('Error clearing IndexedDB cache:', error);
+    }
+  };
+
+  // Force refresh data
+  const handleForceRefresh = async () => {
+    await clearCache();
+    await loadData(true);
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    loadData();
+  }, []);
 
   // Handle Excel file import
   const handleExcelImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,7 +443,8 @@ export function DataManagementPage() {
         fileData: base64Data 
       });
       setMessage(`Import completed: ${result.successCount} successful, ${result.failCount} failed`);
-      await loadData(); // Reload data
+      await clearCache(); // Clear IndexedDB cache since data has changed
+      await loadData(true); // Force refresh to get updated data
     } catch (error) {
       setMessage(`Import failed: ${error}`);
     } finally {
@@ -172,7 +471,8 @@ export function DataManagementPage() {
         fileData: base64Data 
       });
       setMessage(`Import completed: ${result.successCount} successful, ${result.failCount} failed`);
-      await loadData(); // Reload data
+      await clearCache(); // Clear IndexedDB cache since data has changed
+      await loadData(true); // Force refresh to get updated data
     } catch (error) {
       setMessage(`Import failed: ${error}`);
     } finally {
@@ -199,7 +499,8 @@ export function DataManagementPage() {
         fileData: base64Data 
       });
       setMessage(`Import completed: ${result.successCount} successful, ${result.failCount} failed`);
-      await loadData(); // Reload data
+      await clearCache(); // Clear IndexedDB cache since data has changed
+      await loadData(true); // Force refresh to get updated data
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       setMessage(`Import failed: ${errorMessage}`);
@@ -234,7 +535,8 @@ export function DataManagementPage() {
       setJobPostings([]);
       setResumes([]);
       setFilteredJobs([]);
-      setMessage('All data cleared successfully from MongoDB');
+      await clearCache(); // Clear IndexedDB cache as well
+      setMessage('All data cleared successfully from MongoDB and IndexedDB cache');
     } catch (error) {
       setMessage(`Failed to clear data: ${error}`);
     } finally {
@@ -278,6 +580,22 @@ export function DataManagementPage() {
     });
   };
 
+  // Handle job click for navigation
+  const handleJobClick = (job: JobPosting) => {
+    const jobId = job._id || job.jobTitle;
+    const finalJobId = String(jobId);
+    const encodedJobId = encodeURIComponent(finalJobId);
+    navigate(`/job/${encodedJobId}`);
+  };
+
+  // Handle resume click for navigation
+  const handleResumeClick = (resume: Resume) => {
+    const resumeId = resume._id || resume.personalInfo?.firstName + ' ' + resume.personalInfo?.lastName;
+    const finalResumeId = String(resumeId);
+    const encodedResumeId = encodeURIComponent(finalResumeId);
+    navigate(`/resume/${encodedResumeId}`);
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-8">
@@ -297,6 +615,42 @@ export function DataManagementPage() {
           {message}
         </div>
       )}
+
+      {/* Cache Status */}
+      <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className={`w-3 h-3 rounded-full ${
+              cachingDisabled ? 'bg-yellow-500' : 
+              dataCached ? 'bg-green-500' : 'bg-blue-500'
+            }`}></div>
+            <span className="text-sm font-medium">
+              {cachingDisabled ? 'Caching disabled (data too large)' :
+               dataCached ? 'Using IndexedDB cached data' : 'Using fresh data from database'}
+            </span>
+          </div>
+          {lastCacheTime && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Last updated: {lastCacheTime.toLocaleString()}
+            </span>
+          )}
+        </div>
+        {dataCached && !cachingDisabled && (
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+            IndexedDB cache expires in 30 minutes. Click "Refresh Data" to get the latest data from the database.
+          </p>
+        )}
+        {cachingDisabled && (
+          <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+            Data size exceeds IndexedDB limits. Caching is disabled to prevent errors.
+          </p>
+        )}
+        {!dataCached && !cachingDisabled && (
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+            Using IndexedDB for caching with 50MB capacity and automatic compression.
+          </p>
+        )}
+      </div>
 
       {/* Import Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -364,7 +718,7 @@ export function DataManagementPage() {
       {/* Actions Section */}
       <div className="flex flex-wrap gap-4 mb-8">
         <button
-          onClick={loadData}
+          onClick={handleForceRefresh}
           disabled={loading}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
@@ -453,18 +807,93 @@ export function DataManagementPage() {
 
       {/* Job Postings List */}
       {filteredJobs.length > 0 && (
+        <div className="border rounded-lg p-6 dark:border-gray-700 mb-8">
+          <button
+            onClick={() => setJobsSectionCollapsed(!jobsSectionCollapsed)}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <h3 className="text-lg font-semibold flex items-center">
+              <Briefcase className="mr-2" />
+              Job Postings ({filteredJobs.length})
+            </h3>
+            {jobsSectionCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronDown className="h-5 w-5" />
+            )}
+          </button>
+          
+          {!jobsSectionCollapsed && (
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {filteredJobs.map((job, index) => (
+                <div 
+                  key={job._id || index} 
+                  className="border rounded-lg p-4 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                  onClick={() => handleJobClick(job)}
+                >
+                  <h4 className="font-semibold text-lg">{job.jobTitle}</h4>
+                  <p className="text-gray-600 dark:text-gray-400">{job.location}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">{job.department}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">{job.salary}</p>
+                  <div className="mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                    Click to view full details →
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Resumes List */}
+      {resumes.length > 0 && (
         <div className="border rounded-lg p-6 dark:border-gray-700">
-          <h3 className="text-lg font-semibold mb-4">Job Postings ({filteredJobs.length})</h3>
-          <div className="space-y-4 max-h-96 overflow-y-auto">
-            {filteredJobs.map((job, index) => (
-              <div key={job._id || index} className="border rounded-lg p-4 dark:border-gray-600">
-                <h4 className="font-semibold text-lg">{job.jobTitle}</h4>
-                <p className="text-gray-600 dark:text-gray-400">{job.location}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-500">{job.department}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-500">{job.salary}</p>
-              </div>
-            ))}
-          </div>
+          <button
+            onClick={() => setResumesSectionCollapsed(!resumesSectionCollapsed)}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <h3 className="text-lg font-semibold flex items-center">
+              <User className="mr-2" />
+              Resumes ({resumes.length})
+            </h3>
+            {resumesSectionCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronDown className="h-5 w-5" />
+            )}
+          </button>
+          
+          {!resumesSectionCollapsed && (
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {resumes.map((resume, index) => (
+                <div 
+                  key={resume._id || index} 
+                  className="border rounded-lg p-4 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                  onClick={() => handleResumeClick(resume)}
+                >
+                  <h4 className="font-semibold text-lg">
+                    {resume.personalInfo?.firstName} {resume.personalInfo?.lastName}
+                  </h4>
+                  <p className="text-gray-600 dark:text-gray-400">{resume.personalInfo?.email}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                    {resume.personalInfo?.yearsOfExperience} years of experience
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">{resume.filename}</p>
+                  {resume.skills && Array.isArray(resume.skills) && resume.skills.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500 dark:text-gray-500">
+                        Skills: {resume.skills.slice(0, 3).join(', ')}
+                        {resume.skills.length > 3 && '...'}
+                      </p>
+                    </div>
+                  )}
+                  <div className="mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                    Click to view full details →
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
