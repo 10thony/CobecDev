@@ -1,9 +1,9 @@
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
 // MongoDB connection
-const MONGODB_USERNAME = 'adminuser';
-const MONGODB_PASSWORD = 'hnuWXvLBzcDfUbdZ';
-const MONGODB_CLUSTER = 'demo.y407omc.mongodb.net';
+const MONGODB_USERNAME = process.env.MONGODB_USERNAME || 'adminuser';
+const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || 'hnuWXvLBzcDfUbdZ';
+const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || 'demo.y407omc.mongodb.net';
 
 const uri = `mongodb+srv://${MONGODB_USERNAME}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_CLUSTER}/?retryWrites=true&w=majority`;
 
