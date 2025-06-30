@@ -1,0 +1,200 @@
+html, body, #root {
+  height: 100%;
+  min-height: 100vh;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.accent-text {
+  @apply text-slate-600 dark:text-slate-300;
+}
+
+body {
+  font-family:
+    "Inter Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Noto Sans",
+    sans-serif,
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol",
+    "Noto Color Emoji";
+  @apply text-gray-900 dark:text-white bg-white dark:bg-gray-900;
+}
+
+/* only use this to update the style of the auth input fields. use a different class for all other input fields */
+.auth-input-field {
+  @apply w-full px-4 py-3 rounded-container bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow shadow-sm hover:shadow dark:text-white;
+}
+
+/* only use this to update the style of the auth buttons. use the button class for all other buttons */
+.auth-button {
+  @apply w-full px-4 py-3 rounded bg-primary text-white font-semibold hover:bg-primary-hover transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Clerk component dark mode overrides */
+.dark [data-clerk-component="card"] {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark [data-clerk-component="formFieldInput"] {
+  @apply bg-gray-800 border-gray-700 text-white;
+}
+
+.dark [data-clerk-component="formButtonPrimary"] {
+  @apply bg-primary hover:bg-primary-hover;
+}
+
+.dark [data-clerk-component="headerTitle"] {
+  @apply text-white;
+}
+
+.dark [data-clerk-component="headerSubtitle"] {
+  @apply text-gray-300;
+}
+
+.dark [data-clerk-component="formFieldLabel"] {
+  @apply text-gray-300;
+}
+
+.dark [data-clerk-component="footerActionText"] {
+  @apply text-gray-300;
+}
+
+.dark [data-clerk-component="footerActionLink"] {
+  @apply text-blue-400 hover:text-blue-300;
+}
+
+.dark [data-clerk-component="socialButtonsBlockButton"] {
+  @apply bg-gray-700 text-white border-gray-600 hover:bg-gray-600;
+}
+
+.dark [data-clerk-component="dividerLine"] {
+  @apply bg-gray-700;
+}
+
+.dark [data-clerk-component="dividerText"] {
+  @apply text-gray-400 bg-gray-800;
+}
+
+.dark [data-clerk-component="formFieldErrorText"] {
+  @apply text-red-400;
+}
+
+.dark [data-clerk-component="alert"] {
+  @apply bg-red-900/20 border-red-800 text-red-200;
+}
+
+.dark [data-clerk-component="alertText"] {
+  @apply text-red-200;
+}
+
+.dark [data-clerk-component="alertIcon"] {
+  @apply text-red-400;
+}
+
+.dark [data-clerk-component="formFieldInputShowPasswordButton"] {
+  @apply text-gray-400 hover:text-gray-200;
+}
+
+.dark [data-clerk-component="formFieldAction"] {
+  @apply text-blue-400 hover:text-blue-300;
+}
+
+.dark [data-clerk-component="formFieldHintText"] {
+  @apply text-gray-400;
+}
+
+.dark [data-clerk-component="badge"] {
+  @apply bg-gray-700 text-white;
+}
+
+.dark [data-clerk-component="modalContent"] {
+  @apply bg-gray-800;
+}
+
+.dark [data-clerk-component="modalCloseButton"] {
+  @apply text-gray-400 hover:text-gray-200;
+}
+
+.dark [data-clerk-component="userPreviewMainIdentifier"] {
+  @apply text-white;
+}
+
+.dark [data-clerk-component="userPreviewSecondaryIdentifier"] {
+  @apply text-gray-400;
+}
+
+.dark [data-clerk-component="userPreviewAvatarBox"] {
+  @apply bg-gray-700;
+}
+
+.dark [data-clerk-component="userPreviewAvatarBoxText"] {
+  @apply text-gray-300;
+}
+
+.dark [data-clerk-component="userButtonPopoverCard"] {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark [data-clerk-component="userButtonPopoverActionButton"] {
+  @apply text-gray-300 hover:bg-gray-700;
+}
+
+.dark [data-clerk-component="userButtonPopoverActionButtonText"] {
+  @apply text-gray-300;
+}
+
+.dark [data-clerk-component="userButtonPopoverActionButtonIcon"] {
+  @apply text-gray-400;
+}
+
+.dark [data-clerk-component="userButtonPopoverFooter"] {
+  @apply border-gray-700;
+}
+
+.dark [data-clerk-component="userButtonTrigger"] {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark [data-clerk-component="userButtonTriggerUserPreview"] {
+  @apply text-white;
+}
+
+.dark [data-clerk-component="userButtonTriggerUserPreviewMainIdentifier"] {
+  @apply text-white;
+}
+
+.dark [data-clerk-component="userButtonTriggerUserPreviewSecondaryIdentifier"] {
+  @apply text-gray-400;
+}
+
+.dark [data-clerk-component="userButtonTriggerUserPreviewAvatarBox"] {
+  @apply bg-gray-700;
+}
+
+.dark [data-clerk-component="userButtonTriggerUserPreviewAvatarBoxText"] {
+  @apply text-gray-300;
+}
+
+.dark [data-clerk-component="userButtonTriggerUserPreviewChevron"] {
+  @apply text-gray-500;
+}
+
+/* Theme toggle button styles */
+.theme-toggle-button {
+  @apply fixed top-4 right-4 p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white;
+}
+
+.theme-toggle-button:focus {
+  @apply outline-none ring-2 ring-primary ring-offset-2 dark:ring-offset-gray-800;
+}
