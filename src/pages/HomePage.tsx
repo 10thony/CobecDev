@@ -29,7 +29,7 @@ export function HomePage() {
     <div className="min-h-full flex flex-col items-center justify-start py-8">
       <div className="max-w-2xl mx-auto text-center">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          Welcome to AJ.Chat
+          Welcome to AJAI
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
           Chat with AI models in real-time

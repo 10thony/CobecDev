@@ -1,6 +1,6 @@
 # Custom Theme System
 
-This document explains how to use and extend the custom theme system in the AJ.Chat application.
+This document explains how to use and extend the custom theme system in the AJAI application.
 
 ## Overview
 

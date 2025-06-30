@@ -1,6 +1,6 @@
-# T3.Chat Clone Implementation
+# AJAI Clone Implementation
   
-This is a project built with [Chef](https://chef.convex.dev) using [Convex](https://convex.dev) as its backend.
+This is a project built with [Convex](https://convex.dev) as its backend.
   
 This project is connected to the Convex deployment named [`keen-ant-543`](https://dashboard.convex.dev/d/keen-ant-543).
   
@@ -14,7 +14,7 @@ The backend code is in the `convex` directory.
 
 ## App authentication
 
-Chef apps use [Convex Auth](https://auth.convex.dev/) with Anonymous auth for easy sign in. You may wish to change this before deploying your app.
+This app uses [Convex Auth](https://auth.convex.dev/) with Anonymous auth for easy sign in. You may wish to change this before deploying your app.
 
 ## Developing and deploying your app
 
