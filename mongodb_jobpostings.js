@@ -1,6 +1,9 @@
-const XLSX = require('xlsx');
-const { MongoClient, ServerApiVersion } = require('mongodb');
-require('dotenv').config({ path: '.env.local' });
+import XLSX from 'xlsx';
+import { MongoClient, ServerApiVersion } from 'mongodb';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config({ path: '.env.local' });
 
 // MongoDB credentials from environment variables
 const MONGODB_USERNAME = process.env.MONGODB_USERNAME || 'adminuser';
@@ -289,7 +292,7 @@ async function main() {
 }
 
 // Export functions for potential reuse
-module.exports = {
+export {
   readExcelFile,
   insertJobData,
   getAllJobPostings,
@@ -298,6 +301,11 @@ module.exports = {
 };
 
 // Run the script if this file is executed directly
-if (require.main === module) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                     process.argv[1] === new URL(import.meta.url).pathname ||
+                     process.argv[1].endsWith('mongodb_jobpostings.js');
+
+if (isMainModule) {
+  console.log('Starting MongoDB job postings import...');
   main().catch(console.error);
 } 

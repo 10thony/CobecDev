@@ -381,7 +381,7 @@ export const searchSimilarJobsEnhanced = action({
         maxIdleTimeMS: 30000,
         retryWrites: true,
         retryReads: true,
-        ssl: true,
+        tls: true,
       });
       
       await client.connect();
@@ -579,7 +579,7 @@ export const searchSimilarResumesEnhanced = action({
         maxIdleTimeMS: 30000,
         retryWrites: true,
         retryReads: true,
-        ssl: true,
+        tls: true,
       });
       
       await client.connect();
@@ -852,7 +852,7 @@ export const getJobById = action({
         maxIdleTimeMS: 30000,
         retryWrites: true,
         retryReads: true,
-        ssl: true,
+        tls: true,
       });
       
       await client.connect();
@@ -923,7 +923,7 @@ export const getResumeById = action({
         maxIdleTimeMS: 30000,
         retryWrites: true,
         retryReads: true,
-        ssl: true,
+        tls: true,
       });
       
       await client.connect();
@@ -1011,7 +1011,7 @@ export const searchSimilarJobs = action({
         maxIdleTimeMS: 30000,
         retryWrites: true,
         retryReads: true,
-        ssl: true,
+        tls: true,
       });
       
       await client.connect();
@@ -1100,7 +1100,7 @@ export const searchSimilarResumes = action({
         maxIdleTimeMS: 30000,
         retryWrites: true,
         retryReads: true,
-        ssl: true,
+        tls: true,
       });
       
       await client.connect();
@@ -1253,7 +1253,7 @@ export const testResumeMapping = action({
         maxIdleTimeMS: 30000,
         retryWrites: true,
         retryReads: true,
-        ssl: true,
+        tls: true,
       });
       
       await client.connect();
@@ -1364,7 +1364,7 @@ export const updateResume = action({
         maxIdleTimeMS: 30000,
         retryWrites: true,
         retryReads: true,
-        ssl: true,
+        tls: true,
       });
       
       await client.connect();

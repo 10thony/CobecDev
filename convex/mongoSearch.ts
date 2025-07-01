@@ -8,9 +8,9 @@ import * as mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 // MongoDB credentials
-const MONGODB_USERNAME = process.env.MONGODB_USERNAME || 'adminuser';
-const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || 'hnuWXvLBzcDfUbdZ';
-const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || 'demo.y407omc.mongodb.net';
+const MONGODB_USERNAME = process.env.MONGODB_USERNAME || '';
+const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || '';
+const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || '';
 
 const uri = `mongodb+srv://${MONGODB_USERNAME}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_CLUSTER}/workdemos?retryWrites=true&w=majority`;
 
@@ -96,14 +96,11 @@ export const getAllJobPostings = action({
           strict: true,
           deprecationErrors: true,
         },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
+        connectTimeoutMS: 30000,
+        socketTimeoutMS: 30000,
         maxPoolSize: 1,
         minPoolSize: 0,
         maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        ssl: true,
       });
       
       await client.connect();
@@ -140,14 +137,11 @@ export const getAllResumes = action({
           strict: true,
           deprecationErrors: true,
         },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
+        connectTimeoutMS: 30000,
+        socketTimeoutMS: 30000,
         maxPoolSize: 1,
         minPoolSize: 0,
         maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        ssl: true,
       });
       
       await client.connect();
@@ -189,14 +183,11 @@ export const searchJobPostings = action({
           strict: true,
           deprecationErrors: true,
         },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
+        connectTimeoutMS: 30000,
+        socketTimeoutMS: 30000,
         maxPoolSize: 1,
         minPoolSize: 0,
         maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        ssl: true,
       });
       
       await client.connect();
@@ -288,9 +279,6 @@ export const importExcelData = action({
         maxPoolSize: 1,
         minPoolSize: 0,
         maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        ssl: true,
       });
       
       await client.connect();
@@ -408,9 +396,6 @@ export const importJsonData = action({
         maxPoolSize: 1,
         minPoolSize: 0,
         maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        ssl: true,
       });
       
       await client.connect();
@@ -529,9 +514,6 @@ export const importOfficeDocument = action({
         maxPoolSize: 1,
         minPoolSize: 0,
         maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        ssl: true,
       });
       
       await client.connect();
@@ -892,9 +874,6 @@ export const searchResumesInMongo = action({
         maxPoolSize: 1,
         minPoolSize: 0,
         maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        ssl: true,
       });
       
       await client.connect();
@@ -966,9 +945,6 @@ export const searchJobsInMongo = action({
         maxPoolSize: 1,
         minPoolSize: 0,
         maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        ssl: true,
       });
       
       await client.connect();
