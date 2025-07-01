@@ -2424,10 +2424,10 @@ async function parseResumeWithAI(text: string): Promise<any> {
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text();
+    const responseText = response.text();
     
     // Extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('Failed to parse AI response as JSON');
     }

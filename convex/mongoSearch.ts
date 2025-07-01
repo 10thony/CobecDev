@@ -975,6 +975,117 @@ export const searchJobsInMongo = action({
   },
 });
 
+// Filter resumes by text criteria (non-vector search)
+export const filterResumesByText = action({
+  args: {
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    email: v.optional(v.string()),
+    skills: v.optional(v.string()),
+    yearsOfExperience: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx, args) => {
+    let client;
+    
+    try {
+      console.log(`Filtering resumes with criteria:`, args);
+      
+      // Connect to MongoDB with serverless-optimized settings
+      client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 30000,
+      });
+      
+      await client.connect();
+      const db = client.db('workdemos');
+      const resumesCollection = db.collection('resumes');
+      
+      // Get all resumes
+      const resumes = await resumesCollection.find({}).toArray();
+      
+      console.log(`Found ${resumes.length} resumes in database`);
+      
+      // Filter resumes based on criteria
+      const filteredResumes = resumes.filter(resume => {
+        const convertedResume = convertMongoDocument(resume);
+        
+        // Check firstName
+        if (args.firstName && args.firstName.trim()) {
+          const resumeFirstName = convertedResume.personalInfo?.firstName || '';
+          if (!resumeFirstName.toLowerCase().includes(args.firstName.toLowerCase())) {
+            return false;
+          }
+        }
+        
+        // Check lastName
+        if (args.lastName && args.lastName.trim()) {
+          const resumeLastName = convertedResume.personalInfo?.lastName || '';
+          if (!resumeLastName.toLowerCase().includes(args.lastName.toLowerCase())) {
+            return false;
+          }
+        }
+        
+        // Check email
+        if (args.email && args.email.trim()) {
+          const resumeEmail = convertedResume.personalInfo?.email || '';
+          if (!resumeEmail.toLowerCase().includes(args.email.toLowerCase())) {
+            return false;
+          }
+        }
+        
+        // Check skills
+        if (args.skills && args.skills.trim()) {
+          const resumeSkills = Array.isArray(convertedResume.skills) 
+            ? convertedResume.skills.join(' ').toLowerCase()
+            : (convertedResume.skills || '').toLowerCase();
+          const searchSkills = args.skills.toLowerCase();
+          if (!resumeSkills.includes(searchSkills)) {
+            return false;
+          }
+        }
+        
+        // Check years of experience
+        if (args.yearsOfExperience && args.yearsOfExperience.trim()) {
+          const resumeYears = convertedResume.personalInfo?.yearsOfExperience || 0;
+          const searchYears = parseInt(args.yearsOfExperience);
+          if (!isNaN(searchYears) && resumeYears < searchYears) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+      
+      console.log(`Filtered to ${filteredResumes.length} resumes`);
+      
+      // Convert and return results
+      const limit = args.limit || 50;
+      const results = filteredResumes.slice(0, limit).map(resume => convertMongoDocument(resume));
+      
+      console.log(`Returning ${results.length} filtered resumes`);
+      return results;
+      
+    } catch (error) {
+      console.error('Error filtering resumes:', error);
+      throw new Error(`Failed to filter resumes: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      if (client) {
+        await client.close();
+      }
+    }
+  },
+});
+
 // Generate embeddings for a single resume object
 async function generateResumeEmbeddings(resumeData: any): Promise<{
   searchableText: string;
