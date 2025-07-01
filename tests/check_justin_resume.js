@@ -9,9 +9,9 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '.env.local') });
 
 // MongoDB credentials
-const MONGODB_USERNAME = process.env.MONGODB_USERNAME || '';
-const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || '';
-const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || '';
+const MONGODB_USERNAME = process.env.MONGODB_USERNAME || 'adminuser';
+const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || 'hnuWXvLBzcDfUbdZ';
+const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || 'demo.y407omc.mongodb.net';
 
 const uri = `mongodb+srv://${MONGODB_USERNAME}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_CLUSTER}/?retryWrites=true&w=majority`;
 

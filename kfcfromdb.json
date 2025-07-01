@@ -1,0 +1,1361 @@
+[{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5eb2"
+  },
+  "name": "Joe Carino",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.235Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.235Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5eb3"
+  },
+  "name": "Scott Gardner",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.305Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.305Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5eb4"
+  },
+  "name": "Dexter Ithal",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.351Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Individ",
+      "month": "JULY"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "May - TEAM",
+  "score": 60,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.351Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5eb5"
+  },
+  "name": "Michelle Ehlinger",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.395Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "SEPT"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "May - TEAM",
+  "score": 40,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.395Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5eb6"
+  },
+  "name": "Annette Barlia",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.438Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "SEPT"
+    }
+  ],
+  "march_status": "May - TEAM",
+  "score": 30,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.438Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5eb7"
+  },
+  "name": "Brannon Johanson",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.482Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "SEPT"
+    }
+  ],
+  "march_status": "May - TEAM",
+  "score": 30,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.482Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5eb8"
+  },
+  "name": "Matt Chesnut",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.525Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Individ",
+      "month": "JULY"
+    },
+    {
+      "type": "Team",
+      "month": "SEPT"
+    }
+  ],
+  "march_status": "May - TEAM, MAY - INDIVID",
+  "score": 70,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.525Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5eb9"
+  },
+  "name": "Shawn Sanchez",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.570Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.570Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5eba"
+  },
+  "name": "Scott White",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.613Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.613Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5ebb"
+  },
+  "name": "Chris Dumesnil",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.656Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    }
+  ],
+  "march_status": "May - TEAMx2",
+  "score": 30,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.656Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5ebc"
+  },
+  "name": "Curtis Lineberry",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.701Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.701Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5ebd"
+  },
+  "name": "Aaron Willems",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.745Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Individ",
+      "month": "JULY"
+    },
+    {
+      "type": "Team",
+      "month": "Dec",
+      "quantity": 2
+    }
+  ],
+  "march_status": "March - INDIVID, March - TEAM; May - TEAM",
+  "score": 90,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.745Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5ebe"
+  },
+  "name": "Jenn Billo",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.788Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY"
+    }
+  ],
+  "march_status": "March - TEAM x2;",
+  "score": 30,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.788Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5ebf"
+  },
+  "name": "George Bayer",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.834Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.834Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a8df79cf3dbf3d5ec0"
+  },
+  "name": "Jenny Lampe",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.877Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.877Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ec1"
+  },
+  "name": "Marina Tucker",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.920Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": null,
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.920Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ec2"
+  },
+  "name": "Ted Schuneman",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:25.967Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "March - INDIVID; May - TEAM, May - INDIVID",
+  "score": 70,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:25.967Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ec3"
+  },
+  "name": "Ellen Clark",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.009Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.009Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ec4"
+  },
+  "name": "Dan French",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.053Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "May - TEAMx2",
+  "score": 40,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.053Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ec5"
+  },
+  "name": "David Wickwire",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.096Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "SEPT"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "March - TEAM",
+  "score": 50,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.096Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ec6"
+  },
+  "name": "Alicia Spezialetti",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.138Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "March - INDIVID;",
+  "score": 50,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.138Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ec7"
+  },
+  "name": "Mary Wroth",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.182Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    }
+  ],
+  "march_status": null,
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.182Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ec8"
+  },
+  "name": "Brian Carroll",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.226Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Individ",
+      "month": "SEPT"
+    }
+  ],
+  "march_status": "May - INDIVID, May - Teamx2",
+  "score": 80,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.226Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ec9"
+  },
+  "name": "Sriram Krishnan",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.268Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    }
+  ],
+  "march_status": "May - TEAM,",
+  "score": 30,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.268Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5eca"
+  },
+  "name": "Lisa Brown",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.311Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "MARCH"
+    }
+  ],
+  "march_status": null,
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.311Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ecb"
+  },
+  "name": "Mike Reiter",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.357Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Individ",
+      "month": "July"
+    }
+  ],
+  "march_status": "May - TEAMx3",
+  "score": 70,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.357Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ecc"
+  },
+  "name": "Adrian Aguinaldo",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.401Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "SEPT"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "March - TEAM",
+  "score": 50,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.401Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ecd"
+  },
+  "name": "Justin Martinez",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.445Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "MAY"
+    },
+    {
+      "type": "Individ",
+      "month": "Dec",
+      "quantity": 2
+    }
+  ],
+  "march_status": "May - INDIVID;",
+  "score": 80,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.445Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ece"
+  },
+  "name": "Kristin Scully",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.490Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "MAY"
+    },
+    {
+      "type": "Individ",
+      "month": "JULY"
+    },
+    {
+      "type": "Individ",
+      "month": "SEPT"
+    }
+  ],
+  "march_status": "March - INDIVID;",
+  "score": 40,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.490Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ecf"
+  },
+  "name": "Kyle Evans",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.534Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "MAY"
+    },
+    {
+      "type": "Individ",
+      "month": "SEPT"
+    }
+  ],
+  "march_status": "May - INDIVID;",
+  "score": 60,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.534Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ed0"
+  },
+  "name": "Nick Amatuzzi",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.578Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY",
+      "quantity": 2
+    },
+    {
+      "type": "Team",
+      "month": "SEPT"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "March - TEAM; May - TEAM",
+  "score": 60,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.578Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ed1"
+  },
+  "name": "Carly DeRose",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.624Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "July"
+    },
+    {
+      "type": "Individ",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "May - TEAM",
+  "score": 60,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.624Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ed2"
+  },
+  "name": "Nick Celio",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.669Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "July"
+    }
+  ],
+  "march_status": "March - TEAM",
+  "score": 50,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.669Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ed3"
+  },
+  "name": "Andrew Winchell",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.720Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY",
+      "quantity": 2
+    },
+    {
+      "type": "Individ",
+      "month": "JULY"
+    },
+    {
+      "type": "Team",
+      "month": "DEC",
+      "quantity": 2
+    },
+    {
+      "type": "Individ",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "March - TEAM; May - INDIVID",
+  "score": 120,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.720Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ed4"
+  },
+  "name": "Jack Hom",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.762Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "MARCH"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "SEPT"
+    },
+    {
+      "type": "Individ",
+      "month": "Dec"
+    }
+  ],
+  "march_status": "March - INDIVID, March - TEAM; May - TEAM",
+  "score": 100,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.762Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ed5"
+  },
+  "name": "Jon Cardiello",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.806Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY"
+    },
+    {
+      "type": "Individ",
+      "month": "MAY"
+    }
+  ],
+  "march_status": null,
+  "score": 30,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.806Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466a9df79cf3dbf3d5ed6"
+  },
+  "name": "Ali Caico",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.851Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "MAY",
+      "quantity": 3
+    },
+    {
+      "type": "Individ",
+      "month": "JULY"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "March - TEAM",
+  "score": 70,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.851Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ed7"
+  },
+  "name": "Theodore Smith",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.897Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "MAY"
+    },
+    {
+      "type": "Team",
+      "month": "MAY"
+    }
+  ],
+  "march_status": "May - TEAM",
+  "score": 40,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.897Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ed8"
+  },
+  "name": "Philip Ashtianie",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.942Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "JULY"
+    },
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "May - TEAM, MAY - INDIVID;",
+  "score": 60,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.942Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ed9"
+  },
+  "name": "Nathan McQueen",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:26.986Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "SEPT"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:26.986Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5eda"
+  },
+  "name": "Anna Matveeva",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.040Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "SEPT"
+    },
+    {
+      "type": "Individ",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "March - INDIVID;",
+  "score": 60,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.040Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5edb"
+  },
+  "name": "Alan Stensland",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.083Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "SEPT"
+    }
+  ],
+  "march_status": "May - INDIVID;",
+  "score": 40,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.083Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5edc"
+  },
+  "name": "Mike Prater",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.127Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "SEPT"
+    }
+  ],
+  "march_status": null,
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.127Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5edd"
+  },
+  "name": "Eric Peters",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.172Z"
+  },
+  "events": [
+    {
+      "type": "Team",
+      "month": "DEC"
+    }
+  ],
+  "march_status": null,
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.172Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ede"
+  },
+  "name": "Sukaina Al Shami",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.217Z"
+  },
+  "events": [
+    {
+      "type": "Individ",
+      "month": "DEC"
+    }
+  ],
+  "march_status": "May - TEAM,",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.217Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5edf"
+  },
+  "name": "Memi Oladapo",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.261Z"
+  },
+  "events": [],
+  "march_status": "March - TEAM",
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.261Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee0"
+  },
+  "name": "Pam Simonovich",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.308Z"
+  },
+  "events": [],
+  "march_status": "March - INDIVID;",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.308Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee1"
+  },
+  "name": "Wilfred Tagud",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.353Z"
+  },
+  "events": [],
+  "march_status": "March - INDIVID;",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.353Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee2"
+  },
+  "name": "Cris Shaw",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.396Z"
+  },
+  "events": [],
+  "march_status": "May - TEAMx2",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.396Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee3"
+  },
+  "name": "Mo Hoffman",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.441Z"
+  },
+  "events": [],
+  "march_status": "May - TEAM,",
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.441Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee4"
+  },
+  "name": "Gina Weare",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.486Z"
+  },
+  "events": [],
+  "march_status": "May - INDIVID;",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.486Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee5"
+  },
+  "name": "Micah Kimel",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.534Z"
+  },
+  "events": [],
+  "march_status": "May - INDIVID;",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.534Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee6"
+  },
+  "name": "Stu Dornfeld",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.578Z"
+  },
+  "events": [],
+  "march_status": "May - TEAM",
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.578Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee7"
+  },
+  "name": "Chad Craun",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.626Z"
+  },
+  "events": [],
+  "march_status": "May - TEAM",
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.626Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee8"
+  },
+  "name": "Geoff lelliott",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.669Z"
+  },
+  "events": [],
+  "march_status": "May - TEAM",
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.669Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5ee9"
+  },
+  "name": "Hina Imam",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.713Z"
+  },
+  "events": [],
+  "march_status": "May - TEAM",
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.713Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5eea"
+  },
+  "name": "Mitch Stevens",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.771Z"
+  },
+  "events": [],
+  "march_status": "May - TEAM",
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.771Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5eeb"
+  },
+  "name": "David Rose",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.816Z"
+  },
+  "events": [],
+  "march_status": "May - INDIVID;",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.816Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466aadf79cf3dbf3d5eec"
+  },
+  "name": "Ebony Brooks",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.860Z"
+  },
+  "events": [],
+  "march_status": "May - INDIVID;",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.860Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466abdf79cf3dbf3d5eed"
+  },
+  "name": "Carl Martino",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.903Z"
+  },
+  "events": [],
+  "march_status": "May - INDIVID;",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.903Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466abdf79cf3dbf3d5eee"
+  },
+  "name": "Nate Swetland",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.949Z"
+  },
+  "events": [],
+  "march_status": "May - INDIVID;",
+  "score": 20,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.949Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "686466abdf79cf3dbf3d5eef"
+  },
+  "name": "Cleo",
+  "createdAt": {
+    "$date": "2025-07-01T22:52:27.993Z"
+  },
+  "events": [],
+  "march_status": "May - TEAM",
+  "score": 10,
+  "updatedAt": {
+    "$date": "2025-07-01T22:52:27.993Z"
+  }
+}]

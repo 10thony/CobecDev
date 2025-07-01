@@ -12,6 +12,7 @@ import { VectorSearchPage } from "./pages/VectorSearchPage";
 import { DataManagementPage } from "./pages/DataManagementPage";
 import { JobDetailsPage } from "./pages/JobDetailsPage";
 import { ResumeDetailsPage } from "./pages/ResumeDetailsPage";
+import { KfcManagementPage } from "./pages/KfcManagementPage";
 import TempChatPage from "./pages/TempChatPage";
 import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider } from "./lib/ThemeContext";
@@ -72,6 +73,7 @@ function AuthenticatedApp() {
         <Route path="/resume/:resumeId" element={<ResumeDetailsPage />} />
         <Route path="/theme-config" element={<ThemeConfigPage />} />
         <Route path="/data-management" element={<DataManagementPage />} />
+        <Route path="/kfc-management" element={<KfcManagementPage />} />
         {userRole === "admin" && (
           <Route path="/admin" element={<AdminPage />} />
         )}

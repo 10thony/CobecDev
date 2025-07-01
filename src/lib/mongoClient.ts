@@ -74,6 +74,40 @@ export interface Resume {
   };
 }
 
+export interface KfcEvent {
+  type: 'Team' | 'Individ';
+  month: string;
+  quantity?: number;
+}
+
+export interface KfcEntry {
+  _id?: string;
+  name: string;
+  events: KfcEvent[];
+  march_status: string | null;
+  score: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface Employee {
+  _id?: string;
+  name: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface Nomination {
+  _id?: string;
+  nominatedBy: string;
+  nominatedEmployee: string;
+  nominationType: 'Team' | 'Individual' | 'Growth';
+  description: string;
+  pointsAwarded: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface SearchCriteria {
   jobTitle?: string;
   location?: string;
@@ -136,6 +170,22 @@ class MongoClient {
           if (!db.objectStoreNames.contains('resumes')) {
             const resumeStore = db.createObjectStore('resumes', { keyPath: '_id', autoIncrement: true });
             resumeStore.createIndex('filename', 'filename', { unique: false });
+          }
+
+          if (!db.objectStoreNames.contains('kfcpoints')) {
+            const kfcStore = db.createObjectStore('kfcpoints', { keyPath: '_id', autoIncrement: true });
+            kfcStore.createIndex('name', 'name', { unique: true });
+          }
+
+          if (!db.objectStoreNames.contains('employees')) {
+            const employeesStore = db.createObjectStore('employees', { keyPath: '_id', autoIncrement: true });
+            employeesStore.createIndex('name', 'name', { unique: true });
+          }
+
+          if (!db.objectStoreNames.contains('nominations')) {
+            const nominationsStore = db.createObjectStore('nominations', { keyPath: '_id', autoIncrement: true });
+            nominationsStore.createIndex('nominatedEmployee', 'nominatedEmployee', { unique: false });
+            nominationsStore.createIndex('nominatedBy', 'nominatedBy', { unique: false });
           }
         };
       });
@@ -225,6 +275,11 @@ class Collection {
     return documents[0] || null;
   }
 
+  async findToArray(query: any = {}): Promise<any[]> {
+    const cursor = await this.find(query);
+    return await cursor.toArray();
+  }
+
   async countDocuments(query: any = {}): Promise<number> {
     const cursor = await this.find(query);
     const documents = await cursor.toArray();
@@ -255,6 +310,24 @@ class Collection {
       };
       
       getRequest.onerror = () => reject(getRequest.error);
+    });
+  }
+
+  async deleteOne(filter: any): Promise<{ deletedCount: number }> {
+    return new Promise((resolve, reject) => {
+      try {
+        const transaction = this.db.transaction([this.name], 'readwrite');
+        const store = transaction.objectStore(this.name);
+        
+        const deleteRequest = store.delete(filter._id);
+        
+        deleteRequest.onsuccess = () => resolve({ deletedCount: 1 });
+        deleteRequest.onerror = () => reject(new Error(`Failed to delete document: ${deleteRequest.error}`));
+        
+        transaction.onerror = () => reject(new Error(`Transaction failed: ${transaction.error}`));
+      } catch (error) {
+        reject(new Error(`Collection operation failed: ${error}`));
+      }
     });
   }
 
@@ -319,6 +392,29 @@ export async function resetDatabaseConnection(): Promise<void> {
   }
 }
 
+// Function to force database reinitialization by deleting and recreating the database
+export async function forceDatabaseReinitialization(): Promise<void> {
+  // Close existing connection
+  if (clientInstance) {
+    await clientInstance.close();
+    clientInstance = null;
+  }
+
+  // Delete the existing database
+  return new Promise((resolve, reject) => {
+    const deleteRequest = indexedDB.deleteDatabase('workdemos');
+    
+    deleteRequest.onerror = () => {
+      reject(deleteRequest.error);
+    };
+    
+    deleteRequest.onsuccess = () => {
+      console.log('Database deleted successfully, will be recreated on next access');
+      resolve();
+    };
+  });
+}
+
 // Debug function to check database status
 export async function debugDatabaseStatus(): Promise<{
   isConnected: boolean;
@@ -355,16 +451,14 @@ export async function getAllJobPostings(): Promise<JobPosting[]> {
   const client = await getMongoClient();
   const db = client.getDatabase('workdemos');
   const collection = db.collection('jobpostings');
-  const cursor = await collection.find({});
-  return await cursor.toArray();
+  return await collection.findToArray({});
 }
 
 export async function searchJobPostings(searchCriteria: SearchCriteria): Promise<JobPosting[]> {
   const client = await getMongoClient();
   const db = client.getDatabase('workdemos');
   const collection = db.collection('jobpostings');
-  const cursor = await collection.find(searchCriteria);
-  return await cursor.toArray();
+  return await collection.findToArray(searchCriteria);
 }
 
 export async function insertJobData(collection: Collection, jobData: JobPosting, index: number): Promise<boolean> {
@@ -382,8 +476,7 @@ export async function getAllJsonData(): Promise<Resume[]> {
   const client = await getMongoClient();
   const db = client.getDatabase('workdemos');
   const collection = db.collection('resumes');
-  const cursor = await collection.find({});
-  return await cursor.toArray();
+  return await collection.findToArray({});
 }
 
 export async function insertJsonData(collection: Collection, jsonData: Resume, filePath: string): Promise<boolean> {
@@ -395,4 +488,26 @@ export async function insertJsonData(collection: Collection, jsonData: Resume, f
     console.error(`✗ Failed to insert ${filePath}:`, error);
     return false;
   }
+}
+
+// KFC Points functions
+export async function getAllKfcEntries(): Promise<KfcEntry[]> {
+  const client = await getMongoClient();
+  const db = client.getDatabase('workdemos');
+  const collection = db.collection('kfcpoints');
+  return await collection.findToArray({});
+}
+
+export async function getAllEmployees(): Promise<Employee[]> {
+  const client = await getMongoClient();
+  const db = client.getDatabase('workdemos');
+  const collection = db.collection('employees');
+  return await collection.findToArray({});
+}
+
+export async function getAllNominations(): Promise<Nomination[]> {
+  const client = await getMongoClient();
+  const db = client.getDatabase('workdemos');
+  const collection = db.collection('nominations');
+  return await collection.findToArray({});
 } 
