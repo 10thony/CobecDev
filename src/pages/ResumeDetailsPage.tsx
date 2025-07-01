@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, MapPin, Mail, Phone, Calendar, GraduationCap, Briefcase, Award, FileText, ExternalLink, Save, Edit3, X, Check } from "lucide-react";
+import { ArrowLeft, User, MapPin, Mail, Phone, Calendar, GraduationCap, Briefcase, Award, FileText, ExternalLink, Save, Edit3, X, Check, Upload } from "lucide-react";
 
 interface ResumeDetails {
   _id: string;
@@ -52,9 +52,12 @@ export function ResumeDetailsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   
   const getResumeById = useAction(api.vectorSearch.getResumeById);
   const updateResume = useAction(api.vectorSearch.updateResume);
+  const updateResumeWithDocument = useAction(api.vectorSearch.updateResumeWithDocument);
 
   // Form state
   const [formData, setFormData] = useState<FormData>({
@@ -207,6 +210,81 @@ export function ResumeDetailsPage() {
     setSaveMessage(null);
   };
 
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        // Remove the data URL prefix
+        const base64Data = base64.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // Handle document upload for resume update
+  const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.docx')) {
+      setUploadMessage('Please select a .docx file');
+      return;
+    }
+
+    setUploadingDocument(true);
+    setUploadMessage('Processing document with AI parsing and generating new embeddings...');
+
+    try {
+      // Convert file to base64 for transmission
+      const base64Data = await fileToBase64(file);
+      
+      const result = await updateResumeWithDocument({
+        resumeId: decodeURIComponent(resumeId!),
+        fileName: file.name,
+        fileData: base64Data
+      });
+
+      if (result.success) {
+        setUploadMessage('Resume updated successfully with new document!');
+        
+        // Update the local state with the new data
+        if (result.updatedResume) {
+          setResumeDetails(result.updatedResume);
+          
+          // Update form data with new values
+          setFormData({
+            name: result.updatedResume.processedMetadata?.name || '',
+            email: result.updatedResume.processedMetadata?.email || '',
+            phone: result.updatedResume.processedMetadata?.phone || '',
+            location: result.updatedResume.processedMetadata?.location || '',
+            yearsOfExperience: result.updatedResume.processedMetadata?.yearsOfExperience || 0,
+            professionalSummary: result.updatedResume.professionalSummary || '',
+            workExperience: result.updatedResume.workExperience || '',
+            education: result.updatedResume.education || '',
+            skills: result.updatedResume.skills || '',
+            certifications: result.updatedResume.certifications || '',
+            projects: result.updatedResume.projects || '',
+            languages: result.updatedResume.languages || '',
+            additionalInformation: result.updatedResume.additionalInformation || '',
+          });
+        }
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => setUploadMessage(null), 5000);
+      } else {
+        setUploadMessage(`Error: ${result.message}`);
+      }
+    } catch (err: any) {
+      setUploadMessage(`Error: ${err.message || "Failed to update resume with document"}`);
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
+
   const formatSimilarity = (similarity: number) => {
     return `${(similarity * 100).toFixed(1)}%`;
   };
@@ -289,6 +367,15 @@ export function ResumeDetailsPage() {
                 {saveMessage}
               </div>
             )}
+            {uploadMessage && (
+              <div className={`px-3 py-2 rounded-md text-sm ${
+                uploadMessage.includes('Error') 
+                  ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' 
+                  : 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+              }`}>
+                {uploadMessage}
+              </div>
+            )}
             
             {isEditing ? (
               <div className="flex items-center space-x-2">
@@ -313,14 +400,85 @@ export function ResumeDetailsPage() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <Edit3 size={16} className="mr-2" />
-                Edit Resume
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  <Edit3 size={16} className="mr-2" />
+                  Edit Resume
+                </button>
+                <label className={`flex items-center px-4 py-2 rounded-md transition-colors cursor-pointer ${
+                  uploadingDocument 
+                    ? 'bg-purple-400 text-white cursor-not-allowed' 
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}>
+                  {uploadingDocument ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  ) : (
+                    <Upload size={16} className="mr-2" />
+                  )}
+                  {uploadingDocument ? 'Processing...' : 'Update with Document'}
+                  <input
+                    type="file"
+                    accept=".docx"
+                    onChange={handleDocumentUpload}
+                    disabled={uploadingDocument}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             )}
+          </div>
+        </div>
+
+        {/* Document Upload Section */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-700 p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                <Upload size={20} className="mr-2 text-purple-600 dark:text-purple-400" />
+                Update Resume with New Document
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Upload a new .docx file to update this resume with fresh AI parsing and embeddings. 
+                This will replace the current content with the new document's parsed data and generate new search vectors.
+              </p>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                <strong>What happens when you upload:</strong>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>AI extracts and structures all resume information</li>
+                  <li>New searchable text and embeddings are generated</li>
+                  <li>All fields are updated with the new document's content</li>
+                  <li>Search index is refreshed for better matching</li>
+                </ul>
+              </div>
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors cursor-pointer">
+                  <Upload size={16} className="mr-2" />
+                  {uploadingDocument ? 'Processing...' : 'Choose .docx File'}
+                  <input
+                    type="file"
+                    accept=".docx"
+                    onChange={handleDocumentUpload}
+                    disabled={uploadingDocument}
+                    className="hidden"
+                  />
+                </label>
+                {uploadingDocument && (
+                  <div className="flex items-center text-purple-600 dark:text-purple-400">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                    <span className="text-sm">Processing document...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Current File</div>
+              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                {resumeDetails.filename || 'Unknown'}
+              </div>
+            </div>
           </div>
         </div>
 
