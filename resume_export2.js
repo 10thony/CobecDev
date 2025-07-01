@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const mammoth = require('mammoth');
+const OpenAI = require('openai');
 
 // Hardcoded MongoDB credentials (for testing only)
 const MONGODB_USERNAME = 'adminuser';
@@ -17,6 +18,30 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+// Initialize OpenAI for embedding generation
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Generate embedding for text using OpenAI
+async function generateEmbedding(text) {
+  try {
+    if (!text || text.trim().length === 0) {
+      throw new Error('Empty text provided for embedding');
+    }
+    
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-ada-002',
+      input: text.trim(),
+    });
+    
+    return response.data[0].embedding;
+  } catch (error) {
+    console.error('Error generating embedding:', error.message);
+    throw error;
+  }
+}
 
 function extractDateFromFilename(filename) {
   // Remove file extension
@@ -506,6 +531,106 @@ async function displayResumeSummary(filePath) {
   }
 }
 
+// Generate embedding for a single resume object
+async function generateResumeEmbedding(resumeData) {
+  try {
+    // Create searchable text from resume data
+    const fields = [
+      resumeData.professionalSummary || '',
+      Array.isArray(resumeData.skills) ? resumeData.skills.join(' ') : resumeData.skills || '',
+      Array.isArray(resumeData.education) ? resumeData.education.join(' ') : resumeData.education || '',
+      resumeData.certifications || '',
+      resumeData.securityClearance || '',
+      resumeData.personalInfo ? `${resumeData.personalInfo.firstName || ''} ${resumeData.personalInfo.lastName || ''}`.trim() : '',
+      Array.isArray(resumeData.experience) ? 
+        resumeData.experience.map((exp) => 
+          `${exp.title || ''} ${exp.company || ''} ${Array.isArray(exp.responsibilities) ? exp.responsibilities.join(' ') : exp.responsibilities || ''}`
+        ).join(' ') : resumeData.experience || '',
+      resumeData.originalText || ''
+    ];
+    
+    const searchableText = fields.filter(Boolean).join(' ');
+    
+    if (!searchableText.trim()) {
+      console.warn('No searchable text generated for resume');
+      return {
+        searchableText: '',
+        embedding: [],
+        extractedSkills: []
+      };
+    }
+    
+    // Generate embedding using OpenAI
+    const embedding = await generateEmbedding(searchableText);
+    
+    // Extract skills if not already present
+    let extractedSkills = resumeData.skills || [];
+    if (!Array.isArray(extractedSkills) || extractedSkills.length === 0) {
+      // Simple skill extraction from text
+      const skillKeywords = [
+        'javascript', 'python', 'java', 'react', 'angular', 'vue', 'node.js', 'express',
+        'mongodb', 'mysql', 'postgresql', 'aws', 'azure', 'docker', 'kubernetes',
+        'git', 'agile', 'scrum', 'devops', 'ci/cd', 'rest api', 'graphql',
+        'typescript', 'html', 'css', 'sass', 'less', 'webpack', 'babel',
+        'machine learning', 'ai', 'data science', 'sql', 'nosql', 'redis',
+        'elasticsearch', 'kafka', 'rabbitmq', 'microservices', 'serverless',
+        'ios', 'android', 'swift', 'kotlin', 'flutter', 'react native'
+      ];
+      
+      const textLower = searchableText.toLowerCase();
+      extractedSkills = skillKeywords.filter(skill => textLower.includes(skill));
+    }
+    
+    return {
+      searchableText,
+      embedding,
+      extractedSkills
+    };
+  } catch (error) {
+    console.error('Error generating resume embedding:', error);
+    return {
+      searchableText: '',
+      embedding: [],
+      extractedSkills: []
+    };
+  }
+}
+
+// Process a single resume file with embedding generation
+async function processResumeWithEmbeddings(filePath) {
+  try {
+    console.log(`Processing resume with embeddings: ${path.basename(filePath)}`);
+    
+    const resumeData = await readDocxFile(filePath);
+    if (!resumeData) {
+      console.error(`Failed to process ${filePath}`);
+      return null;
+    }
+    
+    // Generate embeddings for the resume
+    const { searchableText, embedding, extractedSkills } = await generateResumeEmbedding(resumeData);
+    
+    // Add embedding data to resume
+    const resumeWithEmbeddings = {
+      ...resumeData,
+      searchableText,
+      embedding,
+      extractedSkills,
+      embeddingGeneratedAt: new Date()
+    };
+    
+    console.log(`✓ Generated embeddings for: ${path.basename(filePath)}`);
+    console.log(`  - Searchable text length: ${searchableText.length} characters`);
+    console.log(`  - Embedding dimensions: ${embedding.length}`);
+    console.log(`  - Extracted skills: ${extractedSkills.length}`);
+    
+    return resumeWithEmbeddings;
+  } catch (error) {
+    console.error(`Error processing resume with embeddings ${filePath}:`, error.message);
+    return null;
+  }
+}
+
 // Command line interface
 async function main() {
   const args = process.argv.slice(2);
@@ -542,6 +667,20 @@ async function main() {
       await exportResumeData(singleFilePath, singleOutputDir);
       break;
       
+    case 'embeddings':
+      const embeddingFilePath = args[1];
+      if (!embeddingFilePath) {
+        console.error('Please provide a file path for embedding generation');
+        console.log('Usage: node resume_export2.js embeddings <filepath>');
+        return;
+      }
+      const resumeWithEmbeddings = await processResumeWithEmbeddings(embeddingFilePath);
+      if (resumeWithEmbeddings) {
+        console.log('\n--- Resume with Embeddings ---');
+        console.log(JSON.stringify(resumeWithEmbeddings, null, 2));
+      }
+      break;
+      
     default:
       console.log('Resume Export Tool');
       console.log('');
@@ -550,6 +689,7 @@ async function main() {
       console.log('  node resume_export2.js mongodb               - Insert all resumes to MongoDB');
       console.log('  node resume_export2.js process <filepath> [outputdir] - Process a single file');
       console.log('  node resume_export2.js summary <filepath>     - Display summary of a single file');
+      console.log('  node resume_export2.js embeddings <filepath>  - Process a single file with embedding generation');
       console.log('');
       console.log('Examples:');
       console.log('  node resume_export2.js export');
@@ -557,6 +697,7 @@ async function main() {
       console.log('  node resume_export2.js mongodb');
       console.log('  node resume_export2.js process ./path/to/resume.docx');
       console.log('  node resume_export2.js summary ./path/to/resume.docx');
+      console.log('  node resume_export2.js embeddings ./path/to/resume.docx');
       break;
   }
 }
@@ -577,5 +718,7 @@ module.exports = {
   exportResumeData,
   exportAllResumes,
   insertAllResumesToMongoDB,
-  displayResumeSummary
+  displayResumeSummary,
+  generateResumeEmbedding,
+  processResumeWithEmbeddings
 };

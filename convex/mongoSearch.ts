@@ -434,25 +434,20 @@ export const importJsonData = action({
         },
       };
       
-      await resumesCollection.insertOne(document);
-      console.log(`Successfully imported ${args.fileName}`);
-
-      // Generate embedding for the resume's searchable text
-      const fields = [
-        document.professionalSummary,
-        (document.skills || []).join(' '),
-        (document.education || []).join(' '),
-        document.certifications,
-        document.securityClearance,
-        document.personalInfo ? `${document.personalInfo.firstName || ''} ${document.personalInfo.lastName || ''}`.trim() : '',
-        (document.experience || []).map((exp: any) => `${exp.title} ${exp.company} ${(exp.responsibilities || []).join(' ')}`).join(' ')
-      ];
-      const combinedText = fields.filter(Boolean).join(' ');
-      const embedding = await generateEmbeddingForText(combinedText);
-      await resumesCollection.updateOne(
-        { filename: document.filename },
-        { $set: { embedding: embedding, searchableText: combinedText } }
-      );
+      // Generate embeddings for the resume
+      const { searchableText, embedding, extractedSkills } = await generateResumeEmbeddings(document);
+      
+      // Add embedding data to document
+      const finalDocument = {
+        ...document,
+        searchableText,
+        embedding,
+        extractedSkills,
+        embeddingGeneratedAt: new Date()
+      };
+      
+      await resumesCollection.insertOne(finalDocument);
+      console.log(`Successfully imported ${args.fileName} with embeddings`);
 
       return { successCount: 1, failCount: 0 };
       
@@ -544,36 +539,28 @@ export const importOfficeDocument = action({
           importedAt: new Date(),
           parsedAt: new Date()
         },
-        extractedSkills: structuredData.skills || [],
         processedAt: new Date().toISOString(),
         processedMetadata: {
           sourceFile: args.fileName,
           extractionMethod: 'mammoth + AI',
           textLength: extractedText.length
-        },
-        searchableText: structuredData.professionalSummary || extractedText.substring(0, 500),
-        embedding: []
+        }
       };
       
-      await resumesCollection.insertOne(document);
-      console.log(`Successfully imported ${args.fileName} with AI parsing`);
-
-      // Generate embedding for the resume's searchable text
-      const fields = [
-        document.professionalSummary,
-        (document.skills || []).join(' '),
-        (document.education || []).join(' '),
-        document.certifications,
-        document.securityClearance,
-        document.personalInfo ? `${document.personalInfo.firstName || ''} ${document.personalInfo.lastName || ''}`.trim() : '',
-        (document.experience || []).map((exp: any) => `${exp.title} ${exp.company} ${(exp.responsibilities || []).join(' ')}`).join(' ')
-      ];
-      const combinedText = fields.filter(Boolean).join(' ');
-      const embedding = await generateEmbeddingForText(combinedText);
-      await resumesCollection.updateOne(
-        { filename: document.filename },
-        { $set: { embedding: embedding, searchableText: combinedText } }
-      );
+      // Generate embeddings for the resume
+      const { searchableText, embedding, extractedSkills } = await generateResumeEmbeddings(document);
+      
+      // Add embedding data to document
+      const finalDocument = {
+        ...document,
+        searchableText,
+        embedding,
+        extractedSkills: extractedSkills || structuredData.skills || [],
+        embeddingGeneratedAt: new Date()
+      };
+      
+      await resumesCollection.insertOne(finalDocument);
+      console.log(`Successfully imported ${args.fileName} with AI parsing and embeddings`);
 
       return { successCount: 1, failCount: 0 };
       
@@ -984,6 +971,125 @@ export const searchJobsInMongo = action({
       if (client) {
         await client.close();
       }
+    }
+  },
+});
+
+// Generate embeddings for a single resume object
+async function generateResumeEmbeddings(resumeData: any): Promise<{
+  searchableText: string;
+  embedding: number[];
+  extractedSkills?: string[];
+}> {
+  try {
+    // Create searchable text from resume data
+    const fields = [
+      resumeData.professionalSummary || '',
+      Array.isArray(resumeData.skills) ? resumeData.skills.join(' ') : resumeData.skills || '',
+      Array.isArray(resumeData.education) ? resumeData.education.join(' ') : resumeData.education || '',
+      resumeData.certifications || '',
+      resumeData.securityClearance || '',
+      resumeData.personalInfo ? `${resumeData.personalInfo.firstName || ''} ${resumeData.personalInfo.lastName || ''}`.trim() : '',
+      Array.isArray(resumeData.experience) ? 
+        resumeData.experience.map((exp: any) => 
+          `${exp.title || ''} ${exp.company || ''} ${Array.isArray(exp.responsibilities) ? exp.responsibilities.join(' ') : exp.responsibilities || ''}`
+        ).join(' ') : resumeData.experience || '',
+      resumeData.originalText || ''
+    ];
+    
+    const searchableText = fields.filter(Boolean).join(' ');
+    
+    if (!searchableText.trim()) {
+      console.warn('No searchable text generated for resume');
+      return {
+        searchableText: '',
+        embedding: [],
+        extractedSkills: []
+      };
+    }
+    
+    // Generate embedding
+    const embedding = await generateEmbeddingForText(searchableText);
+    
+    // Extract skills if not already present
+    let extractedSkills = resumeData.skills || [];
+    if (!Array.isArray(extractedSkills) || extractedSkills.length === 0) {
+      // Simple skill extraction from text
+      const skillKeywords = [
+        'javascript', 'python', 'java', 'react', 'angular', 'vue', 'node.js', 'express',
+        'mongodb', 'mysql', 'postgresql', 'aws', 'azure', 'docker', 'kubernetes',
+        'git', 'agile', 'scrum', 'devops', 'ci/cd', 'rest api', 'graphql',
+        'typescript', 'html', 'css', 'sass', 'less', 'webpack', 'babel',
+        'machine learning', 'ai', 'data science', 'sql', 'nosql', 'redis',
+        'elasticsearch', 'kafka', 'rabbitmq', 'microservices', 'serverless',
+        'ios', 'android', 'swift', 'kotlin', 'flutter', 'react native'
+      ];
+      
+      const textLower = searchableText.toLowerCase();
+      extractedSkills = skillKeywords.filter(skill => textLower.includes(skill));
+    }
+    
+    return {
+      searchableText,
+      embedding,
+      extractedSkills
+    };
+  } catch (error) {
+    console.error('Error generating resume embeddings:', error);
+    return {
+      searchableText: '',
+      embedding: [],
+      extractedSkills: []
+    };
+  }
+}
+
+// Generate embeddings for a single resume object on demand
+export const generateEmbeddingsForResume = action({
+  args: {
+    resumeData: v.any(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    searchableText: v.string(),
+    embedding: v.array(v.number()),
+    extractedSkills: v.array(v.string()),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    try {
+      console.log('Generating embeddings for resume object');
+      
+      // Generate embeddings using the utility function
+      const { searchableText, embedding, extractedSkills } = await generateResumeEmbeddings(args.resumeData);
+      
+      if (embedding.length === 0) {
+        return {
+          success: false,
+          searchableText: '',
+          embedding: [],
+          extractedSkills: [],
+          message: 'Failed to generate embeddings - no searchable text found'
+        };
+      }
+      
+      return {
+        success: true,
+        searchableText,
+        embedding,
+        extractedSkills: extractedSkills || [],
+        message: `Successfully generated embeddings with ${embedding.length} dimensions`
+      };
+      
+    } catch (error) {
+      console.error('Error generating embeddings for resume:', error);
+      return {
+        success: false,
+        searchableText: '',
+        embedding: [],
+        extractedSkills: [],
+        message: `Error generating embeddings: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
     }
   },
 }); 

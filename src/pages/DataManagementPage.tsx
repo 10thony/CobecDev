@@ -463,6 +463,7 @@ export function DataManagementPage() {
     }
 
     setLoading(true);
+    setMessage('Importing JSON file and generating embeddings...');
     try {
       // Convert file to base64 for transmission
       const base64Data = await fileToBase64(file);
@@ -470,7 +471,7 @@ export function DataManagementPage() {
         fileName: file.name, 
         fileData: base64Data 
       });
-      setMessage(`Import completed: ${result.successCount} successful, ${result.failCount} failed`);
+      setMessage(`Import completed: ${result.successCount} successful, ${result.failCount} failed. Embeddings generated for vector search.`);
       await clearCache(); // Clear IndexedDB cache since data has changed
       await loadData(true); // Force refresh to get updated data
     } catch (error) {
@@ -491,6 +492,7 @@ export function DataManagementPage() {
     }
 
     setLoading(true);
+    setMessage('Processing DOCX file with AI parsing and generating embeddings...');
     try {
       // Convert file to base64 for transmission
       const base64Data = await fileToBase64(file);
@@ -498,7 +500,7 @@ export function DataManagementPage() {
         fileName: file.name, 
         fileData: base64Data 
       });
-      setMessage(`Import completed: ${result.successCount} successful, ${result.failCount} failed`);
+      setMessage(`Import completed: ${result.successCount} successful, ${result.failCount} failed. AI parsing and embeddings generated for vector search.`);
       await clearCache(); // Clear IndexedDB cache since data has changed
       await loadData(true); // Force refresh to get updated data
     } catch (error) {
