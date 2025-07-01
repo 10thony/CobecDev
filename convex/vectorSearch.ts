@@ -393,9 +393,9 @@ export const searchSimilarJobsEnhanced = action({
       
       // Calculate similarities and apply filters with enhanced scoring
       const similarities = jobs
-        .filter((job: any) => job.embedding && Array.isArray(job.embedding))
+        .filter((job: any) => job.embeddings?.combinedEmbedding && Array.isArray(job.embeddings.combinedEmbedding))
         .map((job: any) => {
-          const baseSimilarity = cosineSimilarity(queryEmbedding, job.embedding);
+          const baseSimilarity = cosineSimilarity(queryEmbedding, job.embeddings.combinedEmbedding);
           
           // Get job text for skill analysis
           const jobText = (job.searchableText || '').toLowerCase();
@@ -1234,10 +1234,10 @@ export const searchSimilarJobs = action({
       
       // Calculate similarities for jobs with embeddings
       const similarities = jobs
-        .filter((job: any) => job.embedding && Array.isArray(job.embedding))
+        .filter((job: any) => job.embeddings?.combinedEmbedding && Array.isArray(job.embeddings.combinedEmbedding))
         .map((job: any) => ({
           job: job,
-          similarity: cosineSimilarity(queryEmbedding, job.embedding)
+          similarity: cosineSimilarity(queryEmbedding, job.embeddings.combinedEmbedding)
         }));
       
       console.log(`Calculated similarities for ${similarities.length} jobs with embeddings`);
@@ -1777,14 +1777,14 @@ export const searchSimilarJobsPure = action({
       const jobsCollection = db.collection('jobpostings');
       
       // Get all jobs with embeddings
-      const jobs = await jobsCollection.find({ embedding: { $exists: true } }).toArray();
+      const jobs = await jobsCollection.find({ "embeddings.combinedEmbedding": { $exists: true } }).toArray();
       console.log(`Found ${jobs.length} jobs with embeddings`);
       
       // Calculate pure vector similarities
       const similarities = jobs
-        .filter((job: any) => job.embedding && Array.isArray(job.embedding))
+        .filter((job: any) => job.embeddings?.combinedEmbedding && Array.isArray(job.embeddings.combinedEmbedding))
         .map((job: any) => {
-          const similarity = cosineSimilarity(queryEmbedding, job.embedding);
+          const similarity = cosineSimilarity(queryEmbedding, job.embeddings.combinedEmbedding);
           return {
             job: job,
             similarity: similarity
@@ -2026,17 +2026,17 @@ export const crossMatchedVectorSearch = action({
       const resumesCollection = db.collection('resumes');
       
       // Get top jobs and resumes based on query similarity
-      const jobs = await jobsCollection.find({ embedding: { $exists: true } }).toArray();
+      const jobs = await jobsCollection.find({ "embeddings.combinedEmbedding": { $exists: true } }).toArray();
       const resumes = await resumesCollection.find({}).toArray();
       
       console.log(`Found ${jobs.length} jobs and ${resumes.length} resumes`);
       
       // Calculate query similarities for jobs
       const jobSimilarities = jobs
-        .filter((job: any) => job.embedding && Array.isArray(job.embedding))
+        .filter((job: any) => job.embeddings?.combinedEmbedding && Array.isArray(job.embeddings.combinedEmbedding))
         .map((job: any) => ({
           job: job,
-          querySimilarity: cosineSimilarity(queryEmbedding, job.embedding)
+          querySimilarity: cosineSimilarity(queryEmbedding, job.embeddings.combinedEmbedding)
         }))
         .filter(item => item.querySimilarity >= minSimilarity)
         .sort((a, b) => b.querySimilarity - a.querySimilarity)
@@ -2105,7 +2105,7 @@ export const crossMatchedVectorSearch = action({
             }
             
             // Calculate cross-match similarity
-            const crossMatchSimilarity = cosineSimilarity(jobItem.job.embedding, resumeEmbedding);
+            const crossMatchSimilarity = cosineSimilarity(jobItem.job.embeddings.combinedEmbedding, resumeEmbedding);
             
             if (crossMatchSimilarity >= crossMatchThreshold) {
               crossMatches.push({
