@@ -495,18 +495,19 @@ export function DataManagementPage() {
     }
   };
 
-  // Handle Office Open XML document import
+  // Handle Office Open XML document and PDF import
   const handleOfficeDocumentImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.docx')) {
-      setMessage('Please select a .docx file');
+    if (!file.name.endsWith('.docx') && !file.name.endsWith('.pdf')) {
+      setMessage('Please select a .docx or .pdf file');
       return;
     }
 
     setLoading(true);
-    setMessage('Processing DOCX file with AI parsing and generating embeddings...');
+    const fileType = file.name.endsWith('.docx') ? 'DOCX' : 'PDF';
+    setMessage(`Processing ${fileType} file with AI parsing and generating embeddings...`);
     try {
       // Convert file to base64 for transmission
       const base64Data = await fileToBase64(file);
@@ -519,7 +520,13 @@ export function DataManagementPage() {
       await loadData(true); // Force refresh to get updated data
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setMessage(`Import failed: ${errorMessage}`);
+      
+      // Provide more helpful error messages for PDF issues
+      if (errorMessage.includes('PDF parsing failed')) {
+        setMessage('PDF parsing failed. Please ensure the PDF is not password-protected and contains readable text. Try converting the PDF to a .docx file and upload that instead.');
+      } else {
+        setMessage(`Import failed: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -741,19 +748,19 @@ export function DataManagementPage() {
           </label>
         </div>
 
-        {/* Office Open XML Import */}
+        {/* Office Open XML and PDF Import */}
         <div className="border rounded-lg p-6 dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <FileText className="mr-2" />
-            Import Resumes (DOCX)
+            Import Resumes (DOCX/PDF)
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Upload a .docx file - AI will extract and structure the resume data
+            Upload a .docx or .pdf file - AI will extract and structure the resume data
           </p>
           <label className="block">
             <input
               type="file"
-              accept=".docx"
+              accept=".docx,.pdf"
               onChange={handleOfficeDocumentImport}
               disabled={loading}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-900 dark:file:text-purple-300"

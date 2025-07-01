@@ -230,13 +230,14 @@ export function ResumeDetailsPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.docx')) {
-      setUploadMessage('Please select a .docx file');
+    if (!file.name.endsWith('.docx') && !file.name.endsWith('.pdf')) {
+      setUploadMessage('Please select a .docx or .pdf file');
       return;
     }
 
     setUploadingDocument(true);
-    setUploadMessage('Processing document with AI parsing and generating new embeddings...');
+    const fileType = file.name.endsWith('.docx') ? 'DOCX' : 'PDF';
+    setUploadMessage(`Processing ${fileType} document with AI parsing and generating new embeddings...`);
 
     try {
       // Convert file to base64 for transmission
@@ -276,10 +277,24 @@ export function ResumeDetailsPage() {
         // Clear success message after 5 seconds
         setTimeout(() => setUploadMessage(null), 5000);
       } else {
-        setUploadMessage(`Error: ${result.message}`);
+        const errorMessage = result.message || "Failed to update resume with document";
+        
+        // Provide more helpful error messages for PDF issues
+        if (errorMessage.includes('PDF parsing failed')) {
+          setUploadMessage('PDF parsing failed. Please ensure the PDF is not password-protected and contains readable text. Try converting the PDF to a .docx file and upload that instead.');
+        } else {
+          setUploadMessage(`Error: ${errorMessage}`);
+        }
       }
     } catch (err: any) {
-      setUploadMessage(`Error: ${err.message || "Failed to update resume with document"}`);
+      const errorMessage = err.message || "Failed to update resume with document";
+      
+      // Provide more helpful error messages for PDF issues
+      if (errorMessage.includes('PDF parsing failed')) {
+        setUploadMessage('PDF parsing failed. Please ensure the PDF is not password-protected and contains readable text. Try converting the PDF to a .docx file and upload that instead.');
+      } else {
+        setUploadMessage(`Error: ${errorMessage}`);
+      }
     } finally {
       setUploadingDocument(false);
     }
@@ -418,10 +433,10 @@ export function ResumeDetailsPage() {
                   ) : (
                     <Upload size={16} className="mr-2" />
                   )}
-                  {uploadingDocument ? 'Processing...' : 'Update with Document'}
+                  {uploadingDocument ? 'Processing...' : 'Update with Document (.docx/.pdf)'}
                   <input
                     type="file"
-                    accept=".docx"
+                    accept=".docx,.pdf"
                     onChange={handleDocumentUpload}
                     disabled={uploadingDocument}
                     className="hidden"
@@ -441,7 +456,7 @@ export function ResumeDetailsPage() {
                 Update Resume with New Document
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Upload a new .docx file to update this resume with fresh AI parsing and embeddings. 
+                Upload a new .docx or .pdf file to update this resume with fresh AI parsing and embeddings. 
                 This will replace the current content with the new document's parsed data and generate new search vectors.
               </p>
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
@@ -456,10 +471,10 @@ export function ResumeDetailsPage() {
               <div className="flex items-center space-x-4">
                 <label className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors cursor-pointer">
                   <Upload size={16} className="mr-2" />
-                  {uploadingDocument ? 'Processing...' : 'Choose .docx File'}
+                  {uploadingDocument ? 'Processing...' : 'Choose .docx/.pdf File'}
                   <input
                     type="file"
-                    accept=".docx"
+                    accept=".docx,.pdf"
                     onChange={handleDocumentUpload}
                     disabled={uploadingDocument}
                     className="hidden"

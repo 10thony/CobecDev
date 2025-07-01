@@ -2211,6 +2211,83 @@ export const crossMatchedVectorSearch = action({
   },
 });
 
+// Helper function to extract text from PDF using multiple methods with fallback
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  let extractedText = '';
+  let lastError: Error | null = null;
+  
+  // Method 1: Try pdf-parse (original method)
+  try {
+    const pdfParse = require('pdf-parse');
+    const pdfData = await pdfParse(buffer);
+    if (pdfData.text && pdfData.text.trim().length > 0) {
+      console.log('PDF parsing successful with pdf-parse');
+      return pdfData.text;
+    }
+  } catch (error) {
+    console.log('pdf-parse failed, trying alternative method:', error instanceof Error ? error.message : 'Unknown error');
+    lastError = error instanceof Error ? error : new Error('pdf-parse failed');
+  }
+  
+  // Method 2: Try pdfjs-dist (Mozilla's PDF.js library)
+  try {
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    
+    // Set up the worker
+    const pdfjsWorker = require('pdfjs-dist/legacy/build/pdf.worker.entry');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
+    
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      // Combine text items
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      fullText += pageText + '\n';
+    }
+    
+    if (fullText.trim().length > 0) {
+      console.log('PDF parsing successful with pdfjs-dist');
+      return fullText;
+    }
+  } catch (error) {
+    console.log('pdfjs-dist failed, trying next method:', error instanceof Error ? error.message : 'Unknown error');
+    lastError = error instanceof Error ? error : new Error('pdfjs-dist failed');
+  }
+  
+  // Method 3: Try a more basic approach with pdf-parse but with different options
+  try {
+    const pdfParse = require('pdf-parse');
+    const pdfData = await pdfParse(buffer, {
+      // Try with different options
+      normalizeWhitespace: true,
+      disableCombineTextItems: false
+    });
+    
+    if (pdfData.text && pdfData.text.trim().length > 0) {
+      console.log('PDF parsing successful with pdf-parse (alternative options)');
+      return pdfData.text;
+    }
+  } catch (error) {
+    console.log('pdf-parse with alternative options failed:', error instanceof Error ? error.message : 'Unknown error');
+    lastError = error instanceof Error ? error : new Error('pdf-parse with alternative options failed');
+  }
+  
+  // If all methods failed, throw a comprehensive error
+  console.error('All PDF parsing methods failed. Last error:', lastError);
+  throw new Error('PDF parsing failed. Please ensure the PDF is not password-protected and contains readable text. Try converting the PDF to a .docx file and upload that instead.');
+}
+
 // Update resume with new document upload
 export const updateResumeWithDocument = action({
   args: {
@@ -2231,17 +2308,29 @@ export const updateResumeWithDocument = action({
       console.log(`Updating resume with ID: "${args.resumeId}" using document: ${args.fileName}`);
       
       // Validate file type
-      if (!args.fileName.toLowerCase().endsWith('.docx')) {
-        throw new Error('Only .docx files are supported for resume updates');
+      const fileName = args.fileName.toLowerCase();
+      if (!fileName.endsWith('.docx') && !fileName.endsWith('.pdf')) {
+        throw new Error('Only .docx and .pdf files are supported for resume updates');
       }
 
       // Decode base64 data
       const buffer = Buffer.from(args.fileData, 'base64');
       
-      // Extract text from the document using mammoth
-      const mammoth = require('mammoth');
-      const result = await mammoth.extractRawText({ buffer });
-      const extractedText = result.value;
+      let extractedText = '';
+      let extractionMethod = '';
+      
+      // Extract text based on file type
+      if (fileName.endsWith('.docx')) {
+        // Extract text from DOCX using mammoth
+        const mammoth = require('mammoth');
+        const result = await mammoth.extractRawText({ buffer });
+        extractedText = result.value;
+        extractionMethod = 'mammoth + AI';
+      } else if (fileName.endsWith('.pdf')) {
+        // Extract text from PDF using multiple parsing methods with fallback
+        extractedText = await extractTextFromPDF(buffer);
+        extractionMethod = 'multi-method PDF parsing + AI';
+      }
       
       if (!extractedText || extractedText.trim().length === 0) {
         throw new Error('No text content could be extracted from the document');
@@ -2369,10 +2458,30 @@ export const updateResumeWithDocument = action({
       
     } catch (error) {
       console.error('Error updating resume with document:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : "Failed to update resume with document",
-      };
+      const errorMessage = error instanceof Error ? error.message : "Failed to update resume with document";
+      
+      // Provide user-friendly error messages
+      if (errorMessage.includes('PDF parsing failed')) {
+        return {
+          success: false,
+          message: 'PDF parsing failed. Please ensure the PDF is not password-protected and contains readable text. Try converting the PDF to a .docx file and upload that instead.',
+        };
+      } else if (errorMessage.includes('Only .docx and .pdf files are supported')) {
+        return {
+          success: false,
+          message: 'This file type is not supported. Please upload a .docx or .pdf file.',
+        };
+      } else if (errorMessage.includes('No text content could be extracted')) {
+        return {
+          success: false,
+          message: 'Unable to extract text from this document. The file may be corrupted or password-protected.',
+        };
+      } else {
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
     } finally {
       if (client) {
         await client.close();
