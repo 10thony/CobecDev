@@ -27,6 +27,39 @@ function filterUniqueBy(arr: any[], keyFn: (item: any) => string | number | unde
   });
 }
 
+// Color utility for cross-matched results
+const getColorForIndex = (index: number) => {
+  const colors = [
+    'bg-red-100 border-red-300 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200',
+    'bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-200',
+    'bg-green-100 border-green-300 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200',
+    'bg-yellow-100 border-yellow-300 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-200',
+    'bg-purple-100 border-purple-300 text-purple-800 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-200',
+    'bg-pink-100 border-pink-300 text-pink-800 dark:bg-pink-900/20 dark:border-pink-800 dark:text-pink-200',
+    'bg-indigo-100 border-indigo-300 text-indigo-800 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-200',
+    'bg-orange-100 border-orange-300 text-orange-800 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-200',
+    'bg-teal-100 border-teal-300 text-teal-800 dark:bg-teal-900/20 dark:border-teal-800 dark:text-teal-200',
+    'bg-cyan-100 border-cyan-300 text-cyan-800 dark:bg-cyan-900/20 dark:border-cyan-800 dark:text-cyan-200',
+  ];
+  return colors[index % colors.length];
+};
+
+const getBorderColorForIndex = (index: number) => {
+  const colors = [
+    'border-l-red-500',
+    'border-l-blue-500',
+    'border-l-green-500',
+    'border-l-yellow-500',
+    'border-l-purple-500',
+    'border-l-pink-500',
+    'border-l-indigo-500',
+    'border-l-orange-500',
+    'border-l-teal-500',
+    'border-l-cyan-500',
+  ];
+  return colors[index % colors.length];
+};
+
 // Helper to create UniqueJobPostingId
 function getUniqueJobPostingId(job: any) {
   const jobTitle = job.jobTitle || "";
@@ -47,6 +80,7 @@ export function VectorSearchPage() {
   const aiAgentSearch = useAction(api.vectorSearch.aiAgentSearch);
   const searchSimilarJobsPure = useAction(api.vectorSearch.searchSimilarJobsPure);
   const searchSimilarResumesPure = useAction(api.vectorSearch.searchSimilarResumesPure);
+  const crossMatchedVectorSearch = useAction(api.vectorSearch.crossMatchedVectorSearch);
   const testResumeMapping = useAction(api.vectorSearch.testResumeMapping);
   const navigate = useNavigate();
   
@@ -58,7 +92,9 @@ export function VectorSearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoadedFromStorage, setIsLoadedFromStorage] = useState(false);
   const [usePureVectorSearch, setUsePureVectorSearch] = useState(true);
+  const [useCrossMatching, setUseCrossMatching] = useState(false);
   const [minSimilarity, setMinSimilarity] = useState(0.3);
+  const [crossMatchThreshold, setCrossMatchThreshold] = useState(0.4);
   const [skillFilter, setSkillFilter] = useState<string[]>([]);
   const [extractedSkills, setExtractedSkills] = useState<string[]>([]);
 
@@ -189,7 +225,16 @@ export function VectorSearchPage() {
     try {
       let searchResults;
       
-      if (usePureVectorSearch) {
+      if (useCrossMatching) {
+        // Use cross-matched vector search
+        searchResults = await crossMatchedVectorSearch({
+          query: query.trim(),
+          limit: limit,
+          minSimilarity: minSimilarity,
+          crossMatchThreshold: crossMatchThreshold,
+        });
+        setResults(searchResults);
+      } else if (usePureVectorSearch) {
         // Use pure vector search (no text-based substring matching)
         if (searchType === "jobs") {
           searchResults = await searchSimilarJobsPure({
@@ -429,6 +474,73 @@ export function VectorSearchPage() {
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
+                  id="useCrossMatching"
+                  checked={useCrossMatching}
+                  onChange={(e) => setUseCrossMatching(e.target.checked)}
+                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                />
+                <label htmlFor="useCrossMatching" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Use Cross-Matched Search (Only show jobs with matching resumes and vice versa)
+                </label>
+              </div>
+
+              {useCrossMatching && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Minimum Similarity Threshold
+                    </label>
+                    <select
+                      value={minSimilarity}
+                      onChange={(e) => setMinSimilarity(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <option value={0.1}>10% (Very Loose)</option>
+                      <option value={0.2}>20% (Loose)</option>
+                      <option value={0.3}>30% (Default)</option>
+                      <option value={0.4}>40% (Strict)</option>
+                      <option value={0.5}>50% (Very Strict)</option>
+                      <option value={0.6}>60% (Extremely Strict)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Cross-Match Threshold
+                    </label>
+                    <select
+                      value={crossMatchThreshold}
+                      onChange={(e) => setCrossMatchThreshold(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <option value={0.2}>20% (Very Loose)</option>
+                      <option value={0.3}>30% (Loose)</option>
+                      <option value={0.4}>40% (Default)</option>
+                      <option value={0.5}>50% (Strict)</option>
+                      <option value={0.6}>60% (Very Strict)</option>
+                      <option value={0.7}>70% (Extremely Strict)</option>
+                    </select>
+                  </div>
+
+                  {/* Cross-Match Search Info */}
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-md">
+                    <h4 className="text-sm font-medium text-purple-800 dark:text-purple-200 mb-2">
+                      Cross-Matched Search Features:
+                    </h4>
+                    <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                      <li>• <strong>Strict Matching:</strong> Only shows jobs with matching resumes and vice versa</li>
+                      <li>• <strong>Color Coding:</strong> Related jobs and resumes are highlighted with the same color</li>
+                      <li>• <strong>Quality Assurance:</strong> Ensures every result has a meaningful match</li>
+                      <li>• <strong>Dual Thresholds:</strong> Query similarity + cross-match similarity for precision</li>
+                      <li>• <strong>Visual Relationships:</strong> Easy to see which jobs match which resumes</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
                   id="usePureVectorSearch"
                   checked={usePureVectorSearch}
                   onChange={(e) => setUsePureVectorSearch(e.target.checked)}
@@ -439,7 +551,7 @@ export function VectorSearchPage() {
                 </label>
               </div>
 
-              {usePureVectorSearch && (
+              {usePureVectorSearch && !useCrossMatching && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Minimum Similarity Threshold
@@ -460,7 +572,7 @@ export function VectorSearchPage() {
               )}
 
               {/* Pure Vector Search Info */}
-              {usePureVectorSearch && (
+              {usePureVectorSearch && !useCrossMatching && (
                 <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
                   <h4 className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
                     Pure Vector Search Features:
@@ -534,49 +646,67 @@ export function VectorSearchPage() {
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                     Job Opportunities ({uniqueJobs.length})
                   </h2>
+                  {useCrossMatching && results?.colorGroups && (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      • {results.colorGroups.length} cross-matched groups
+                    </span>
+                  )}
                 </div>
                 <div className="grid gap-4">
-                  {uniqueJobs.map((job: any, index: number) => (
-                    <div 
-                      key={job.UniqueJobPostingId}
-                      className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer group"
-                      onClick={() => handleJobClick(job)}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {job.jobTitle}
-                        </h3>
-                        <div className="flex items-center space-x-2">
-                          <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-sm font-medium">
-                            {formatSimilarity(job.similarity)}
-                          </span>
-                          <ExternalLink size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+                  {uniqueJobs.map((job: any, index: number) => {
+                    const colorIndex = job.colorIndex !== undefined ? job.colorIndex : 0;
+                    const matchCount = useCrossMatching && results?.crossMatches ? 
+                      results.crossMatches.filter((match: any) => match.jobId === job._id).length : 0;
+                    
+                    return (
+                      <div 
+                        key={job.UniqueJobPostingId}
+                        className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer group ${
+                          useCrossMatching ? getBorderColorForIndex(colorIndex) + ' border-l-4' : ''
+                        }`}
+                        onClick={() => handleJobClick(job)}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {job.jobTitle}
+                          </h3>
+                          <div className="flex items-center space-x-2">
+                            {useCrossMatching && matchCount > 0 && (
+                              <span className={`px-2 py-1 rounded-full text-sm font-medium ${getColorForIndex(colorIndex)}`}>
+                                {matchCount} match{matchCount !== 1 ? 'es' : ''}
+                              </span>
+                            )}
+                            <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-sm font-medium">
+                              {formatSimilarity(job.similarity)}
+                            </span>
+                            <ExternalLink size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                          <div>
+                            <strong>Location:</strong> {job.location}
+                          </div>
+                          <div>
+                            <strong>Type:</strong> {job.jobType}
+                          </div>
+                          <div>
+                            <strong>Department:</strong> {job.department}
+                          </div>
+                          <div>
+                            <strong>Salary:</strong> {job.salary}
+                          </div>
+                        </div>
+                        {job.jobSummary && (
+                          <p className="text-gray-700 dark:text-gray-300 text-sm">
+                            {job.jobSummary.substring(0, 200)}...
+                          </p>
+                        )}
+                        <div className="mt-3 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                          Click to view full details →
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        <div>
-                          <strong>Location:</strong> {job.location}
-                        </div>
-                        <div>
-                          <strong>Type:</strong> {job.jobType}
-                        </div>
-                        <div>
-                          <strong>Department:</strong> {job.department}
-                        </div>
-                        <div>
-                          <strong>Salary:</strong> {job.salary}
-                        </div>
-                      </div>
-                      {job.jobSummary && (
-                        <p className="text-gray-700 dark:text-gray-300 text-sm">
-                          {job.jobSummary.substring(0, 200)}...
-                        </p>
-                      )}
-                      <div className="mt-3 text-sm text-blue-600 dark:text-blue-400 font-medium">
-                        Click to view full details →
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -589,49 +719,67 @@ export function VectorSearchPage() {
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                     Matching Candidates ({uniqueResumes.length})
                   </h2>
+                  {useCrossMatching && results?.colorGroups && (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      • {results.colorGroups.length} cross-matched groups
+                    </span>
+                  )}
                 </div>
                 <div className="grid gap-4">
-                  {uniqueResumes.map((resume: any, index: number) => (
-                    <div 
-                      key={resume.UniqueResumeId}
-                      className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer group"
-                      onClick={() => handleResumeClick(resume)}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
-                          {resume.processedMetadata?.name || "Unknown Candidate"}
-                        </h3>
-                        <div className="flex items-center space-x-2">
-                          <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-sm font-medium">
-                            {formatSimilarity(resume.similarity)}
-                          </span>
-                          <ExternalLink size={16} className="text-gray-400 group-hover:text-green-600 transition-colors" />
+                  {uniqueResumes.map((resume: any, index: number) => {
+                    const colorIndex = resume.colorIndex !== undefined ? resume.colorIndex : 0;
+                    const matchCount = useCrossMatching && results?.crossMatches ? 
+                      results.crossMatches.filter((match: any) => match.resumeId === resume._id).length : 0;
+                    
+                    return (
+                      <div 
+                        key={resume.UniqueResumeId}
+                        className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer group ${
+                          useCrossMatching ? getBorderColorForIndex(colorIndex) + ' border-l-4' : ''
+                        }`}
+                        onClick={() => handleResumeClick(resume)}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                            {resume.processedMetadata?.name || "Unknown Candidate"}
+                          </h3>
+                          <div className="flex items-center space-x-2">
+                            {useCrossMatching && matchCount > 0 && (
+                              <span className={`px-2 py-1 rounded-full text-sm font-medium ${getColorForIndex(colorIndex)}`}>
+                                {matchCount} match{matchCount !== 1 ? 'es' : ''}
+                              </span>
+                            )}
+                            <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-sm font-medium">
+                              {formatSimilarity(resume.similarity)}
+                            </span>
+                            <ExternalLink size={16} className="text-gray-400 group-hover:text-green-600 transition-colors" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                          <div>
+                            <strong>Email:</strong> {resume.processedMetadata?.email || "N/A"}
+                          </div>
+                          <div>
+                            <strong>Experience:</strong> {resume.processedMetadata?.yearsOfExperience || "N/A"} years
+                          </div>
+                          <div>
+                            <strong>Phone:</strong> {resume.processedMetadata?.phone || "N/A"}
+                          </div>
+                          <div>
+                            <strong>Location:</strong> {resume.processedMetadata?.location || "N/A"}
+                          </div>
+                        </div>
+                        {resume.professionalSummary && (
+                          <p className="text-gray-700 dark:text-gray-300 text-sm">
+                            {resume.professionalSummary.substring(0, 200)}...
+                          </p>
+                        )}
+                        <div className="mt-3 text-sm text-green-600 dark:text-green-400 font-medium">
+                          Click to view full details →
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        <div>
-                          <strong>Email:</strong> {resume.processedMetadata?.email || "N/A"}
-                        </div>
-                        <div>
-                          <strong>Experience:</strong> {resume.processedMetadata?.yearsOfExperience || "N/A"} years
-                        </div>
-                        <div>
-                          <strong>Phone:</strong> {resume.processedMetadata?.phone || "N/A"}
-                        </div>
-                        <div>
-                          <strong>Location:</strong> {resume.processedMetadata?.location || "N/A"}
-                        </div>
-                      </div>
-                      {resume.professionalSummary && (
-                        <p className="text-gray-700 dark:text-gray-300 text-sm">
-                          {resume.professionalSummary.substring(0, 200)}...
-                        </p>
-                      )}
-                      <div className="mt-3 text-sm text-green-600 dark:text-green-400 font-medium">
-                        Click to view full details →
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -1,5 +1,5 @@
 const { preprocessCollections } = require('./text_preprocessor');
-const { generateAllEmbeddings } = require('./embedding_generator');
+const { generateAllEmbeddings } = require('./tests/embedding_generator');
 const { testVectorSearch } = require('./vector_search');
 const { showMainMenu } = require('./ai_agent');
 const readline = require('readline');

@@ -1,31 +1,30 @@
 "use node";
 import { action, query, internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import { api } from "./_generated/api";
 
-// Initialize OpenAI for embeddings
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+// Initialize Gemini AI for embeddings
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
+const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
 
 // MongoDB credentials
-const MONGODB_USERNAME = process.env.MONGODB_USERNAME || 'adminuser';
-const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || 'hnuWXvLBzcDfUbdZ';
-const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || 'demo.y407omc.mongodb.net';
+const MONGODB_USERNAME = process.env.MONGODB_USERNAME || '';
+const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || '';
+const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || '';
 
 const uri = `mongodb+srv://${MONGODB_USERNAME}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_CLUSTER}/workdemos?retryWrites=true&w=majority`;
 
-// Generate embedding for search query
+// Generate embedding for search query using Gemini
 async function generateQueryEmbedding(query: string) {
   try {
-    const response = await openai.embeddings.create({
-      model: 'text-embedding-ada-002',
-      input: query.trim(),
-    });
-    
-    return response.data[0].embedding;
+    if (!query || query.trim().length === 0) {
+      throw new Error('Empty query provided for embedding');
+    }
+
+    const result = await embeddingModel.embedContent(query.trim());
+    return result.embedding.values;
   } catch (error) {
     console.error('Error generating query embedding:', error);
     throw error;
@@ -222,7 +221,7 @@ export const generateEmbeddings = action({
   returns: v.array(v.number()),
   handler: async (ctx: any, args: any) => {
     try {
-      const model = args.model || 'text-embedding-ada-002';
+      const model = args.model || 'embedding-001';
       const embedding = await generateQueryEmbedding(args.text);
       return embedding;
     } catch (error) {
@@ -259,7 +258,7 @@ export const calculateSimilarity = action({
 export const enhancedVectorSearch = action({
   args: {
     query: v.string(),
-    model: v.union(v.literal("openai"), v.literal("mock")),
+    model: v.union(v.literal("gemini"), v.literal("mock")),
     searchType: v.union(v.literal("jobs"), v.literal("resumes"), v.literal("both")),
     limit: v.optional(v.number()),
     minSimilarity: v.optional(v.number()),
@@ -278,11 +277,11 @@ export const enhancedVectorSearch = action({
       
       let queryEmbedding: number[];
       
-      if (args.model === "openai") {
+      if (args.model === "gemini") {
         queryEmbedding = await generateQueryEmbedding(args.query);
       } else {
         // Mock embedding for testing
-        queryEmbedding = Array.from({ length: 1536 }, () => Math.random() * 2 - 1);
+        queryEmbedding = Array.from({ length: 768 }, () => Math.random() * 2 - 1); // Gemini uses 768 dimensions
       }
       
       // Extract skills from query for filtering
@@ -822,6 +821,216 @@ export const aiAgentSearchEnhanced = action({
     } catch (error) {
       console.error('Error in enhanced AI Agent search:', error);
       throw error;
+    }
+  },
+});
+
+// Multi-embedding vector search for optimized job matching
+export const multiEmbeddingJobSearch = action({
+  args: {
+    query: v.string(),
+    embeddingType: v.union(v.literal("title"), v.literal("summary"), v.literal("requirements"), v.literal("duties"), v.literal("combined")),
+    limit: v.optional(v.number()),
+    minSimilarity: v.optional(v.number()),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx: any, args: { query: string; embeddingType: string; limit?: number; minSimilarity?: number }): Promise<any[]> => {
+    let client;
+    
+    try {
+      console.log(`Multi-embedding job search for: "${args.query}" (${args.embeddingType})`);
+      
+      // Generate embedding for the query
+      const queryEmbedding = await generateQueryEmbedding(args.query);
+      const minSimilarity = args.minSimilarity || 0.3;
+      
+      console.log(`Minimum similarity threshold: ${minSimilarity}`);
+      
+      // Connect to MongoDB
+      client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        tls: true,
+      });
+      
+      await client.connect();
+      const db = client.db('workdemos');
+      const jobsCollection = db.collection('jobpostings');
+      
+      // Get jobs with the specific embedding type
+      const embeddingField = `embeddings.${args.embeddingType}Embedding`;
+      const jobs = await jobsCollection.find({ 
+        [embeddingField]: { $exists: true, $ne: [] }
+      }).toArray();
+      
+      console.log(`Found ${jobs.length} jobs with ${args.embeddingType} embeddings`);
+      
+      // Calculate similarities using the specific embedding type
+      const similarities = jobs
+        .map((job: any) => {
+          const jobEmbedding = job.embeddings?.[`${args.embeddingType}Embedding`];
+          if (!jobEmbedding || !Array.isArray(jobEmbedding)) {
+            return null;
+          }
+          
+          const similarity = cosineSimilarity(queryEmbedding, jobEmbedding);
+          return {
+            job: job,
+            similarity: similarity,
+            embeddingType: args.embeddingType
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null && item.similarity >= minSimilarity)
+        .sort((a, b) => b.similarity - a.similarity);
+      
+      console.log(`Found ${similarities.length} jobs meeting similarity threshold`);
+      
+      // Return top results
+      const limit = args.limit || 5;
+      const results = similarities.slice(0, limit).map(item => {
+        try {
+          return {
+            ...convertMongoDocument(item.job),
+            similarity: item.similarity,
+            embeddingType: item.embeddingType
+          };
+        } catch (conversionError) {
+          console.error('Error converting job document:', conversionError);
+          return {
+            _id: item.job._id?.toString() || 'unknown',
+            jobTitle: item.job.jobTitle || 'Unknown Title',
+            similarity: item.similarity,
+            embeddingType: item.embeddingType,
+            error: 'Document conversion failed'
+          };
+        }
+      });
+      
+      console.log(`Returning ${results.length} matching jobs with ${args.embeddingType} embedding search`);
+      return results;
+      
+    } catch (error) {
+      console.error('Error in multi-embedding job search:', error);
+      throw error;
+    } finally {
+      if (client) {
+        await client.close();
+      }
+    }
+  },
+});
+
+// Multi-embedding vector search for optimized resume matching
+export const multiEmbeddingResumeSearch = action({
+  args: {
+    query: v.string(),
+    embeddingType: v.union(v.literal("name"), v.literal("summary"), v.literal("skills"), v.literal("experience"), v.literal("education"), v.literal("combined")),
+    limit: v.optional(v.number()),
+    minSimilarity: v.optional(v.number()),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx: any, args: { query: string; embeddingType: string; limit?: number; minSimilarity?: number }): Promise<any[]> => {
+    let client;
+    
+    try {
+      console.log(`Multi-embedding resume search for: "${args.query}" (${args.embeddingType})`);
+      
+      // Generate embedding for the query
+      const queryEmbedding = await generateQueryEmbedding(args.query);
+      const minSimilarity = args.minSimilarity || 0.3;
+      
+      console.log(`Minimum similarity threshold: ${minSimilarity}`);
+      
+      // Connect to MongoDB
+      client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        tls: true,
+      });
+      
+      await client.connect();
+      const db = client.db('workdemos');
+      const resumesCollection = db.collection('resumes');
+      
+      // Get resumes with the specific embedding type
+      const embeddingField = `embeddings.${args.embeddingType}Embedding`;
+      const resumes = await resumesCollection.find({ 
+        [embeddingField]: { $exists: true, $ne: [] }
+      }).toArray();
+      
+      console.log(`Found ${resumes.length} resumes with ${args.embeddingType} embeddings`);
+      
+      // Calculate similarities using the specific embedding type
+      const similarities = resumes
+        .map((resume: any) => {
+          const resumeEmbedding = resume.embeddings?.[`${args.embeddingType}Embedding`];
+          if (!resumeEmbedding || !Array.isArray(resumeEmbedding)) {
+            return null;
+          }
+          
+          const similarity = cosineSimilarity(queryEmbedding, resumeEmbedding);
+          return {
+            resume: resume,
+            similarity: similarity,
+            embeddingType: args.embeddingType
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null && item.similarity >= minSimilarity)
+        .sort((a, b) => b.similarity - a.similarity);
+      
+      console.log(`Found ${similarities.length} resumes meeting similarity threshold`);
+      
+      // Return top results
+      const limit = args.limit || 5;
+      const results = similarities.slice(0, limit).map(item => {
+        try {
+          return {
+            ...mapResumeDataForFrontend(item.resume),
+            similarity: item.similarity,
+            embeddingType: item.embeddingType
+          };
+        } catch (conversionError) {
+          console.error('Error converting resume document:', conversionError);
+          return {
+            _id: item.resume._id?.toString() || 'unknown',
+            name: item.resume.name || 'Unknown Name',
+            similarity: item.similarity,
+            embeddingType: item.embeddingType,
+            error: 'Document conversion failed'
+          };
+        }
+      });
+      
+      console.log(`Returning ${results.length} matching resumes with ${args.embeddingType} embedding search`);
+      return results;
+      
+    } catch (error) {
+      console.error('Error in multi-embedding resume search:', error);
+      throw error;
+    } finally {
+      if (client) {
+        await client.close();
+      }
     }
   },
 });
@@ -1748,4 +1957,256 @@ export const searchSimilarResumesPure = action({
       }
     }
   },
-}); 
+});
+
+// Cross-matched vector search - strict matching between jobs and resumes
+export const crossMatchedVectorSearch = action({
+  args: {
+    query: v.string(),
+    limit: v.optional(v.number()),
+    minSimilarity: v.optional(v.number()),
+    crossMatchThreshold: v.optional(v.number()),
+  },
+  returns: v.object({
+    jobs: v.array(v.any()),
+    resumes: v.array(v.any()),
+    crossMatches: v.array(v.object({
+      jobId: v.string(),
+      resumeId: v.string(),
+      similarity: v.number(),
+      colorIndex: v.number()
+    })),
+    colorGroups: v.array(v.object({
+      colorIndex: v.number(),
+      jobIds: v.array(v.string()),
+      resumeIds: v.array(v.string()),
+      matchCount: v.number()
+    }))
+  }),
+  handler: async (ctx: any, args: { 
+    query: string; 
+    limit?: number; 
+    minSimilarity?: number;
+    crossMatchThreshold?: number;
+  }): Promise<any> => {
+    let client;
+    
+    try {
+      console.log(`Cross-matched vector search for: "${args.query}"`);
+      
+      // Generate embedding for the query
+      const queryEmbedding = await generateQueryEmbedding(args.query);
+      const minSimilarity = args.minSimilarity || 0.3;
+      const crossMatchThreshold = args.crossMatchThreshold || 0.4;
+      const limit = args.limit || 10;
+      
+      console.log(`Minimum similarity threshold: ${minSimilarity}`);
+      console.log(`Cross-match threshold: ${crossMatchThreshold}`);
+      
+      // Connect to MongoDB
+      client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        tls: true,
+      });
+      
+      await client.connect();
+      const db = client.db('workdemos');
+      const jobsCollection = db.collection('jobpostings');
+      const resumesCollection = db.collection('resumes');
+      
+      // Get top jobs and resumes based on query similarity
+      const jobs = await jobsCollection.find({ embedding: { $exists: true } }).toArray();
+      const resumes = await resumesCollection.find({}).toArray();
+      
+      console.log(`Found ${jobs.length} jobs and ${resumes.length} resumes`);
+      
+      // Calculate query similarities for jobs
+      const jobSimilarities = jobs
+        .filter((job: any) => job.embedding && Array.isArray(job.embedding))
+        .map((job: any) => ({
+          job: job,
+          querySimilarity: cosineSimilarity(queryEmbedding, job.embedding)
+        }))
+        .filter(item => item.querySimilarity >= minSimilarity)
+        .sort((a, b) => b.querySimilarity - a.querySimilarity)
+        .slice(0, limit);
+      
+      // Calculate query similarities for resumes
+      const resumeSimilarities: any[] = [];
+      
+      // Helper function to create searchable text from resume data
+      const createResumeSearchableText = (resume: any): string => {
+        const fields = [
+          resume.professionalSummary || '',
+          resume.skills ? (Array.isArray(resume.skills) ? resume.skills.join(' ') : resume.skills) : '',
+          resume.education ? (Array.isArray(resume.education) ? resume.education.join(' ') : resume.education) : '',
+          resume.certifications || '',
+          resume.securityClearance || '',
+          resume.personalInfo ? `${resume.personalInfo.firstName || ''} ${resume.personalInfo.lastName || ''}`.trim() : '',
+          resume.experience ? (Array.isArray(resume.experience) ? 
+            resume.experience.map((exp: any) => 
+              `${exp.title || ''} ${exp.company || ''} ${(exp.responsibilities || []).join(' ')}`
+            ).join(' ') : resume.experience) : '',
+          resume.originalText || ''
+        ];
+        
+        return fields.filter(Boolean).join(' ');
+      };
+      
+      for (const resume of resumes) {
+        try {
+          const searchableText = createResumeSearchableText(resume);
+          if (searchableText.trim()) {
+            const resumeEmbedding = await generateQueryEmbedding(searchableText);
+            const querySimilarity = cosineSimilarity(queryEmbedding, resumeEmbedding);
+            
+            if (querySimilarity >= minSimilarity) {
+              resumeSimilarities.push({
+                resume: resume,
+                querySimilarity: querySimilarity,
+                searchableText: searchableText
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing resume ${resume._id}:`, error);
+          continue;
+        }
+      }
+      
+      resumeSimilarities.sort((a, b) => b.querySimilarity - a.querySimilarity);
+      const topResumes = resumeSimilarities.slice(0, limit);
+      
+      console.log(`Top ${jobSimilarities.length} jobs and ${topResumes.length} resumes found`);
+      
+      // Cross-match jobs and resumes
+      const crossMatches: any[] = [];
+      const matchedJobIds = new Set<string>();
+      const matchedResumeIds = new Set<string>();
+      
+      for (const jobItem of jobSimilarities) {
+        for (const resumeItem of topResumes) {
+          try {
+            // Generate embedding for resume if not already done
+            let resumeEmbedding = resumeItem.resume.embedding;
+            if (!resumeEmbedding || !Array.isArray(resumeEmbedding)) {
+              resumeEmbedding = await generateQueryEmbedding(resumeItem.searchableText);
+            }
+            
+            // Calculate cross-match similarity
+            const crossMatchSimilarity = cosineSimilarity(jobItem.job.embedding, resumeEmbedding);
+            
+            if (crossMatchSimilarity >= crossMatchThreshold) {
+              crossMatches.push({
+                jobId: jobItem.job._id.toString(),
+                resumeId: resumeItem.resume._id.toString(),
+                similarity: crossMatchSimilarity,
+                jobQuerySimilarity: jobItem.querySimilarity,
+                resumeQuerySimilarity: resumeItem.querySimilarity
+              });
+              
+              matchedJobIds.add(jobItem.job._id.toString());
+              matchedResumeIds.add(resumeItem.resume._id.toString());
+            }
+          } catch (error) {
+            console.error(`Error cross-matching job ${jobItem.job._id} with resume ${resumeItem.resume._id}:`, error);
+            continue;
+          }
+        }
+      }
+      
+      console.log(`Found ${crossMatches.length} cross-matches`);
+      
+      // Create color groups (up to 10 unique colors)
+      const colorGroups: any[] = [];
+      let colorIndex = 0;
+      const maxColors = 10;
+      
+      // Group by job (each job gets a color, resumes matching that job get the same color)
+      const jobColorMap = new Map<string, number>();
+      const resumeColorMap = new Map<string, number>();
+      
+      for (const match of crossMatches) {
+        if (!jobColorMap.has(match.jobId)) {
+          if (colorIndex < maxColors) {
+            jobColorMap.set(match.jobId, colorIndex);
+            colorIndex++;
+          }
+        }
+        
+        const jobColor = jobColorMap.get(match.jobId);
+        if (jobColor !== undefined) {
+          resumeColorMap.set(match.resumeId, jobColor);
+        }
+      }
+      
+      // Create color groups
+      for (let i = 0; i < Math.min(colorIndex, maxColors); i++) {
+        const jobIds = Array.from(jobColorMap.entries())
+          .filter(([_, color]) => color === i)
+          .map(([jobId, _]) => jobId);
+        
+        const resumeIds = Array.from(resumeColorMap.entries())
+          .filter(([_, color]) => color === i)
+          .map(([resumeId, _]) => resumeId);
+        
+        colorGroups.push({
+          colorIndex: i,
+          jobIds: jobIds,
+          resumeIds: resumeIds,
+          matchCount: jobIds.length * resumeIds.length
+        });
+      }
+      
+      // Filter jobs and resumes to only include those with cross-matches
+      const matchedJobs = jobSimilarities
+        .filter(item => matchedJobIds.has(item.job._id.toString()))
+        .map(item => ({
+          ...convertMongoDocument(item.job),
+          similarity: item.querySimilarity,
+          colorIndex: jobColorMap.get(item.job._id.toString()) || 0
+        }));
+      
+      const matchedResumes = topResumes
+        .filter(item => matchedResumeIds.has(item.resume._id.toString()))
+        .map(item => ({
+          ...mapResumeDataForFrontend(item.resume),
+          similarity: item.querySimilarity,
+          colorIndex: resumeColorMap.get(item.resume._id.toString()) || 0
+        }));
+      
+      console.log(`Returning ${matchedJobs.length} matched jobs and ${matchedResumes.length} matched resumes`);
+      
+      return {
+        jobs: matchedJobs,
+        resumes: matchedResumes,
+        crossMatches: crossMatches.map(match => ({
+          jobId: match.jobId,
+          resumeId: match.resumeId,
+          similarity: match.similarity,
+          colorIndex: jobColorMap.get(match.jobId) || 0
+        })),
+        colorGroups: colorGroups
+      };
+      
+    } catch (error) {
+      console.error('Error in cross-matched vector search:', error);
+      throw error;
+    } finally {
+      if (client) {
+        await client.close();
+      }
+    }
+  },
+});
