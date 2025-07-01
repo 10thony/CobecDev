@@ -45,9 +45,8 @@ export function VectorSearchPage() {
   const searchSimilarJobs = useAction(api.vectorSearch.searchSimilarJobs);
   const searchSimilarResumes = useAction(api.vectorSearch.searchSimilarResumes);
   const aiAgentSearch = useAction(api.vectorSearch.aiAgentSearch);
-  const searchSimilarJobsEnhanced = useAction(api.vectorSearch.searchSimilarJobsEnhanced);
-  const searchSimilarResumesEnhanced = useAction(api.vectorSearch.searchSimilarResumesEnhanced);
-  const aiAgentSearchEnhanced = useAction(api.vectorSearch.aiAgentSearchEnhanced);
+  const searchSimilarJobsPure = useAction(api.vectorSearch.searchSimilarJobsPure);
+  const searchSimilarResumesPure = useAction(api.vectorSearch.searchSimilarResumesPure);
   const testResumeMapping = useAction(api.vectorSearch.testResumeMapping);
   const navigate = useNavigate();
   
@@ -58,7 +57,7 @@ export function VectorSearchPage() {
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoadedFromStorage, setIsLoadedFromStorage] = useState(false);
-  const [useEnhancedSearch, setUseEnhancedSearch] = useState(true);
+  const [usePureVectorSearch, setUsePureVectorSearch] = useState(true);
   const [minSimilarity, setMinSimilarity] = useState(0.3);
   const [skillFilter, setSkillFilter] = useState<string[]>([]);
   const [extractedSkills, setExtractedSkills] = useState<string[]>([]);
@@ -190,38 +189,41 @@ export function VectorSearchPage() {
     try {
       let searchResults;
       
-      if (useEnhancedSearch) {
-        // Use enhanced search with skill filtering
+      if (usePureVectorSearch) {
+        // Use pure vector search (no text-based substring matching)
         if (searchType === "jobs") {
-          searchResults = await searchSimilarJobsEnhanced({
+          searchResults = await searchSimilarJobsPure({
             query: query.trim(),
             limit: limit,
             minSimilarity: minSimilarity,
-            skillFilter: skillFilter.length > 0 ? skillFilter : undefined,
           });
           setResults({ jobs: searchResults, resumes: [] });
         } else if (searchType === "resumes") {
-          searchResults = await searchSimilarResumesEnhanced({
+          searchResults = await searchSimilarResumesPure({
             query: query.trim(),
             limit: limit,
             minSimilarity: minSimilarity,
-            skillFilter: skillFilter.length > 0 ? skillFilter : undefined,
           });
           setResults({ jobs: [], resumes: searchResults });
         } else {
-          searchResults = await aiAgentSearchEnhanced({
-            query: query.trim(),
-            searchType: "both",
-            limit: limit,
-            minSimilarity: minSimilarity,
-            skillFilter: skillFilter.length > 0 ? skillFilter : undefined,
-          });
-          setResults(searchResults);
+          // For both, search jobs and resumes separately
+          const [jobsResults, resumesResults] = await Promise.all([
+            searchSimilarJobsPure({
+              query: query.trim(),
+              limit: limit,
+              minSimilarity: minSimilarity,
+            }),
+            searchSimilarResumesPure({
+              query: query.trim(),
+              limit: limit,
+              minSimilarity: minSimilarity,
+            })
+          ]);
           
-          // Update extracted skills from the enhanced search
-          if (searchResults.filters?.extractedSkills) {
-            setExtractedSkills(searchResults.filters.extractedSkills);
-          }
+          setResults({ 
+            jobs: jobsResults, 
+            resumes: resumesResults 
+          });
         }
       } else {
         // Use original search functions
@@ -427,88 +429,53 @@ export function VectorSearchPage() {
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  id="useEnhancedSearch"
-                  checked={useEnhancedSearch}
-                  onChange={(e) => setUseEnhancedSearch(e.target.checked)}
+                  id="usePureVectorSearch"
+                  checked={usePureVectorSearch}
+                  onChange={(e) => setUsePureVectorSearch(e.target.checked)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <label htmlFor="useEnhancedSearch" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Use Enhanced Search (Stricter Technical Filtering & Skill Matching)
+                <label htmlFor="usePureVectorSearch" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Use Pure Vector Search (Stricter Technical Filtering & Skill Matching)
                 </label>
               </div>
 
-              {useEnhancedSearch && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Minimum Similarity Threshold
-                    </label>
-                    <select
-                      value={minSimilarity}
-                      onChange={(e) => setMinSimilarity(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    >
-                      <option value={0.1}>10% (Very Loose)</option>
-                      <option value={0.2}>20% (Loose)</option>
-                      <option value={0.3}>30% (Default)</option>
-                      <option value={0.4}>40% (Strict)</option>
-                      <option value={0.5}>50% (Very Strict)</option>
-                      <option value={0.6}>60% (Extremely Strict)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Skill Filter (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g., ios, swift, react (comma separated)"
-                      value={skillFilter.join(', ')}
-                      onChange={(e) => {
-                        const skills = e.target.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
-                        setSkillFilter(skills);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
+              {usePureVectorSearch && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Minimum Similarity Threshold
+                  </label>
+                  <select
+                    value={minSimilarity}
+                    onChange={(e) => setMinSimilarity(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value={0.1}>10% (Very Loose)</option>
+                    <option value={0.2}>20% (Loose)</option>
+                    <option value={0.3}>30% (Default)</option>
+                    <option value={0.4}>40% (Strict)</option>
+                    <option value={0.5}>50% (Very Strict)</option>
+                    <option value={0.6}>60% (Extremely Strict)</option>
+                  </select>
                 </div>
               )}
 
-              {/* Enhanced Search Info */}
-              {useEnhancedSearch && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                    Enhanced Search Features:
+              {/* Pure Vector Search Info */}
+              {usePureVectorSearch && (
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                  <h4 className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+                    Pure Vector Search Features:
                   </h4>
-                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                    <li>• <strong>Technical Query Detection:</strong> Automatically detects software/engineering queries</li>
-                    <li>• <strong>Skill Matching:</strong> Requires specific skills for technical searches</li>
-                    <li>• <strong>Related Terms:</strong> Matches related technical skills (e.g., "ios" matches "swift", "xcode")</li>
-                    <li>• <strong>Penalty System:</strong> Reduces scores for non-technical content in technical searches</li>
-                    <li>• <strong>Stricter Filtering:</strong> Rejects results without required skills for technical queries</li>
+                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                    <li>• <strong>Semantic Understanding:</strong> Uses AI embeddings for true semantic search</li>
+                    <li>• <strong>No Substring Matching:</strong> Won't match "ios" in "bios" or "pios"</li>
+                    <li>• <strong>Context Awareness:</strong> Understands meaning, not just keywords</li>
+                    <li>• <strong>Quality Results:</strong> Higher quality matches based on semantic similarity</li>
+                    <li>• <strong>Configurable Threshold:</strong> Adjust similarity threshold for precision</li>
                   </ul>
                 </div>
               )}
 
-              {/* Extracted Skills Display */}
-              {extractedSkills.length > 0 && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
-                    <strong>Skills detected in your query:</strong>
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {extractedSkills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full text-xs font-medium"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+
             </div>
           </div>
           
@@ -583,16 +550,6 @@ export function VectorSearchPage() {
                           <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-sm font-medium">
                             {formatSimilarity(job.similarity)}
                           </span>
-                          {useEnhancedSearch && job.hasRequiredSkills && (
-                            <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-sm font-medium">
-                              Skills Match
-                            </span>
-                          )}
-                          {useEnhancedSearch && job.baseSimilarity && job.baseSimilarity !== job.similarity && (
-                            <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-sm font-medium" title={`Base similarity: ${formatSimilarity(job.baseSimilarity)}`}>
-                              Enhanced
-                            </span>
-                          )}
                           <ExternalLink size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
                         </div>
                       </div>
@@ -648,16 +605,6 @@ export function VectorSearchPage() {
                           <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-sm font-medium">
                             {formatSimilarity(resume.similarity)}
                           </span>
-                          {useEnhancedSearch && resume.hasRequiredSkills && (
-                            <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-sm font-medium">
-                              Skills Match
-                            </span>
-                          )}
-                          {useEnhancedSearch && resume.baseSimilarity && resume.baseSimilarity !== resume.similarity && (
-                            <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-sm font-medium" title={`Base similarity: ${formatSimilarity(resume.baseSimilarity)}`}>
-                              Enhanced
-                            </span>
-                          )}
                           <ExternalLink size={16} className="text-gray-400 group-hover:text-green-600 transition-colors" />
                         </div>
                       </div>

@@ -1070,7 +1070,7 @@ export const searchSimilarJobs = action({
   },
 });
 
-// Search similar resumes - direct MongoDB implementation (original)
+// Search similar resumes - semantic search using existing resume data
 export const searchSimilarResumes = action({
   args: {
     query: v.string(),
@@ -1112,15 +1112,52 @@ export const searchSimilarResumes = action({
       
       console.log(`Found ${resumes.length} resumes in database`);
       
-      // Calculate similarities for resumes with embeddings
-      const similarities = resumes
-        .filter((resume: any) => resume.embedding && Array.isArray(resume.embedding))
-        .map((resume: any) => ({
-          resume: resume,
-          similarity: cosineSimilarity(queryEmbedding, resume.embedding)
-        }));
+      // Helper function to create searchable text from resume data
+      const createResumeSearchableText = (resume: any): string => {
+        const fields = [
+          resume.professionalSummary || '',
+          resume.skills ? (Array.isArray(resume.skills) ? resume.skills.join(' ') : resume.skills) : '',
+          resume.education ? (Array.isArray(resume.education) ? resume.education.join(' ') : resume.education) : '',
+          resume.certifications || '',
+          resume.securityClearance || '',
+          resume.personalInfo ? `${resume.personalInfo.firstName || ''} ${resume.personalInfo.lastName || ''}`.trim() : '',
+          resume.experience ? (Array.isArray(resume.experience) ? 
+            resume.experience.map((exp: any) => 
+              `${exp.title || ''} ${exp.company || ''} ${(exp.responsibilities || []).join(' ')}`
+            ).join(' ') : resume.experience) : '',
+          resume.originalText || ''
+        ];
+        
+        return fields.filter(Boolean).join(' ');
+      };
       
-      console.log(`Calculated similarities for ${similarities.length} resumes with embeddings`);
+      // Calculate similarities by generating embeddings on-the-fly
+      const similarities = [];
+      
+      for (const resume of resumes) {
+        try {
+          // Create searchable text from resume data
+          const searchableText = createResumeSearchableText(resume);
+          
+          if (searchableText.trim()) {
+            // Generate embedding for this resume
+            const resumeEmbedding = await generateQueryEmbedding(searchableText);
+            
+            // Calculate similarity
+            const similarity = cosineSimilarity(queryEmbedding, resumeEmbedding);
+            
+            similarities.push({
+              resume: resume,
+              similarity: similarity
+            });
+          }
+        } catch (error) {
+          console.error(`Error processing resume ${resume._id}:`, error);
+          continue;
+        }
+      }
+      
+      console.log(`Calculated similarities for ${similarities.length} resumes`);
       
       // Sort by similarity (highest first)
       similarities.sort((a, b) => b.similarity - a.similarity);
@@ -1130,7 +1167,7 @@ export const searchSimilarResumes = action({
       const results = similarities.slice(0, limit).map(item => {
         try {
           return {
-            ...convertMongoDocument(item.resume),
+            ...mapResumeDataForFrontend(item.resume),
             similarity: item.similarity
           };
         } catch (conversionError) {
@@ -1159,7 +1196,7 @@ export const searchSimilarResumes = action({
   },
 });
 
-// AI Agent Search - direct MongoDB implementation (original)
+// AI Agent Search - semantic search using existing data
 export const aiAgentSearch = action({
   args: {
     query: v.string(),
@@ -1481,6 +1518,230 @@ export const updateResume = action({
         success: false,
         message: error instanceof Error ? error.message : "Failed to update resume",
       };
+    } finally {
+      if (client) {
+        await client.close();
+      }
+    }
+  },
+});
+
+// Pure vector search - no text-based substring matching
+export const searchSimilarJobsPure = action({
+  args: {
+    query: v.string(),
+    limit: v.optional(v.number()),
+    minSimilarity: v.optional(v.number()),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx: any, args: { query: string; limit?: number; minSimilarity?: number }): Promise<any[]> => {
+    let client;
+    
+    try {
+      console.log(`Pure vector search for jobs: "${args.query}"`);
+      
+      // Generate embedding for the query
+      const queryEmbedding = await generateQueryEmbedding(args.query);
+      const minSimilarity = args.minSimilarity || 0.3;
+      
+      console.log(`Minimum similarity threshold: ${minSimilarity}`);
+      
+      // Connect to MongoDB
+      client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        tls: true,
+      });
+      
+      await client.connect();
+      const db = client.db('workdemos');
+      const jobsCollection = db.collection('jobpostings');
+      
+      // Get all jobs with embeddings
+      const jobs = await jobsCollection.find({ embedding: { $exists: true } }).toArray();
+      console.log(`Found ${jobs.length} jobs with embeddings`);
+      
+      // Calculate pure vector similarities
+      const similarities = jobs
+        .filter((job: any) => job.embedding && Array.isArray(job.embedding))
+        .map((job: any) => {
+          const similarity = cosineSimilarity(queryEmbedding, job.embedding);
+          return {
+            job: job,
+            similarity: similarity
+          };
+        })
+        .filter(item => item.similarity >= minSimilarity)
+        .sort((a, b) => b.similarity - a.similarity);
+      
+      console.log(`Found ${similarities.length} jobs meeting similarity threshold`);
+      
+      // Return top results
+      const limit = args.limit || 5;
+      const results = similarities.slice(0, limit).map(item => {
+        try {
+          return {
+            ...convertMongoDocument(item.job),
+            similarity: item.similarity
+          };
+        } catch (conversionError) {
+          console.error('Error converting job document:', conversionError);
+          return {
+            _id: item.job._id?.toString() || 'unknown',
+            jobTitle: item.job.jobTitle || 'Unknown Title',
+            similarity: item.similarity,
+            error: 'Document conversion failed'
+          };
+        }
+      });
+      
+      console.log(`Returning ${results.length} matching jobs with pure vector search`);
+      return results;
+      
+    } catch (error) {
+      console.error('Error in pure vector search:', error);
+      throw error;
+    } finally {
+      if (client) {
+        await client.close();
+      }
+    }
+  },
+});
+
+// Pure vector search for resumes - semantic search using existing resume data
+export const searchSimilarResumesPure = action({
+  args: {
+    query: v.string(),
+    limit: v.optional(v.number()),
+    minSimilarity: v.optional(v.number()),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx: any, args: { query: string; limit?: number; minSimilarity?: number }): Promise<any[]> => {
+    let client;
+    
+    try {
+      console.log(`Pure vector search for resumes: "${args.query}"`);
+      
+      // Generate embedding for the query
+      const queryEmbedding = await generateQueryEmbedding(args.query);
+      const minSimilarity = args.minSimilarity || 0.3;
+      
+      console.log(`Minimum similarity threshold: ${minSimilarity}`);
+      
+      // Connect to MongoDB
+      client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        tls: true,
+      });
+      
+      await client.connect();
+      const db = client.db('workdemos');
+      const resumesCollection = db.collection('resumes');
+      
+      // Get all resumes (we'll generate embeddings on-the-fly)
+      const resumes = await resumesCollection.find({}).toArray();
+      console.log(`Found ${resumes.length} resumes in database`);
+      
+      // Helper function to create searchable text from resume data
+      const createResumeSearchableText = (resume: any): string => {
+        const fields = [
+          resume.professionalSummary || '',
+          resume.skills ? (Array.isArray(resume.skills) ? resume.skills.join(' ') : resume.skills) : '',
+          resume.education ? (Array.isArray(resume.education) ? resume.education.join(' ') : resume.education) : '',
+          resume.certifications || '',
+          resume.securityClearance || '',
+          resume.personalInfo ? `${resume.personalInfo.firstName || ''} ${resume.personalInfo.lastName || ''}`.trim() : '',
+          resume.experience ? (Array.isArray(resume.experience) ? 
+            resume.experience.map((exp: any) => 
+              `${exp.title || ''} ${exp.company || ''} ${(exp.responsibilities || []).join(' ')}`
+            ).join(' ') : resume.experience) : '',
+          resume.originalText || ''
+        ];
+        
+        return fields.filter(Boolean).join(' ');
+      };
+      
+      // Calculate similarities by generating embeddings on-the-fly
+      const similarities = [];
+      
+      for (const resume of resumes) {
+        try {
+          // Create searchable text from resume data
+          const searchableText = createResumeSearchableText(resume);
+          
+          if (searchableText.trim()) {
+            // Generate embedding for this resume
+            const resumeEmbedding = await generateQueryEmbedding(searchableText);
+            
+            // Calculate similarity
+            const similarity = cosineSimilarity(queryEmbedding, resumeEmbedding);
+            
+            if (similarity >= minSimilarity) {
+              similarities.push({
+                resume: resume,
+                similarity: similarity,
+                searchableText: searchableText
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing resume ${resume._id}:`, error);
+          continue;
+        }
+      }
+      
+      // Sort by similarity (highest first)
+      similarities.sort((a, b) => b.similarity - a.similarity);
+      
+      console.log(`Found ${similarities.length} resumes meeting similarity threshold`);
+      
+      // Return top results
+      const limit = args.limit || 5;
+      const results = similarities.slice(0, limit).map(item => {
+        try {
+          return {
+            ...mapResumeDataForFrontend(item.resume),
+            similarity: item.similarity
+          };
+        } catch (conversionError) {
+          console.error('Error converting resume document:', conversionError);
+          return {
+            _id: item.resume._id?.toString() || 'unknown',
+            filename: item.resume.filename || 'Unknown',
+            similarity: item.similarity,
+            error: 'Document conversion failed'
+          };
+        }
+      });
+      
+      console.log(`Returning ${results.length} matching resumes with semantic vector search`);
+      return results;
+      
+    } catch (error) {
+      console.error('Error in semantic vector search:', error);
+      throw error;
     } finally {
       if (client) {
         await client.close();
