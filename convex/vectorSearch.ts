@@ -2210,3 +2210,405 @@ export const crossMatchedVectorSearch = action({
     }
   },
 });
+
+// Helper function to extract text from PDF using multiple methods with fallback
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  let extractedText = '';
+  let lastError: Error | null = null;
+  
+  // Method 1: Try pdf-parse (original method)
+  try {
+    const pdfParse = require('pdf-parse');
+    const pdfData = await pdfParse(buffer);
+    if (pdfData.text && pdfData.text.trim().length > 0) {
+      console.log('PDF parsing successful with pdf-parse');
+      return pdfData.text;
+    }
+  } catch (error) {
+    console.log('pdf-parse failed, trying alternative method:', error instanceof Error ? error.message : 'Unknown error');
+    lastError = error instanceof Error ? error : new Error('pdf-parse failed');
+  }
+  
+  // Method 2: Try pdfjs-dist (Mozilla's PDF.js library)
+  try {
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    
+    // Set up the worker
+    const pdfjsWorker = require('pdfjs-dist/legacy/build/pdf.worker.entry');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
+    
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      // Combine text items
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      fullText += pageText + '\n';
+    }
+    
+    if (fullText.trim().length > 0) {
+      console.log('PDF parsing successful with pdfjs-dist');
+      return fullText;
+    }
+  } catch (error) {
+    console.log('pdfjs-dist failed, trying next method:', error instanceof Error ? error.message : 'Unknown error');
+    lastError = error instanceof Error ? error : new Error('pdfjs-dist failed');
+  }
+  
+  // Method 3: Try a more basic approach with pdf-parse but with different options
+  try {
+    const pdfParse = require('pdf-parse');
+    const pdfData = await pdfParse(buffer, {
+      // Try with different options
+      normalizeWhitespace: true,
+      disableCombineTextItems: false
+    });
+    
+    if (pdfData.text && pdfData.text.trim().length > 0) {
+      console.log('PDF parsing successful with pdf-parse (alternative options)');
+      return pdfData.text;
+    }
+  } catch (error) {
+    console.log('pdf-parse with alternative options failed:', error instanceof Error ? error.message : 'Unknown error');
+    lastError = error instanceof Error ? error : new Error('pdf-parse with alternative options failed');
+  }
+  
+  // If all methods failed, throw a comprehensive error
+  console.error('All PDF parsing methods failed. Last error:', lastError);
+  throw new Error('PDF parsing failed. Please ensure the PDF is not password-protected and contains readable text. Try converting the PDF to a .docx file and upload that instead.');
+}
+
+// Update resume with new document upload
+export const updateResumeWithDocument = action({
+  args: {
+    resumeId: v.string(),
+    fileName: v.string(),
+    fileData: v.string(), // base64 encoded file data
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    updatedResume: v.optional(v.any()),
+  }),
+  handler: async (ctx: any, args: { resumeId: string; fileName: string; fileData: string }):
+     Promise<{ success: boolean; message: string; updatedResume?: any }> => {
+    let client;
+    
+    try {
+      console.log(`Updating resume with ID: "${args.resumeId}" using document: ${args.fileName}`);
+      
+      // Validate file type
+      const fileName = args.fileName.toLowerCase();
+      if (!fileName.endsWith('.docx') && !fileName.endsWith('.pdf')) {
+        throw new Error('Only .docx and .pdf files are supported for resume updates');
+      }
+
+      // Decode base64 data
+      const buffer = Buffer.from(args.fileData, 'base64');
+      
+      let extractedText = '';
+      let extractionMethod = '';
+      
+      // Extract text based on file type
+      if (fileName.endsWith('.docx')) {
+        // Extract text from DOCX using mammoth
+        const mammoth = require('mammoth');
+        const result = await mammoth.extractRawText({ buffer });
+        extractedText = result.value;
+        extractionMethod = 'mammoth + AI';
+      } else if (fileName.endsWith('.pdf')) {
+        // Extract text from PDF using multiple parsing methods with fallback
+        extractedText = await extractTextFromPDF(buffer);
+        extractionMethod = 'multi-method PDF parsing + AI';
+      }
+      
+      if (!extractedText || extractedText.trim().length === 0) {
+        throw new Error('No text content could be extracted from the document');
+      }
+
+      console.log(`Extracted ${extractedText.length} characters from ${args.fileName}`);
+      
+      // Parse the extracted text using AI
+      const structuredData = await parseResumeWithAI(extractedText);
+      
+      // Connect to MongoDB
+      client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        tls: true,
+      });
+      
+      await client.connect();
+      const db = client.db('workdemos');
+      const resumesCollection = db.collection('resumes');
+      
+      // Find the existing resume by ID
+      let existingResume = null;
+      try {
+        const objectId = new ObjectId(args.resumeId);
+        existingResume = await resumesCollection.findOne({ _id: objectId });
+      } catch (e) {
+        // If not a valid ObjectId, try to find by name
+        existingResume = await resumesCollection.findOne({ 
+          "processedMetadata.name": args.resumeId 
+        });
+      }
+      
+      if (!existingResume) {
+        throw new Error("Resume not found");
+      }
+      
+      // Create the updated document structure
+      const updatedDocument = {
+        filename: args.fileName,
+        originalText: extractedText,
+        personalInfo: structuredData.personalInfo || {
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          yearsOfExperience: 0
+        },
+        professionalSummary: structuredData.professionalSummary || '',
+        education: structuredData.education || [],
+        experience: structuredData.experience || [],
+        skills: structuredData.skills || [],
+        certifications: structuredData.certifications || 'n/a',
+        professionalMemberships: structuredData.professionalMemberships || 'n/a',
+        securityClearance: structuredData.securityClearance || 'n/a',
+        _metadata: {
+          fileName: args.fileName,
+          importedAt: new Date(),
+          parsedAt: new Date(),
+          updatedFrom: existingResume._id,
+          originalFilename: existingResume.filename
+        },
+        processedAt: new Date().toISOString(),
+        processedMetadata: {
+          sourceFile: args.fileName,
+          extractionMethod: 'mammoth + AI',
+          textLength: extractedText.length,
+          name: structuredData.personalInfo?.firstName && structuredData.personalInfo?.lastName ? 
+            `${structuredData.personalInfo.firstName} ${structuredData.personalInfo.lastName}` : 
+            existingResume.processedMetadata?.name,
+          email: structuredData.personalInfo?.email || existingResume.processedMetadata?.email,
+          phone: structuredData.personalInfo?.phone || existingResume.processedMetadata?.phone,
+          location: existingResume.processedMetadata?.location || 'N/A',
+          yearsOfExperience: structuredData.personalInfo?.yearsOfExperience || existingResume.processedMetadata?.yearsOfExperience || 0,
+          education: structuredData.education || existingResume.processedMetadata?.education || [],
+          skills: structuredData.skills || existingResume.processedMetadata?.skills || []
+        },
+        lastUpdated: new Date()
+      };
+      
+      // Generate embeddings for the updated resume
+      const { searchableText, embedding, extractedSkills } = await generateResumeEmbeddings(updatedDocument);
+      
+      // Add embedding data to document
+      const finalDocument = {
+        ...updatedDocument,
+        searchableText,
+        embedding,
+        extractedSkills: extractedSkills || structuredData.skills || [],
+        embeddingGeneratedAt: new Date()
+      };
+      
+      // Update the existing resume in MongoDB
+      const updateResult = await resumesCollection.updateOne(
+        { _id: existingResume._id },
+        { $set: finalDocument }
+      );
+      
+      if (updateResult.modifiedCount === 0) {
+        throw new Error("Failed to update resume - no changes were made");
+      }
+      
+      // Fetch the updated resume
+      const updatedResume = await resumesCollection.findOne({ _id: existingResume._id });
+      const mappedResume = mapResumeDataForFrontend(updatedResume);
+      
+      console.log('Resume updated successfully with new document');
+      
+      return {
+        success: true,
+        message: "Resume updated successfully with new document and fresh embeddings",
+        updatedResume: mappedResume,
+      };
+      
+    } catch (error) {
+      console.error('Error updating resume with document:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update resume with document";
+      
+      // Provide user-friendly error messages
+      if (errorMessage.includes('PDF parsing failed')) {
+        return {
+          success: false,
+          message: 'PDF parsing failed. Please ensure the PDF is not password-protected and contains readable text. Try converting the PDF to a .docx file and upload that instead.',
+        };
+      } else if (errorMessage.includes('Only .docx and .pdf files are supported')) {
+        return {
+          success: false,
+          message: 'This file type is not supported. Please upload a .docx or .pdf file.',
+        };
+      } else if (errorMessage.includes('No text content could be extracted')) {
+        return {
+          success: false,
+          message: 'Unable to extract text from this document. The file may be corrupted or password-protected.',
+        };
+      } else {
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+    } finally {
+      if (client) {
+        await client.close();
+      }
+    }
+  },
+});
+
+// Helper function to parse resume text with AI
+async function parseResumeWithAI(text: string): Promise<any> {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `
+    Parse the following resume text and extract structured information. Return the result as a JSON object with the following structure:
+    
+    {
+      "personalInfo": {
+        "firstName": "string",
+        "middleName": "string", 
+        "lastName": "string",
+        "email": "string",
+        "phone": "string",
+        "yearsOfExperience": number
+      },
+      "professionalSummary": "string",
+      "education": ["string array"],
+      "experience": [
+        {
+          "title": "string",
+          "company": "string", 
+          "location": "string",
+          "duration": "string",
+          "responsibilities": ["string array"]
+        }
+      ],
+      "skills": ["string array"],
+      "certifications": "string",
+      "professionalMemberships": "string",
+      "securityClearance": "string"
+    }
+    
+    Resume text:
+    ${text}
+    
+    Extract all available information and return only the JSON object. If a field is not found, use empty string or empty array as appropriate.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const responseText = response.text();
+    
+    // Extract JSON from the response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Failed to parse AI response as JSON');
+    }
+    
+    const parsedData = JSON.parse(jsonMatch[0]);
+    return parsedData;
+    
+  } catch (error) {
+    console.error('Error parsing resume with AI:', error);
+    // Return a basic structure if AI parsing fails
+    return {
+      personalInfo: {
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        yearsOfExperience: 0
+      },
+      professionalSummary: '',
+      education: [],
+      experience: [],
+      skills: [],
+      certifications: '',
+      professionalMemberships: '',
+      securityClearance: ''
+    };
+  }
+}
+
+// Helper function to generate resume embeddings
+async function generateResumeEmbeddings(resumeData: any): Promise<{
+  searchableText: string;
+  embedding: number[];
+  extractedSkills?: string[];
+}> {
+  try {
+    // Create searchable text from resume data
+    const searchableText = createResumeSearchableText(resumeData);
+    
+    // Generate embedding
+    const embedding = await generateQueryEmbedding(searchableText);
+    
+    // Extract skills from the text
+    const extractedSkills = extractSkillsFromQuery(searchableText);
+    
+    return {
+      searchableText,
+      embedding,
+      extractedSkills
+    };
+  } catch (error) {
+    console.error('Error generating resume embeddings:', error);
+    throw error;
+  }
+}
+
+// Helper function to create searchable text from resume data
+function createResumeSearchableText(resume: any): string {
+  const fields = [
+    resume.professionalSummary || '',
+    resume.skills ? (Array.isArray(resume.skills) ? resume.skills.join(' ') : resume.skills) : '',
+    resume.education ? (Array.isArray(resume.education) ? resume.education.join(' ') : resume.education) : '',
+    resume.certifications || '',
+    resume.experience ? resume.experience.map((exp: any) => 
+      `${exp.title || ''} ${exp.company || ''} ${exp.responsibilities ? exp.responsibilities.join(' ') : ''}`
+    ).join(' ') : '',
+    resume.professionalMemberships || '',
+    resume.securityClearance || '',
+    resume.personalInfo ? 
+      `${resume.personalInfo.firstName || ''} ${resume.personalInfo.lastName || ''} ${resume.personalInfo.email || ''}` : '',
+  ];
+  
+  return fields.filter(Boolean).join(' ').toLowerCase();
+}

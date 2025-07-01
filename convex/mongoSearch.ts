@@ -462,7 +462,84 @@ export const importJsonData = action({
   },
 });
 
-// Import Office Open XML documents (docx) to MongoDB
+// Helper function to extract text from PDF using multiple methods with fallback
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  let extractedText = '';
+  let lastError: Error | null = null;
+  
+  // Method 1: Try pdf-parse (original method)
+  try {
+    const pdfParse = require('pdf-parse');
+    const pdfData = await pdfParse(buffer);
+    if (pdfData.text && pdfData.text.trim().length > 0) {
+      console.log('PDF parsing successful with pdf-parse');
+      return pdfData.text;
+    }
+  } catch (error) {
+    console.log('pdf-parse failed, trying alternative method:', error instanceof Error ? error.message : 'Unknown error');
+    lastError = error instanceof Error ? error : new Error('pdf-parse failed');
+  }
+  
+  // Method 2: Try pdfjs-dist (Mozilla's PDF.js library)
+  try {
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    
+    // Set up the worker
+    const pdfjsWorker = require('pdfjs-dist/legacy/build/pdf.worker.entry');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
+    
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      // Combine text items
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      fullText += pageText + '\n';
+    }
+    
+    if (fullText.trim().length > 0) {
+      console.log('PDF parsing successful with pdfjs-dist');
+      return fullText;
+    }
+  } catch (error) {
+    console.log('pdfjs-dist failed, trying next method:', error instanceof Error ? error.message : 'Unknown error');
+    lastError = error instanceof Error ? error : new Error('pdfjs-dist failed');
+  }
+  
+  // Method 3: Try a more basic approach with pdf-parse but with different options
+  try {
+    const pdfParse = require('pdf-parse');
+    const pdfData = await pdfParse(buffer, {
+      // Try with different options
+      normalizeWhitespace: true,
+      disableCombineTextItems: false
+    });
+    
+    if (pdfData.text && pdfData.text.trim().length > 0) {
+      console.log('PDF parsing successful with pdf-parse (alternative options)');
+      return pdfData.text;
+    }
+  } catch (error) {
+    console.log('pdf-parse with alternative options failed:', error instanceof Error ? error.message : 'Unknown error');
+    lastError = error instanceof Error ? error : new Error('pdf-parse with alternative options failed');
+  }
+  
+  // If all methods failed, throw a comprehensive error
+  console.error('All PDF parsing methods failed. Last error:', lastError);
+  throw new Error('PDF parsing failed. Please ensure the PDF is not password-protected and contains readable text. Try converting the PDF to a .docx file and upload that instead.');
+}
+
+// Import Office Open XML documents (docx) and PDF files to MongoDB
 export const importOfficeDocument = action({
   args: {
     fileName: v.string(),
@@ -476,17 +553,30 @@ export const importOfficeDocument = action({
     let client;
     
     try {
+      const fileName = args.fileName.toLowerCase();
+      
       // Validate file type
-      if (!args.fileName.toLowerCase().endsWith('.docx')) {
-        throw new Error('Only .docx files are supported for Office Open XML import');
+      if (!fileName.endsWith('.docx') && !fileName.endsWith('.pdf')) {
+        throw new Error('Only .docx and .pdf files are supported for document import');
       }
 
       // Decode base64 data
       const buffer = Buffer.from(args.fileData, 'base64');
       
-      // Extract text from the document using mammoth
-      const result = await mammoth.extractRawText({ buffer });
-      const extractedText = result.value;
+      let extractedText = '';
+      let extractionMethod = '';
+      
+      // Extract text based on file type
+      if (fileName.endsWith('.docx')) {
+        // Extract text from DOCX using mammoth
+        const result = await mammoth.extractRawText({ buffer });
+        extractedText = result.value;
+        extractionMethod = 'mammoth + AI';
+      } else if (fileName.endsWith('.pdf')) {
+        // Extract text from PDF using multiple parsing methods with fallback
+        extractedText = await extractTextFromPDF(buffer);
+        extractionMethod = 'multi-method PDF parsing + AI';
+      }
       
       if (!extractedText || extractedText.trim().length === 0) {
         throw new Error('No text content could be extracted from the document');
@@ -542,7 +632,7 @@ export const importOfficeDocument = action({
         processedAt: new Date().toISOString(),
         processedMetadata: {
           sourceFile: args.fileName,
-          extractionMethod: 'mammoth + AI',
+          extractionMethod: extractionMethod,
           textLength: extractedText.length
         }
       };
@@ -565,16 +655,18 @@ export const importOfficeDocument = action({
       return { successCount: 1, failCount: 0 };
       
     } catch (error) {
-      console.error('Error importing Office document:', error);
+      console.error('Error importing document:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       // Provide user-friendly error messages
-      if (errorMessage.includes('Only .docx files are supported')) {
-        throw new Error('This file type is not supported. Please upload a .docx file.');
+      if (errorMessage.includes('PDF parsing failed')) {
+        throw new Error(errorMessage);
+      } else if (errorMessage.includes('Only .docx and .pdf files are supported')) {
+        throw new Error('This file type is not supported. Please upload a .docx or .pdf file.');
       } else if (errorMessage.includes('No text content could be extracted')) {
         throw new Error('Unable to extract text from this document. The file may be corrupted or password-protected.');
       } else if (errorMessage.includes('Failed to import JSON data')) {
-        throw new Error('The document format was unable to be processed. Please ensure it is a valid .docx file.');
+        throw new Error('The document format was unable to be processed. Please ensure it is a valid .docx or .pdf file.');
       } else {
         throw new Error(`Failed to process document: ${errorMessage}`);
       }
@@ -967,6 +1059,117 @@ export const searchJobsInMongo = action({
     } catch (error) {
       console.error('Error searching jobs:', error);
       throw new Error(`Failed to search jobs: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      if (client) {
+        await client.close();
+      }
+    }
+  },
+});
+
+// Filter resumes by text criteria (non-vector search)
+export const filterResumesByText = action({
+  args: {
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    email: v.optional(v.string()),
+    skills: v.optional(v.string()),
+    yearsOfExperience: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx, args) => {
+    let client;
+    
+    try {
+      console.log(`Filtering resumes with criteria:`, args);
+      
+      // Connect to MongoDB with serverless-optimized settings
+      client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+        maxPoolSize: 1,
+        minPoolSize: 0,
+        maxIdleTimeMS: 30000,
+      });
+      
+      await client.connect();
+      const db = client.db('workdemos');
+      const resumesCollection = db.collection('resumes');
+      
+      // Get all resumes
+      const resumes = await resumesCollection.find({}).toArray();
+      
+      console.log(`Found ${resumes.length} resumes in database`);
+      
+      // Filter resumes based on criteria
+      const filteredResumes = resumes.filter(resume => {
+        const convertedResume = convertMongoDocument(resume);
+        
+        // Check firstName
+        if (args.firstName && args.firstName.trim()) {
+          const resumeFirstName = convertedResume.personalInfo?.firstName || '';
+          if (!resumeFirstName.toLowerCase().includes(args.firstName.toLowerCase())) {
+            return false;
+          }
+        }
+        
+        // Check lastName
+        if (args.lastName && args.lastName.trim()) {
+          const resumeLastName = convertedResume.personalInfo?.lastName || '';
+          if (!resumeLastName.toLowerCase().includes(args.lastName.toLowerCase())) {
+            return false;
+          }
+        }
+        
+        // Check email
+        if (args.email && args.email.trim()) {
+          const resumeEmail = convertedResume.personalInfo?.email || '';
+          if (!resumeEmail.toLowerCase().includes(args.email.toLowerCase())) {
+            return false;
+          }
+        }
+        
+        // Check skills
+        if (args.skills && args.skills.trim()) {
+          const resumeSkills = Array.isArray(convertedResume.skills) 
+            ? convertedResume.skills.join(' ').toLowerCase()
+            : (convertedResume.skills || '').toLowerCase();
+          const searchSkills = args.skills.toLowerCase();
+          if (!resumeSkills.includes(searchSkills)) {
+            return false;
+          }
+        }
+        
+        // Check years of experience
+        if (args.yearsOfExperience && args.yearsOfExperience.trim()) {
+          const resumeYears = convertedResume.personalInfo?.yearsOfExperience || 0;
+          const searchYears = parseInt(args.yearsOfExperience);
+          if (!isNaN(searchYears) && resumeYears < searchYears) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+      
+      console.log(`Filtered to ${filteredResumes.length} resumes`);
+      
+      // Convert and return results
+      const limit = args.limit || 50;
+      const results = filteredResumes.slice(0, limit).map(resume => convertMongoDocument(resume));
+      
+      console.log(`Returning ${results.length} filtered resumes`);
+      return results;
+      
+    } catch (error) {
+      console.error('Error filtering resumes:', error);
+      throw new Error(`Failed to filter resumes: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       if (client) {
         await client.close();

@@ -99,6 +99,14 @@ interface SearchCriteria {
   department?: string;
 }
 
+interface ResumeSearchCriteria {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  skills?: string;
+  yearsOfExperience?: string;
+}
+
 export function DataManagementPage() {
   const navigate = useNavigate();
   
@@ -106,6 +114,7 @@ export function DataManagementPage() {
   const getAllJobPostingsAction = useAction(api.mongoSearch.getAllJobPostings);
   const getAllResumesAction = useAction(api.mongoSearch.getAllResumes);
   const searchJobPostingsAction = useAction(api.mongoSearch.searchJobPostings);
+  const filterResumesByTextAction = useAction(api.mongoSearch.filterResumesByText);
   const importExcelDataAction = useAction(api.mongoSearch.importExcelData);
   const importJsonDataAction = useAction(api.mongoSearch.importJsonData);
   const importOfficeDocumentAction = useAction(api.mongoSearch.importOfficeDocument);
@@ -116,7 +125,9 @@ export function DataManagementPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [searchCriteria, setSearchCriteria] = useState<SearchCriteria>({});
+  const [resumeSearchCriteria, setResumeSearchCriteria] = useState<ResumeSearchCriteria>({});
   const [filteredJobs, setFilteredJobs] = useState<JobPosting[]>([]);
+  const [filteredResumes, setFilteredResumes] = useState<Resume[]>([]);
   const [dataCached, setDataCached] = useState(false);
   const [lastCacheTime, setLastCacheTime] = useState<Date | null>(null);
   const [cachingDisabled, setCachingDisabled] = useState(false);
@@ -124,6 +135,8 @@ export function DataManagementPage() {
   // Collapsible state
   const [jobsSectionCollapsed, setJobsSectionCollapsed] = useState(false);
   const [resumesSectionCollapsed, setResumesSectionCollapsed] = useState(false);
+  const [jobSearchCollapsed, setJobSearchCollapsed] = useState(false);
+  const [resumeSearchCollapsed, setResumeSearchCollapsed] = useState(false);
 
   // IndexedDB configuration
   const DB_NAME = 'dataManagementCache';
@@ -374,6 +387,7 @@ export function DataManagementPage() {
       setJobPostings(jobPostingsData);
       setResumes(resumesData);
       setFilteredJobs(jobPostingsData);
+      setFilteredResumes(resumesData);
       setDataCached(false);
       setLastCacheTime(new Date());
       
@@ -481,18 +495,19 @@ export function DataManagementPage() {
     }
   };
 
-  // Handle Office Open XML document import
+  // Handle Office Open XML document and PDF import
   const handleOfficeDocumentImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.docx')) {
-      setMessage('Please select a .docx file');
+    if (!file.name.endsWith('.docx') && !file.name.endsWith('.pdf')) {
+      setMessage('Please select a .docx or .pdf file');
       return;
     }
 
     setLoading(true);
-    setMessage('Processing DOCX file with AI parsing and generating embeddings...');
+    const fileType = file.name.endsWith('.docx') ? 'DOCX' : 'PDF';
+    setMessage(`Processing ${fileType} file with AI parsing and generating embeddings...`);
     try {
       // Convert file to base64 for transmission
       const base64Data = await fileToBase64(file);
@@ -505,21 +520,57 @@ export function DataManagementPage() {
       await loadData(true); // Force refresh to get updated data
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setMessage(`Import failed: ${errorMessage}`);
+      
+      // Provide more helpful error messages for PDF issues
+      if (errorMessage.includes('PDF parsing failed')) {
+        setMessage('PDF parsing failed. Please ensure the PDF is not password-protected and contains readable text. Try converting the PDF to a .docx file and upload that instead.');
+      } else {
+        setMessage(`Import failed: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle search
-  const handleSearch = async () => {
+  // Handle job search
+  const handleJobSearch = async () => {
     setLoading(true);
     try {
       const results = await searchJobPostingsAction(searchCriteria);
       setFilteredJobs(results as unknown as JobPosting[]);
       setMessage(`Found ${results.length} matching job postings`);
     } catch (error) {
-      setMessage(`Search failed: ${error}`);
+      setMessage(`Job search failed: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle resume search
+  const handleResumeSearch = async () => {
+    setLoading(true);
+    try {
+      // Check if at least one criteria is provided
+      const hasCriteria = Object.values(resumeSearchCriteria).some(value => value && value.trim());
+      
+      if (!hasCriteria) {
+        setMessage('Please enter at least one search criteria');
+        setLoading(false);
+        return;
+      }
+      
+      const results = await filterResumesByTextAction({
+        firstName: resumeSearchCriteria.firstName,
+        lastName: resumeSearchCriteria.lastName,
+        email: resumeSearchCriteria.email,
+        skills: resumeSearchCriteria.skills,
+        yearsOfExperience: resumeSearchCriteria.yearsOfExperience,
+        limit: 50
+      });
+      setFilteredResumes(results as unknown as Resume[]);
+      setMessage(`Found ${results.length} matching resumes`);
+    } catch (error) {
+      setMessage(`Resume search failed: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -537,6 +588,7 @@ export function DataManagementPage() {
       setJobPostings([]);
       setResumes([]);
       setFilteredJobs([]);
+      setFilteredResumes([]);
       await clearCache(); // Clear IndexedDB cache as well
       setMessage('All data cleared successfully from MongoDB and IndexedDB cache');
     } catch (error) {
@@ -696,19 +748,19 @@ export function DataManagementPage() {
           </label>
         </div>
 
-        {/* Office Open XML Import */}
+        {/* Office Open XML and PDF Import */}
         <div className="border rounded-lg p-6 dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <FileText className="mr-2" />
-            Import Resumes (DOCX)
+            Import Resumes (DOCX/PDF)
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Upload a .docx file - AI will extract and structure the resume data
+            Upload a .docx or .pdf file - AI will extract and structure the resume data
           </p>
           <label className="block">
             <input
               type="file"
-              accept=".docx"
+              accept=".docx,.pdf"
               onChange={handleOfficeDocumentImport}
               disabled={loading}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-900 dark:file:text-purple-300"
@@ -747,50 +799,164 @@ export function DataManagementPage() {
         </button>
       </div>
 
-      {/* Search Section */}
-      <div className="border rounded-lg p-6 mb-8 dark:border-gray-700">
-        <h2 className="text-xl font-semibold mb-4 flex items-center">
-          <Search className="mr-2" />
-          Search Job Postings
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <input
-            type="text"
-            placeholder="Job Title"
-            value={searchCriteria.jobTitle || ''}
-            onChange={(e) => setSearchCriteria({ ...searchCriteria, jobTitle: e.target.value })}
-            className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
-          />
-          <input
-            type="text"
-            placeholder="Location"
-            value={searchCriteria.location || ''}
-            onChange={(e) => setSearchCriteria({ ...searchCriteria, location: e.target.value })}
-            className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
-          />
-          <input
-            type="text"
-            placeholder="Job Type"
-            value={searchCriteria.jobType || ''}
-            onChange={(e) => setSearchCriteria({ ...searchCriteria, jobType: e.target.value })}
-            className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
-          />
-          <input
-            type="text"
-            placeholder="Department"
-            value={searchCriteria.department || ''}
-            onChange={(e) => setSearchCriteria({ ...searchCriteria, department: e.target.value })}
-            className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
-          />
+      {/* Search Sections */}
+      <div className="space-y-6 mb-8">
+        {/* Job Search Section */}
+        <div className="border rounded-lg p-6 dark:border-gray-700">
+          <button
+            onClick={() => setJobSearchCollapsed(!jobSearchCollapsed)}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <h2 className="text-xl font-semibold flex items-center">
+              <Search className="mr-2" />
+              Search Job Postings
+            </h2>
+            {jobSearchCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronDown className="h-5 w-5" />
+            )}
+          </button>
+          
+          {!jobSearchCollapsed && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <input
+                  type="text"
+                  placeholder="Job Title"
+                  value={searchCriteria.jobTitle || ''}
+                  onChange={(e) => setSearchCriteria({ ...searchCriteria, jobTitle: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Location"
+                  value={searchCriteria.location || ''}
+                  onChange={(e) => setSearchCriteria({ ...searchCriteria, location: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Job Type"
+                  value={searchCriteria.jobType || ''}
+                  onChange={(e) => setSearchCriteria({ ...searchCriteria, jobType: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Department"
+                  value={searchCriteria.department || ''}
+                  onChange={(e) => setSearchCriteria({ ...searchCriteria, department: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleJobSearch}
+                  disabled={loading}
+                  className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                >
+                  <Filter className="mr-2" />
+                  Search Jobs
+                </button>
+                <button
+                  onClick={() => {
+                    setSearchCriteria({});
+                    setFilteredJobs([]);
+                    setMessage('Job search cleared');
+                  }}
+                  disabled={loading}
+                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                >
+                  <Trash2 className="mr-2" />
+                  Clear Search
+                </button>
+              </div>
+            </>
+          )}
         </div>
-        <button
-          onClick={handleSearch}
-          disabled={loading}
-          className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-        >
-          <Filter className="mr-2" />
-          Search
-        </button>
+
+        {/* Resume Search Section */}
+        <div className="border rounded-lg p-6 dark:border-gray-700">
+          <button
+            onClick={() => setResumeSearchCollapsed(!resumeSearchCollapsed)}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <h2 className="text-xl font-semibold flex items-center">
+              <User className="mr-2" />
+              Search Resumes
+            </h2>
+            {resumeSearchCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronDown className="h-5 w-5" />
+            )}
+          </button>
+          
+          {!resumeSearchCollapsed && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                <input
+                  type="text"
+                  placeholder="First Name"
+                  value={resumeSearchCriteria.firstName || ''}
+                  onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, firstName: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Last Name"
+                  value={resumeSearchCriteria.lastName || ''}
+                  onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, lastName: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={resumeSearchCriteria.email || ''}
+                  onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, email: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Skills"
+                  value={resumeSearchCriteria.skills || ''}
+                  onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, skills: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                />
+                <input
+                  type="number"
+                  placeholder="Years of Experience"
+                  value={resumeSearchCriteria.yearsOfExperience || ''}
+                  onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, yearsOfExperience: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleResumeSearch}
+                  disabled={loading}
+                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  <Filter className="mr-2" />
+                  Search Resumes
+                </button>
+                <button
+                  onClick={() => {
+                    setResumeSearchCriteria({});
+                    setFilteredResumes([]);
+                    setMessage('Resume search cleared');
+                  }}
+                  disabled={loading}
+                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                >
+                  <Trash2 className="mr-2" />
+                  Clear Search
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Data Summary */}
@@ -808,7 +974,7 @@ export function DataManagementPage() {
       </div>
 
       {/* Job Postings List */}
-      {filteredJobs.length > 0 && (
+      {(jobPostings.length > 0 || filteredJobs.length > 0) && (
         <div className="border rounded-lg p-6 dark:border-gray-700 mb-8">
           <button
             onClick={() => setJobsSectionCollapsed(!jobsSectionCollapsed)}
@@ -816,7 +982,10 @@ export function DataManagementPage() {
           >
             <h3 className="text-lg font-semibold flex items-center">
               <Briefcase className="mr-2" />
-              Job Postings ({filteredJobs.length})
+              Job Postings ({filteredJobs.length > 0 ? filteredJobs.length : jobPostings.length})
+              {filteredJobs.length > 0 && filteredJobs.length !== jobPostings.length && (
+                <span className="ml-2 text-sm text-gray-500">(filtered)</span>
+              )}
             </h3>
             {jobsSectionCollapsed ? (
               <ChevronRight className="h-5 w-5" />
@@ -827,7 +996,7 @@ export function DataManagementPage() {
           
           {!jobsSectionCollapsed && (
             <div className="space-y-4 max-h-96 overflow-y-auto">
-              {filteredJobs.map((job, index) => (
+              {(filteredJobs.length > 0 ? filteredJobs : jobPostings).map((job, index) => (
                 <div 
                   key={job._id || index} 
                   className="border rounded-lg p-4 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
@@ -848,7 +1017,7 @@ export function DataManagementPage() {
       )}
 
       {/* Resumes List */}
-      {resumes.length > 0 && (
+      {(resumes.length > 0 || filteredResumes.length > 0) && (
         <div className="border rounded-lg p-6 dark:border-gray-700">
           <button
             onClick={() => setResumesSectionCollapsed(!resumesSectionCollapsed)}
@@ -856,7 +1025,10 @@ export function DataManagementPage() {
           >
             <h3 className="text-lg font-semibold flex items-center">
               <User className="mr-2" />
-              Resumes ({resumes.length})
+              Resumes ({filteredResumes.length > 0 ? filteredResumes.length : resumes.length})
+              {filteredResumes.length > 0 && filteredResumes.length !== resumes.length && (
+                <span className="ml-2 text-sm text-gray-500">(filtered)</span>
+              )}
             </h3>
             {resumesSectionCollapsed ? (
               <ChevronRight className="h-5 w-5" />
@@ -867,7 +1039,7 @@ export function DataManagementPage() {
           
           {!resumesSectionCollapsed && (
             <div className="space-y-4 max-h-96 overflow-y-auto">
-              {resumes.map((resume, index) => (
+              {(filteredResumes.length > 0 ? filteredResumes : resumes).map((resume, index) => (
                 <div 
                   key={resume._id || index} 
                   className="border rounded-lg p-4 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
