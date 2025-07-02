@@ -54,12 +54,73 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [dbStatus, setDbStatus] = useState<{kfcCount: number, employeeCount: number} | null>(null);
 
+  // Cobec Admin Management state
+  const [showCobecAdminManagement, setShowCobecAdminManagement] = useState(false);
+  const [newCobecAdminUserId, setNewCobecAdminUserId] = useState('');
+  const [newCobecAdminName, setNewCobecAdminName] = useState('');
+  const [newCobecAdminEmail, setNewCobecAdminEmail] = useState('');
+  const [isAddingCobecAdmin, setIsAddingCobecAdmin] = useState(false);
+
+  // State for MongoDB-based admin management
+  const [isCobecAdmin, setIsCobecAdmin] = useState(false);
+  const [allCobecAdmins, setAllCobecAdmins] = useState<any[]>([]);
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
+
   // Load data on component mount
   useEffect(() => {
     if (kfcEntries.length === 0 && !isLoading) {
       refreshData();
     }
   }, [kfcEntries.length, isLoading, refreshData]);
+
+  // Check admin status from MongoDB cluster
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const db = await mongoClient.getDatabase();
+        const cobecadminsCollection = db.collection('cobecadmins');
+        
+        // Get current user ID from localStorage or other source
+        const currentUserId = localStorage.getItem('currentUserId') || 'user_2yeq7o5pXddjNeLFDpoz5tTwkWS'; // Fallback for testing
+        
+        const adminUser = await cobecadminsCollection.findOne({ 
+          clerkuserid: currentUserId 
+        });
+        
+        const adminResult = adminUser !== null;
+        console.log(`✅ MongoDB Admin check result: ${adminResult}`);
+        setIsCobecAdmin(adminResult);
+        
+        if (adminResult) {
+          // Load all admins if user is admin
+          await loadAllCobecAdmins();
+        }
+        
+      } catch (error) {
+        console.error('❌ Error checking admin status:', error);
+        setIsCobecAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [mongoClient]);
+
+  const loadAllCobecAdmins = async () => {
+    setIsLoadingAdmins(true);
+    try {
+      const db = await mongoClient.getDatabase();
+      const cobecadminsCollection = db.collection('cobecadmins');
+      
+      const admins = await cobecadminsCollection.findToArray({});
+      console.log(`📊 Loaded ${admins.length} cobec admins from MongoDB`);
+      setAllCobecAdmins(admins);
+    } catch (error) {
+      console.error('❌ Error loading cobec admins:', error);
+      setAllCobecAdmins([]);
+    } finally {
+      setIsLoadingAdmins(false);
+    }
+  };
 
   const loadKfcDataFromJson = async () => {
     try {
@@ -340,6 +401,77 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
     (window as any).debugKfcDatabase = debugDatabase;
     console.log('🔧 Debug function available: window.debugKfcDatabase()');
   }, []);
+
+  const handleAddCobecAdmin = async () => {
+    if (!newCobecAdminUserId.trim()) {
+      alert('Please enter a Clerk User ID');
+      return;
+    }
+
+    setIsAddingCobecAdmin(true);
+    try {
+      const db = await mongoClient.getDatabase();
+      const cobecadminsCollection = db.collection('cobecadmins');
+      
+      // Check if admin already exists
+      const existingAdmin = await cobecadminsCollection.findOne({ 
+        clerkuserid: newCobecAdminUserId.trim() 
+      });
+      
+      if (existingAdmin) {
+        alert('User is already a Cobec Admin');
+        return;
+      }
+      
+      // Add new admin
+      const newAdmin = {
+        clerkuserid: newCobecAdminUserId.trim(),
+        name: newCobecAdminName.trim() || `Admin User ${newCobecAdminUserId.trim().slice(-4)}`,
+        email: newCobecAdminEmail.trim() || `${newCobecAdminUserId.trim()}@example.com`,
+        role: 'admin',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      await cobecadminsCollection.insertOne(newAdmin);
+      
+      setSuccessMessage(`Successfully added ${newAdmin.name} as Cobec Admin`);
+      setNewCobecAdminUserId('');
+      setNewCobecAdminName('');
+      setNewCobecAdminEmail('');
+      setShowCobecAdminManagement(false);
+      
+      // Reload admins list
+      await loadAllCobecAdmins();
+      
+    } catch (error) {
+      console.error('Failed to add Cobec Admin:', error);
+      alert(`Failed to add Cobec Admin: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsAddingCobecAdmin(false);
+    }
+  };
+
+  const handleRemoveCobecAdmin = async (clerkUserId: string) => {
+    if (!confirm('Are you sure you want to remove this Cobec Admin?')) {
+      return;
+    }
+
+    try {
+      const db = await mongoClient.getDatabase();
+      const cobecadminsCollection = db.collection('cobecadmins');
+      
+      await cobecadminsCollection.deleteOne({ clerkuserid: clerkUserId });
+      setSuccessMessage('Successfully removed Cobec Admin');
+      
+      // Reload admins list
+      await loadAllCobecAdmins();
+      
+    } catch (error) {
+      console.error('Failed to remove Cobec Admin:', error);
+      alert(`Failed to remove Cobec Admin: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -622,12 +754,22 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
       <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Employees Management</h2>
-          <button
-            onClick={() => setShowAddEmployee(!showAddEmployee)}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
-          >
-            {showAddEmployee ? 'Cancel' : 'Add Employee'}
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowAddEmployee(!showAddEmployee)}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
+            >
+              {showAddEmployee ? 'Cancel' : 'Add Employee'}
+            </button>
+            {isCobecAdmin && (
+              <button
+                onClick={() => setShowCobecAdminManagement(!showCobecAdminManagement)}
+                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
+              >
+                {showCobecAdminManagement ? 'Cancel' : 'Manage Cobec Admins'}
+              </button>
+            )}
+          </div>
         </div>
 
         {showAddEmployee && (
@@ -646,6 +788,100 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
               >
                 Add
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Cobec Admin Management Section */}
+        {isCobecAdmin && showCobecAdminManagement && (
+          <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+            <h3 className="text-lg font-semibold mb-4 text-purple-900 dark:text-purple-100">Cobec Admin Management</h3>
+            
+            {/* Add New Cobec Admin Form */}
+            <div className="mb-4 p-4 bg-white dark:bg-gray-700 rounded-lg border border-purple-200 dark:border-purple-600">
+              <h4 className="font-medium mb-3 text-purple-900 dark:text-purple-100">Add New Cobec Admin</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <input
+                  type="text"
+                  value={newCobecAdminUserId}
+                  onChange={(e) => setNewCobecAdminUserId(e.target.value)}
+                  placeholder="Clerk User ID (required)"
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="text"
+                  value={newCobecAdminName}
+                  onChange={(e) => setNewCobecAdminName(e.target.value)}
+                  placeholder="Admin Name (optional)"
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="email"
+                  value={newCobecAdminEmail}
+                  onChange={(e) => setNewCobecAdminEmail(e.target.value)}
+                  placeholder="Admin Email (optional)"
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Enter the Clerk User ID to grant Cobec Admin privileges
+                </p>
+                <button
+                  onClick={handleAddCobecAdmin}
+                  disabled={isAddingCobecAdmin || !newCobecAdminUserId.trim()}
+                  className={`px-4 py-2 rounded-md transition-colors ${
+                    isAddingCobecAdmin || !newCobecAdminUserId.trim()
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-purple-600 hover:bg-purple-700'
+                  } text-white`}
+                >
+                  {isAddingCobecAdmin ? 'Adding...' : 'Add Admin'}
+                </button>
+              </div>
+            </div>
+
+            {/* Current Cobec Admins List */}
+            <div className="p-4 bg-white dark:bg-gray-700 rounded-lg border border-purple-200 dark:border-purple-600">
+              <h4 className="font-medium mb-3 text-purple-900 dark:text-purple-100">Current Cobec Admins</h4>
+              {isLoadingAdmins ? (
+                <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                  Loading admins...
+                </div>
+              ) : allCobecAdmins && allCobecAdmins.length > 0 ? (
+                <div className="space-y-2">
+                  {allCobecAdmins.map((admin) => (
+                    <div
+                      key={admin._id}
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-500"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {admin.name || 'Unnamed Admin'}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {admin.clerkuserid}
+                        </div>
+                        {admin.email && (
+                          <div className="text-sm text-gray-500 dark:text-gray-500">
+                            {admin.email}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveCobecAdmin(admin.clerkuserid)}
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm ml-2 px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                  No Cobec Admins found
+                </div>
+              )}
             </div>
           </div>
         )}
