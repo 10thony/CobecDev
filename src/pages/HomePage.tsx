@@ -1,17 +1,29 @@
 import { useQuery, useMutation } from "convex/react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/clerk-react";
 
 export function HomePage() {
   const chats = useQuery(api.chats.list) || [];
   const aiModels = useQuery(api.aiModels.listActive) || [];
   const loggedInUser = useQuery(api.auth.getCurrentUser);
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
+  const isCobecAdmin = useQuery(api.cobecAdmins.checkIfUserIsCobecAdmin);
+  const { userId } = useAuth();
   
   const makeAdmin = useMutation(api.userRoles.makeCurrentUserAdmin);
   const seedModels = useMutation(api.aiModels.seedModels);
   const [isSeeding, setIsSeeding] = useState(false);
+
+  // Store the admin status in localStorage when it's available
+  useEffect(() => {
+    if (isCobecAdmin !== undefined && isCobecAdmin !== null) {
+      console.log('✅ Cobecadmins check completed:', isCobecAdmin);
+      localStorage.setItem('isCobecAdmin', JSON.stringify(isCobecAdmin));
+      localStorage.setItem('cobecAdminCheckTime', Date.now().toString());
+    }
+  }, [isCobecAdmin]);
 
   const handleSetupApp = async () => {
     setIsSeeding(true);
@@ -40,6 +52,17 @@ export function HomePage() {
             <p className="text-lg text-gray-700 dark:text-gray-200">
               Hello, {loggedInUser.email}!
             </p>
+            {isCobecAdmin !== undefined && isCobecAdmin !== null && (
+              <div className="mt-2">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  isCobecAdmin 
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                }`}>
+                  {isCobecAdmin ? 'Cobec Admin' : 'Standard User'}
+                </span>
+              </div>
+            )}
           </div>
         )}
 

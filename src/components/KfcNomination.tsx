@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../lib/ThemeContext';
+import { useGlobalData } from '../lib/useGlobalData';
+import { SectionLoadingSpinner } from './LoadingSpinner';
 
 interface Employee {
   _id?: string;
@@ -35,10 +37,7 @@ interface KfcNominationProps {
 
 const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
   const { theme } = useTheme();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [nominations, setNominations] = useState<Nomination[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { employees, nominations, isLoading, error, refreshData } = useGlobalData();
   
   // Form state
   const [nominatorName, setNominatorName] = useState('');
@@ -46,36 +45,7 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
   const [nominationType, setNominationType] = useState<'Team' | 'Individual' | 'Growth'>('Team');
   const [description, setDescription] = useState('');
   const [showNominationForm, setShowNominationForm] = useState(false);
-
-  // Load data on component mount
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const db = await mongoClient.getDatabase();
-      
-      // Load employees
-      const employeesCollection = db.collection('employees');
-      const employeesData = await employeesCollection.findToArray({});
-      setEmployees(employeesData);
-      
-      // Load nominations
-      const nominationsCollection = db.collection('nominations');
-      const nominationsData = await nominationsCollection.findToArray({});
-      setNominations(nominationsData);
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load data';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const getPointsForNominationType = (type: 'Team' | 'Individual' | 'Growth'): number => {
     switch (type) {
@@ -92,7 +62,7 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
 
   const handleSubmitNomination = async () => {
     if (!nominatorName.trim() || !nominatedEmployee.trim() || !description.trim()) {
-      setError('Please fill in all fields');
+      setLocalError('Please fill in all fields');
       return;
     }
 
@@ -159,8 +129,8 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
         await kfcCollection.insertOne(newKfcEntry);
       }
       
-      // Update local state
-      setNominations(prev => [...prev, nomination]);
+      // Refresh data to get updated nominations
+      await refreshData();
       
       // Reset form
       setNominatorName('');
@@ -168,10 +138,10 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
       setNominationType('Team');
       setDescription('');
       setShowNominationForm(false);
-      setError(null);
+      setLocalError(null);
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit nomination');
+      setLocalError(err instanceof Error ? err.message : 'Failed to submit nomination');
     }
   };
 
@@ -182,29 +152,26 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
       
       await collection.deleteOne({ _id: nominationId });
       
-      setNominations(prev => prev.filter(nom => nom._id !== nominationId));
+      // Refresh data to get updated nominations
+      await refreshData();
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete nomination');
+      setLocalError(err instanceof Error ? err.message : 'Failed to delete nomination');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+  if (isLoading) {
+    return <SectionLoadingSpinner text="Loading nominations and employees..." />;
   }
 
-  if (error) {
+  if (error || localError) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
-          <strong>Error:</strong> {error}
+          <strong>Error:</strong> {error || localError}
           <div className="mt-2 space-x-2">
             <button 
-              onClick={loadData}
+              onClick={refreshData}
               className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors"
             >
               Retry

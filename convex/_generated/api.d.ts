@@ -17,6 +17,7 @@ import type * as aiModels from "../aiModels.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as chats from "../chats.js";
+import type * as cobecAdmins from "../cobecAdmins.js";
 import type * as http from "../http.js";
 import type * as logs from "../logs.js";
 import type * as messages from "../messages.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   chat: typeof chat;
   chats: typeof chats;
+  cobecAdmins: typeof cobecAdmins;
   http: typeof http;
   logs: typeof logs;
   messages: typeof messages;

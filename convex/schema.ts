@@ -31,6 +31,17 @@ const applicationTables = {
   }).index("by_user", ["userId"])
     .index("by_role", ["role"]),
 
+  // Cobec admins collection for KFC management access control
+  cobecadmins: defineTable({
+    clerkUserId: v.string(), // Clerk user ID
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    role: v.optional(v.string()),
+    createdAt: v.number(), // Track when admin was added
+    updatedAt: v.number(), // Track when admin was last updated
+  }).index("by_clerkUserId", ["clerkUserId"])
+    .index("by_role", ["role"]),
+
   // Chat conversations - now using Clerk user IDs
   chats: defineTable({
     userId: v.string(), // Clerk user ID (string instead of Convex ID)

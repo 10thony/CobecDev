@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../lib/ThemeContext';
 import { getKfcMongoService } from '../lib/kfcMongoService';
+import { useGlobalData } from '../lib/useGlobalData';
+import { SectionLoadingSpinner } from './LoadingSpinner';
 
 // Import KFC data directly as fallback
 import kfcData from '../../kfcpoints.json';
@@ -34,11 +36,18 @@ interface KfcPointsManagerProps {
 
 const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
   const { theme } = useTheme();
-  const [kfcEntries, setKfcEntries] = useState<KfcEntry[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { 
+    kfcEntries, 
+    employees, 
+    isLoading, 
+    error, 
+    refreshData, 
+    refreshKfcData, 
+    addEmployee, 
+    removeEmployee 
+  } = useGlobalData();
+  
   const [selectedEntry, setSelectedEntry] = useState<KfcEntry | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [newEmployeeName, setNewEmployeeName] = useState('');
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [showLoadDataButton, setShowLoadDataButton] = useState(false);
@@ -47,109 +56,13 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
 
   // Load data on component mount
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccessMessage(null); // Clear any previous success messages
-      
-      console.log('🔄 Loading KFC data from MongoDB cluster...');
-      
-      // Try to load from MongoDB cluster first
-      try {
-        const kfcService = await getKfcMongoService();
-        console.log('✅ Connected to KFC MongoDB service');
-        
-        // Load KFC entries and employees
-        const [kfcEntries, employees, status] = await Promise.all([
-          kfcService.getAllKfcEntries(),
-          kfcService.getAllEmployees(),
-          kfcService.getDatabaseStatus()
-        ]);
-        
-        console.log('✅ Loaded data from MongoDB cluster:', { kfcEntries, employees, status });
-        
-        setKfcEntries(kfcEntries);
-        setEmployees(employees);
-        setDbStatus(status);
-        
-        // Show success message
-        setSuccessMessage(`Successfully loaded ${kfcEntries.length} KFC entries and ${employees.length} employees from MongoDB cluster`);
-        setTimeout(() => setSuccessMessage(null), 3000);
-        
-        setShowLoadDataButton(false);
-        return;
-        
-      } catch (mongoError) {
-        console.log('⚠️ MongoDB cluster not available, falling back to IndexedDB:', mongoError);
-      }
-      
-      // Fallback to IndexedDB
-      console.log('🔄 Falling back to IndexedDB...');
-      
-      // Ensure client is connected
-      if (!mongoClient) {
-        throw new Error('MongoDB client is not available');
-      }
-      
-      const db = await mongoClient.getDatabase();
-      console.log('✅ IndexedDB connection established');
-      
-      // Debug: Check database status
-      console.log('🔍 Checking database collections...');
-      await checkDatabaseStatus();
-      
-      // Load KFC entries
-      const kfcCollection = db.collection('kfcpoints');
-      console.log('📊 Fetching KFC entries...');
-      
-      const kfcData = await kfcCollection.findToArray({});
-      console.log(`✅ Loaded ${kfcData.length} KFC entries:`, kfcData);
-      setKfcEntries(kfcData);
-      
-      // Load employees
-      const employeesCollection = db.collection('employees');
-      console.log('👥 Fetching employees...');
-      
-      const employeesData = await employeesCollection.findToArray({});
-      console.log(`✅ Loaded ${employeesData.length} employees:`, employeesData);
-      setEmployees(employeesData);
-      
-      // Show load data button if no data found in database
-      if (kfcData.length === 0) {
-        console.log('⚠️ No KFC data found in database, showing load button');
-        setShowLoadDataButton(true);
-      } else {
-        setShowLoadDataButton(false);
-      }
-      
-      console.log('🎉 Data loading completed successfully');
-      
-      // Show success message
-      setSuccessMessage(`Successfully loaded ${kfcData.length} KFC entries and ${employeesData.length} employees from IndexedDB`);
-      setTimeout(() => setSuccessMessage(null), 3000); // Auto-hide after 3 seconds
-      
-    } catch (err) {
-      console.error('❌ Error loading KFC data:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load data from database';
-      setError(errorMessage);
-      
-      // Show load data button on error as fallback
-      setShowLoadDataButton(true);
-    } finally {
-      setLoading(false);
+    if (kfcEntries.length === 0 && !isLoading) {
+      refreshData();
     }
-  };
+  }, [kfcEntries.length, isLoading, refreshData]);
 
   const loadKfcDataFromJson = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      setSuccessMessage(null);
-      
       console.log('🔄 Loading KFC data from JSON file...');
       console.log(`📄 JSON data contains ${kfcData.length} entries`);
       
@@ -207,15 +120,12 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
       // Show success message
       setSuccessMessage(`Successfully loaded ${kfcSuccessCount} KFC entries and ${employeeSuccessCount} employees from JSON`);
       
-      // Reload data to show the newly loaded entries
-      await loadData();
+      // Refresh data to show the newly loaded entries
+      await refreshData();
       setShowLoadDataButton(false);
       
     } catch (err) {
       console.error('❌ Error loading KFC data from JSON:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load KFC data from JSON');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -240,18 +150,14 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
         }
       );
       
-      // Update local state
-      setKfcEntries(prev => 
-        prev.map(entry => 
-          entry._id === selectedEntry._id 
-            ? { ...entry, score: newScore }
-            : entry
-        )
-      );
+      // Update selected entry
       setSelectedEntry({ ...selectedEntry, score: newScore });
       
+      // Refresh data to update the list
+      await refreshData();
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update score');
+      console.error('Failed to update score:', err);
     }
   };
 
@@ -280,19 +186,15 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
         }
       );
       
-      // Update local state
+      // Update selected entry
       const updatedEntry = { ...selectedEntry, events: updatedEvents };
-      setKfcEntries(prev => 
-        prev.map(entry => 
-          entry._id === selectedEntry._id 
-            ? updatedEntry
-            : entry
-        )
-      );
       setSelectedEntry(updatedEntry);
       
+      // Refresh data to update the list
+      await refreshData();
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add event');
+      console.error('Failed to add event:', err);
     }
   };
 
@@ -315,19 +217,15 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
         }
       );
       
-      // Update local state
+      // Update selected entry
       const updatedEntry = { ...selectedEntry, events: updatedEvents };
-      setKfcEntries(prev => 
-        prev.map(entry => 
-          entry._id === selectedEntry._id 
-            ? updatedEntry
-            : entry
-        )
-      );
       setSelectedEntry(updatedEntry);
       
+      // Refresh data to update the list
+      await refreshData();
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove event');
+      console.error('Failed to remove event:', err);
     }
   };
 
@@ -335,38 +233,20 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
     if (!newEmployeeName.trim()) return;
     
     try {
-      const db = await mongoClient.getDatabase();
-      const collection = db.collection('employees');
-      
-      const newEmployee: Employee = {
-        name: newEmployeeName.trim(),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      const result = await collection.insertOne(newEmployee);
-      newEmployee._id = result.insertedId;
-      
-      setEmployees(prev => [...prev, newEmployee]);
+      await addEmployee(newEmployeeName.trim());
       setNewEmployeeName('');
       setShowAddEmployee(false);
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add employee');
+      console.error('Failed to add employee:', err);
     }
   };
 
   const handleRemoveEmployee = async (employeeId: string) => {
     try {
-      const db = await mongoClient.getDatabase();
-      const collection = db.collection('employees');
-      
-      await collection.deleteOne({ _id: employeeId });
-      
-      setEmployees(prev => prev.filter(emp => emp._id !== employeeId));
-      
+      await removeEmployee(employeeId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove employee');
+      console.error('Failed to remove employee:', err);
     }
   };
 
@@ -461,14 +341,10 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
     console.log('🔧 Debug function available: window.debugKfcDatabase()');
   }, []);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto p-6">
-        <div className="flex flex-col justify-center items-center h-64 space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="text-gray-600 dark:text-gray-300 font-medium">Loading KFC data from database...</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Please wait while we fetch the latest data</p>
-        </div>
+        <SectionLoadingSpinner text="Loading KFC data from database..." />
       </div>
     );
   }
@@ -493,7 +369,7 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
               </div>
               <div className="mt-3 space-x-2">
                 <button 
-                  onClick={loadData}
+                  onClick={refreshData}
                   className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors"
                 >
                   Retry
@@ -556,23 +432,23 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
           </div>
           <div className="flex space-x-2">
             <button
-              onClick={loadData}
-              disabled={loading}
+              onClick={refreshData}
+              disabled={isLoading}
               className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2 ${
-                loading 
+                isLoading 
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-blue-600 hover:bg-blue-700'
               } text-white`}
               title="Refresh data from database"
             >
-              {loading ? (
+              {isLoading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               )}
-              <span>{loading ? 'Loading...' : 'Refresh'}</span>
+              <span>{isLoading ? 'Loading...' : 'Refresh'}</span>
             </button>
             
             <button
@@ -611,9 +487,9 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
                   </button>
                 </div>
               ) : (
-                kfcEntries.map((entry) => (
+                kfcEntries.map((entry, index) => (
                   <div
-                    key={entry._id}
+                    key={entry._id || `entry-${index}`}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                       selectedEntry?._id === entry._id
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -632,7 +508,7 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
                     </div>
                     {entry.events.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {entry.events.slice(0, 3).map((event, index) => (
+                        {entry.events.slice(0, 3).map((event: KfcEvent, index: number) => (
                           <span
                             key={index}
                             className={`inline-block px-2 py-1 text-xs rounded-full ${
@@ -780,9 +656,9 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
               No employees found. Add employees or load data from JSON.
             </div>
           ) : (
-            employees.map((employee) => (
+            employees.map((employee, index) => (
               <div
-                key={employee._id}
+                key={employee._id || `employee-${index}`}
                 className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
               >
                 <span className="text-sm font-medium text-gray-900 dark:text-white">{employee.name}</span>

@@ -1,3 +1,4 @@
+import React from "react";
 import { useQuery } from "convex/react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { api } from "../convex/_generated/api";
@@ -16,6 +17,7 @@ import { KfcManagementPage } from "./pages/KfcManagementPage";
 import TempChatPage from "./pages/TempChatPage";
 import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider } from "./lib/ThemeContext";
+import globalDataService from "./lib/globalDataService";
 
 export default function App() {
   return (
@@ -53,6 +55,14 @@ function AppContent() {
 
 function AuthenticatedApp() {
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
+  
+  // Initialize global data when user is authenticated
+  React.useEffect(() => {
+    if (userRole !== undefined) {
+      console.log('🔄 Initializing global data for authenticated user...');
+      globalDataService.loadAllData();
+    }
+  }, [userRole]);
   
   if (userRole === undefined) {
     return (

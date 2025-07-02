@@ -108,6 +108,16 @@ export interface Nomination {
   updatedAt: Date;
 }
 
+export interface CobecAdmin {
+  _id?: string;
+  clerkuserid: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface SearchCriteria {
   jobTitle?: string;
   location?: string;
@@ -123,7 +133,7 @@ interface RegexQuery {
 class MongoClient {
   private database: IDBDatabase | null = null;
   private readonly dbName = 'workdemos';
-  private readonly version = 1;
+  private readonly version = 2;
   private isConnecting: boolean = false;
 
   async connect(): Promise<void> {
@@ -187,6 +197,12 @@ class MongoClient {
             nominationsStore.createIndex('nominatedEmployee', 'nominatedEmployee', { unique: false });
             nominationsStore.createIndex('nominatedBy', 'nominatedBy', { unique: false });
           }
+
+          if (!db.objectStoreNames.contains('cobecadmins')) {
+            const cobecadminsStore = db.createObjectStore('cobecadmins', { keyPath: '_id', autoIncrement: true });
+            cobecadminsStore.createIndex('clerkuserid', 'clerkuserid', { unique: true });
+            cobecadminsStore.createIndex('email', 'email', { unique: false });
+          }
         };
       });
     } catch (error) {
@@ -219,6 +235,27 @@ class Database {
 
   collection(name: string): Collection {
     return new Collection(this.db, name);
+  }
+
+  async listCollections(): Promise<{ name: string }[]> {
+    return new Promise((resolve) => {
+      const collections: { name: string }[] = [];
+      for (let i = 0; i < this.db.objectStoreNames.length; i++) {
+        const name = this.db.objectStoreNames.item(i);
+        if (name) {
+          collections.push({ name });
+        }
+      }
+      resolve(collections);
+    });
+  }
+
+  async createCollection(name: string): Promise<void> {
+    // In IndexedDB, collections (object stores) are created during database initialization
+    // This method is provided for API compatibility but doesn't actually create collections
+    // Collections should be defined in the onupgradeneeded event
+    console.warn(`createCollection('${name}') called - collections should be created during database initialization`);
+    return Promise.resolve();
   }
 }
 
@@ -509,5 +546,12 @@ export async function getAllNominations(): Promise<Nomination[]> {
   const client = await getMongoClient();
   const db = client.getDatabase('workdemos');
   const collection = db.collection('nominations');
+  return await collection.findToArray({});
+}
+
+export async function getAllCobecAdmins(): Promise<CobecAdmin[]> {
+  const client = await getMongoClient();
+  const db = client.getDatabase('workdemos');
+  const collection = db.collection('cobecadmins');
   return await collection.findToArray({});
 } 

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import { Upload, FileText, Database, Search, Trash2, Download, Filter, ChevronDown, ChevronRight, User, Briefcase } from 'lucide-react';
 import { openDB, IDBPDatabase } from 'idb';
+import { SectionLoadingSpinner } from '../components/LoadingSpinner';
 
 /*
 INDEXEDDB CACHING SOLUTION WITH COMPRESSION:
@@ -1074,8 +1075,7 @@ export function DataManagementPage() {
       {/* Loading Indicator */}
       {loading && (
         <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2">Loading...</span>
+          <SectionLoadingSpinner text="Loading job postings and resumes..." />
         </div>
       )}
     </div>
