@@ -50,12 +50,14 @@ export function KfcManagementPage() {
   useEffect(() => {
     const initializeClient = async () => {
       try {
+        console.log('🔄 Initializing KFC MongoDB client...');
         await kfcClientService.connect();
+        console.log('✅ KFC MongoDB client initialized successfully');
         setIsClientReady(true);
         setClientError(null);
       } catch (error) {
-        console.error('Failed to initialize KFC client:', error);
-        setClientError(error instanceof Error ? error.message : 'Failed to initialize database');
+        console.error('❌ Failed to initialize KFC client:', error);
+        setClientError(error instanceof Error ? error.message : 'Failed to initialize database connection');
         setIsClientReady(false);
       }
     };
