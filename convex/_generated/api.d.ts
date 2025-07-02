@@ -23,6 +23,7 @@ import type * as logs from "../logs.js";
 import type * as messages from "../messages.js";
 import type * as mongoSearch from "../mongoSearch.js";
 import type * as nodeActions from "../nodeActions.js";
+import type * as nominations from "../nominations.js";
 import type * as openai from "../openai.js";
 import type * as router from "../router.js";
 import type * as userRoles from "../userRoles.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   messages: typeof messages;
   mongoSearch: typeof mongoSearch;
   nodeActions: typeof nodeActions;
+  nominations: typeof nominations;
   openai: typeof openai;
   router: typeof router;
   userRoles: typeof userRoles;

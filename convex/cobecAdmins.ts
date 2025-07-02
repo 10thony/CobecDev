@@ -297,4 +297,77 @@ export const removeCobecAdmin = mutation({
       throw error;
     }
   },
+});
+
+// Get all users from Clerk Admin API (admin only)
+export const getClerkUsers = query({
+  args: {},
+  returns: v.array(v.object({
+    id: v.string(),
+    fullName: v.string(),
+    email: v.string(),
+    createdAt: v.number(),
+    lastSignInAt: v.optional(v.number()),
+  })),
+  handler: async (ctx) => {
+    try {
+      // Check if current user is a cobec admin
+      const userId = await getCurrentUserId(ctx);
+      const currentUser = await ctx.db
+        .query("cobecadmins")
+        .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", userId))
+        .first();
+      
+      if (!currentUser) {
+        // Check against known admin list for initial setup
+        const knownAdmins = [
+          "user_2zK3951nbXRIwNsPwKYvVQAj0nu",
+          "user_2yeq7o5pXddjNeLFDpoz5tTwkWS", 
+          "user_2zH6JiYnykjdwTcTpl7sRU0pKtW",
+          "user_2yhAe3Cu7CnonTn4wyRUzZIqIaF"
+        ];
+        
+        if (!knownAdmins.includes(userId)) {
+          throw new Error("Unauthorized: Only cobec admins can fetch user list");
+        }
+      }
+
+      // Get Clerk secret key from environment
+      const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+      if (!clerkSecretKey) {
+        throw new Error("CLERK_SECRET_KEY not configured");
+      }
+
+      // Fetch users from Clerk Admin API
+      const response = await fetch("https://api.clerk.com/v1/users", {
+        headers: {
+          "Authorization": `Bearer ${clerkSecretKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Clerk API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      // Transform Clerk user data to our format
+      const users = data.map((user: any) => ({
+        id: user.id,
+        fullName: user.first_name && user.last_name 
+          ? `${user.first_name} ${user.last_name}` 
+          : user.username || user.email_addresses?.[0]?.email_address || "Unknown User",
+        email: user.email_addresses?.[0]?.email_address || "",
+        createdAt: new Date(user.created_at).getTime(),
+        lastSignInAt: user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : undefined,
+      }));
+
+      return users;
+    } catch (error) {
+      console.error("Error fetching Clerk users:", error);
+      throw error;
+    }
+  },
 }); 

@@ -3,6 +3,8 @@ import { useTheme } from '../lib/ThemeContext';
 import { getKfcMongoService } from '../lib/kfcMongoService';
 import { useGlobalData } from '../lib/useGlobalData';
 import { SectionLoadingSpinner } from './LoadingSpinner';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 // Import KFC data directly as fallback
 import kfcData from '../../kfcpoints.json';
@@ -28,6 +30,14 @@ interface Employee {
   name: string;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+interface ClerkUser {
+  id: string;
+  fullName: string;
+  email: string;
+  createdAt: number;
+  lastSignInAt?: number;
 }
 
 interface KfcPointsManagerProps {
@@ -65,6 +75,22 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
   const [isCobecAdmin, setIsCobecAdmin] = useState(false);
   const [allCobecAdmins, setAllCobecAdmins] = useState<any[]>([]);
   const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
+
+  // Clerk User Integration state
+  const [selectedClerkUser, setSelectedClerkUser] = useState<string>('');
+  const [clerkUsersError, setClerkUsersError] = useState<string | null>(null);
+  
+  // Fetch Clerk users using Convex
+  const clerkUsers = useQuery(api.cobecAdmins.getClerkUsers) as ClerkUser[] | undefined;
+
+  // Handle Clerk users query errors
+  useEffect(() => {
+    if (clerkUsers === null) {
+      setClerkUsersError("Failed to load users from Clerk. Please check your CLERK_SECRET_KEY configuration.");
+    } else {
+      setClerkUsersError(null);
+    }
+  }, [clerkUsers]);
 
   // Load data on component mount
   useEffect(() => {
@@ -473,6 +499,31 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
     }
   };
 
+  // Handle Clerk user selection
+  const handleClerkUserSelect = (userId: string) => {
+    setSelectedClerkUser(userId);
+    setNewCobecAdminUserId(userId);
+    
+    // Auto-fill name and email if available
+    if (clerkUsers) {
+      const selectedUser = clerkUsers.find((user: ClerkUser) => user.id === userId);
+      if (selectedUser) {
+        setNewCobecAdminName(selectedUser.fullName);
+        setNewCobecAdminEmail(selectedUser.email);
+      }
+    }
+  };
+
+  // Reset form when closing admin management
+  const handleCloseAdminManagement = () => {
+    setShowCobecAdminManagement(false);
+    setSelectedClerkUser('');
+    setNewCobecAdminUserId('');
+    setNewCobecAdminName('');
+    setNewCobecAdminEmail('');
+    setClerkUsersError(null);
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto p-6">
@@ -763,7 +814,7 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
             </button>
             {isCobecAdmin && (
               <button
-                onClick={() => setShowCobecAdminManagement(!showCobecAdminManagement)}
+                onClick={showCobecAdminManagement ? handleCloseAdminManagement : () => setShowCobecAdminManagement(true)}
                 className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
               >
                 {showCobecAdminManagement ? 'Cancel' : 'Manage Cobec Admins'}
@@ -800,32 +851,85 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
             {/* Add New Cobec Admin Form */}
             <div className="mb-4 p-4 bg-white dark:bg-gray-700 rounded-lg border border-purple-200 dark:border-purple-600">
               <h4 className="font-medium mb-3 text-purple-900 dark:text-purple-100">Add New Cobec Admin</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                <input
-                  type="text"
-                  value={newCobecAdminUserId}
-                  onChange={(e) => setNewCobecAdminUserId(e.target.value)}
-                  placeholder="Clerk User ID (required)"
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <input
-                  type="text"
-                  value={newCobecAdminName}
-                  onChange={(e) => setNewCobecAdminName(e.target.value)}
-                  placeholder="Admin Name (optional)"
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <input
-                  type="email"
-                  value={newCobecAdminEmail}
-                  onChange={(e) => setNewCobecAdminEmail(e.target.value)}
-                  placeholder="Admin Email (optional)"
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
+              
+              {/* Clerk Users Dropdown */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Select User from Clerk
+                </label>
+                {clerkUsers === undefined ? (
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                    Loading users from Clerk...
+                  </div>
+                ) : clerkUsersError ? (
+                  <div className="text-red-600 dark:text-red-400 text-sm mb-2">
+                    Error loading users: {clerkUsersError}
+                  </div>
+                ) : clerkUsers && clerkUsers.length > 0 ? (
+                  <select
+                    value={selectedClerkUser}
+                    onChange={(e) => handleClerkUserSelect(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Select a user...</option>
+                    {clerkUsers.map((user: ClerkUser) => (
+                      <option key={user.id} value={user.id}>
+                        {user.fullName} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="text-gray-500 dark:text-gray-400 text-sm">
+                    No users found in Clerk
+                  </div>
+                )}
               </div>
+
+              {/* Admin Details Form */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Clerk User ID
+                  </label>
+                  <input
+                    type="text"
+                    value={newCobecAdminUserId}
+                    onChange={(e) => setNewCobecAdminUserId(e.target.value)}
+                    placeholder="Clerk User ID (auto-filled when user selected)"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    readOnly={!!selectedClerkUser}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Admin Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newCobecAdminName}
+                    onChange={(e) => setNewCobecAdminName(e.target.value)}
+                    placeholder="Admin Name (auto-filled when user selected)"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Admin Email
+                  </label>
+                  <input
+                    type="email"
+                    value={newCobecAdminEmail}
+                    onChange={(e) => setNewCobecAdminEmail(e.target.value)}
+                    placeholder="Admin Email (auto-filled when user selected)"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
+              
               <div className="flex justify-between items-center">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Enter the Clerk User ID to grant Cobec Admin privileges
+                  Select a user from the dropdown above to auto-fill their details
                 </p>
                 <button
                   onClick={handleAddCobecAdmin}

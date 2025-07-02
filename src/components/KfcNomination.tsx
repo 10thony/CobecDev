@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../lib/ThemeContext';
 import { useGlobalData } from '../lib/useGlobalData';
+import { useNominations, useNominationsData } from '../lib/useNominations';
+import NominationService from '../lib/nominationService';
 import { SectionLoadingSpinner } from './LoadingSpinner';
 
 interface Employee {
@@ -27,6 +29,9 @@ interface Nomination {
   nominationType: 'Team' | 'Individual' | 'Growth';
   description: string;
   pointsAwarded: number;
+  status: 'pending' | 'approved' | 'declined';
+  approvedBy?: string;
+  approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,7 +42,25 @@ interface KfcNominationProps {
 
 const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
   const { theme } = useTheme();
-  const { employees, nominations, isLoading, error, refreshData } = useGlobalData();
+  const { employees, isLoading: globalLoading, error: globalError, refreshData } = useGlobalData();
+  
+  // Nomination hooks
+  const { 
+    createNomination, 
+    approveNomination, 
+    declineNomination, 
+    deleteNomination, 
+    isLoading: nominationLoading, 
+    error: nominationError 
+  } = useNominations();
+  
+  const { 
+    nominations, 
+    isLoading: dataLoading, 
+    error: dataError, 
+    fetchAllNominations, 
+    fetchPendingNominations 
+  } = useNominationsData();
   
   // Form state
   const [nominatorName, setNominatorName] = useState('');
@@ -46,6 +69,8 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
   const [description, setDescription] = useState('');
   const [showNominationForm, setShowNominationForm] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [selectedNomination, setSelectedNomination] = useState<Nomination | null>(null);
+  const [showNominationDetails, setShowNominationDetails] = useState(false);
 
   const getPointsForNominationType = (type: 'Team' | 'Individual' | 'Growth'): number => {
     switch (type) {
@@ -67,78 +92,28 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
     }
 
     try {
-      const db = await mongoClient.getDatabase();
-      
-      const pointsAwarded = getPointsForNominationType(nominationType);
-      
-      // Create nomination
-      const nomination: Nomination = {
-        nominatedBy: nominatorName.trim(),
-        nominatedEmployee: nominatedEmployee.trim(),
+      const result = await createNomination(
+        nominatorName.trim(),
+        nominatedEmployee.trim(),
         nominationType,
-        description: description.trim(),
-        pointsAwarded,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+        description.trim()
+      );
 
-      const nominationsCollection = db.collection('nominations');
-      const result = await nominationsCollection.insertOne(nomination);
-      nomination._id = result.insertedId;
-      
-      // Update KFC points for the nominated employee
-      const kfcCollection = db.collection('kfcpoints');
-      const kfcEntry = await kfcCollection.findOne({ name: nominatedEmployee });
-      
-      if (kfcEntry) {
-        // Add new event to the employee's KFC entry
-        const newEvent = {
-          type: nominationType === 'Growth' ? 'Individ' : nominationType,
-          month: new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase(),
-          quantity: 1
-        };
+      if (result.success) {
+        // Refresh data to get updated nominations
+        await fetchAllNominations();
+        await refreshData();
         
-        const updatedEvents = [...kfcEntry.events, newEvent];
-        const newScore = kfcEntry.score + pointsAwarded;
-        
-        await kfcCollection.updateOne(
-          { _id: kfcEntry._id },
-          {
-            $set: {
-              events: updatedEvents,
-              score: newScore,
-              updatedAt: new Date()
-            }
-          }
-        );
+        // Reset form
+        setNominatorName('');
+        setNominatedEmployee('');
+        setNominationType('Team');
+        setDescription('');
+        setShowNominationForm(false);
+        setLocalError(null);
       } else {
-        // Create new KFC entry if it doesn't exist
-        const newKfcEntry: KfcEntry = {
-          name: nominatedEmployee.trim(),
-          events: [{
-            type: nominationType === 'Growth' ? 'Individ' : nominationType,
-            month: new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase(),
-            quantity: 1
-          }],
-          march_status: null,
-          score: pointsAwarded,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        
-        await kfcCollection.insertOne(newKfcEntry);
+        setLocalError(result.error || 'Failed to submit nomination');
       }
-      
-      // Refresh data to get updated nominations
-      await refreshData();
-      
-      // Reset form
-      setNominatorName('');
-      setNominatedEmployee('');
-      setNominationType('Team');
-      setDescription('');
-      setShowNominationForm(false);
-      setLocalError(null);
       
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Failed to submit nomination');
@@ -147,31 +122,85 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
 
   const handleDeleteNomination = async (nominationId: string) => {
     try {
-      const db = await mongoClient.getDatabase();
-      const collection = db.collection('nominations');
+      const result = await deleteNomination(nominationId);
       
-      await collection.deleteOne({ _id: nominationId });
-      
-      // Refresh data to get updated nominations
-      await refreshData();
+      if (result.success) {
+        // Refresh data to get updated nominations
+        await fetchAllNominations();
+      } else {
+        setLocalError(result.error || 'Failed to delete nomination');
+      }
       
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Failed to delete nomination');
     }
   };
 
+  const handleViewNominationDetails = (nomination: Nomination) => {
+    setSelectedNomination(nomination);
+    setShowNominationDetails(true);
+  };
+
+  const handleApproveNomination = async (nominationId: string, approvedBy: string) => {
+    try {
+      const result = await approveNomination(nominationId, approvedBy);
+      
+      if (result.success) {
+        // Refresh data to get updated nominations
+        await fetchAllNominations();
+        await refreshData();
+        setShowNominationDetails(false);
+        setSelectedNomination(null);
+      } else {
+        setLocalError(result.error || 'Failed to approve nomination');
+      }
+      
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Failed to approve nomination');
+    }
+  };
+
+  const handleDeclineNomination = async (nominationId: string, declinedBy: string) => {
+    try {
+      const result = await declineNomination(nominationId, declinedBy);
+      
+      if (result.success) {
+        // Refresh data to get updated nominations
+        await fetchAllNominations();
+        setShowNominationDetails(false);
+        setSelectedNomination(null);
+      } else {
+        setLocalError(result.error || 'Failed to decline nomination');
+      }
+      
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Failed to decline nomination');
+    }
+  };
+
+  // Load nominations on component mount
+  useEffect(() => {
+    fetchAllNominations();
+  }, []);
+
+  const isLoading = globalLoading || nominationLoading || dataLoading;
+  const error = globalError || nominationError || dataError || localError;
+
   if (isLoading) {
     return <SectionLoadingSpinner text="Loading nominations and employees..." />;
   }
 
-  if (error || localError) {
+  if (error) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
-          <strong>Error:</strong> {error || localError}
+          <strong>Error:</strong> {error}
           <div className="mt-2 space-x-2">
             <button 
-              onClick={refreshData}
+              onClick={() => {
+                fetchAllNominations();
+                refreshData();
+              }}
               className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors"
             >
               Retry
@@ -296,13 +325,14 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
                     </div>
                     <div className="text-right ml-4">
                       <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium mb-2 ${
-                        nomination.nominationType === 'Team'
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                          : nomination.nominationType === 'Individual'
-                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300'
-                          : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                        NominationService.getNominationTypeBadgeColor(nomination.nominationType)
                       }`}>
                         {nomination.nominationType}
+                      </span>
+                      <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium mb-2 ${
+                        NominationService.getStatusBadgeColor(nomination.status)
+                      }`}>
+                        {nomination.status}
                       </span>
                       <div className="text-lg font-bold text-green-600 dark:text-green-400">
                         +{nomination.pointsAwarded} pts
@@ -314,12 +344,20 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
                   </p>
                   <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
                     <span>{new Date(nomination.createdAt).toLocaleDateString()}</span>
-                    <button
-                      onClick={() => handleDeleteNomination(nomination._id!)}
-                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
-                    >
-                      Delete
-                    </button>
+                    <div className="space-x-2">
+                      <button
+                        onClick={() => handleViewNominationDetails(nomination)}
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                      >
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => handleDeleteNomination(nomination._id!)}
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -327,6 +365,96 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
           </div>
         </div>
       </div>
+
+      {/* Nomination Details Modal */}
+      {showNominationDetails && selectedNomination && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Nomination Details
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowNominationDetails(false);
+                    setSelectedNomination(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    {selectedNomination.nominatedEmployee}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Nominated by <span className="font-medium">{selectedNomination.nominatedBy}</span>
+                  </p>
+                </div>
+
+                <div className="flex space-x-2">
+                  <span className={`inline-block px-3 py-1 text-sm rounded-full font-medium ${
+                    NominationService.getNominationTypeBadgeColor(selectedNomination.nominationType)
+                  }`}>
+                    {selectedNomination.nominationType}
+                  </span>
+                  <span className={`inline-block px-3 py-1 text-sm rounded-full font-medium ${
+                    NominationService.getStatusBadgeColor(selectedNomination.status)
+                  }`}>
+                    {selectedNomination.status}
+                  </span>
+                  <span className="inline-block px-3 py-1 text-sm rounded-full font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                    +{selectedNomination.pointsAwarded} pts
+                  </span>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Description</h4>
+                  <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                    {selectedNomination.description}
+                  </p>
+                </div>
+
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <p>Created: {new Date(selectedNomination.createdAt).toLocaleString()}</p>
+                  {selectedNomination.approvedAt && (
+                    <p>Processed: {new Date(selectedNomination.approvedAt).toLocaleString()}</p>
+                  )}
+                  {selectedNomination.approvedBy && (
+                    <p>Processed by: {selectedNomination.approvedBy}</p>
+                  )}
+                </div>
+
+                {/* Admin Actions */}
+                {selectedNomination.status === 'pending' && (
+                  <div className="flex space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+                    <button
+                      onClick={() => handleApproveNomination(selectedNomination._id!, 'Admin User')}
+                      disabled={nominationLoading}
+                      className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {nominationLoading ? 'Processing...' : 'Approve'}
+                    </button>
+                    <button
+                      onClick={() => handleDeclineNomination(selectedNomination._id!, 'Admin User')}
+                      disabled={nominationLoading}
+                      className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      {nominationLoading ? 'Processing...' : 'Decline'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

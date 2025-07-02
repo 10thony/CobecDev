@@ -28,6 +28,12 @@ async function setupEnv() {
   // Get Anthropic API key
   const anthropicKey = await question('Enter your Anthropic API key (or press Enter to skip): ');
 
+  // Get Clerk Secret Key
+  const clerkSecretKey = await question('Enter your Clerk Secret Key (required for admin management): ');
+  
+  // Get Clerk Frontend API URL
+  const clerkFrontendUrl = await question('Enter your Clerk Frontend API URL (e.g., https://your-app.clerk.accounts.dev): ');
+
   // Create .env content
   let envContent = '';
   
@@ -38,6 +44,14 @@ async function setupEnv() {
   
   if (anthropicKey) {
     envContent += `ANTHROPIC_API_KEY=${anthropicKey}\n`;
+  }
+
+  if (clerkSecretKey) {
+    envContent += `CLERK_SECRET_KEY=${clerkSecretKey}\n`;
+  }
+
+  if (clerkFrontendUrl) {
+    envContent += `VITE_CLERK_FRONTEND_API_URL=${clerkFrontendUrl}\n`;
   }
 
   // Write to .env file
