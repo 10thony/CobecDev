@@ -1,29 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../lib/ThemeContext';
-import { useGlobalData } from '../lib/useGlobalData';
 import { useNominations, useNominationsData } from '../lib/useNominations';
 import NominationService from '../lib/nominationService';
 import { SectionLoadingSpinner } from './LoadingSpinner';
 
+import { Id } from '../../convex/_generated/dataModel';
+
 interface Employee {
-  _id?: string;
+  _id: Id<"employees">;
   name: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: number;
+  updatedAt: number;
 }
 
 interface KfcEntry {
-  _id?: string;
+  _id: Id<"kfcpoints">;
   name: string;
   events: any[];
-  march_status: string | null;
+  march_status?: string;
   score: number;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: number;
+  updatedAt: number;
 }
 
 interface Nomination {
-  _id?: string;
+  _id: Id<"nominations">;
   nominatedBy: string;
   nominatedEmployee: string;
   nominationType: 'Team' | 'Individual' | 'Growth';
@@ -31,9 +32,9 @@ interface Nomination {
   pointsAwarded: number;
   status: 'pending' | 'approved' | 'declined';
   approvedBy?: string;
-  approvedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  approvedAt?: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 interface KfcNominationProps {
@@ -42,7 +43,6 @@ interface KfcNominationProps {
 
 const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
   const { theme } = useTheme();
-  const { employees, isLoading: globalLoading, error: globalError, refreshData } = useGlobalData();
   
   // Nomination hooks
   const { 
@@ -56,11 +56,14 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
   
   const { 
     nominations, 
+    employees,
     isLoading: dataLoading, 
-    error: dataError, 
-    fetchAllNominations, 
-    fetchPendingNominations 
+    error: dataError
   } = useNominationsData();
+  
+  // Handle case when data is still loading or undefined
+  const safeNominations = nominations || [];
+  const safeEmployees = employees || [];
   
   // Form state
   const [nominatorName, setNominatorName] = useState('');
@@ -100,11 +103,7 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
       );
 
       if (result.success) {
-        // Refresh data to get updated nominations
-        await fetchAllNominations();
-        await refreshData();
-        
-        // Reset form
+        // Reset form - data will update automatically via real-time queries
         setNominatorName('');
         setNominatedEmployee('');
         setNominationType('Team');
@@ -120,14 +119,11 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
     }
   };
 
-  const handleDeleteNomination = async (nominationId: string) => {
+  const handleDeleteNomination = async (nominationId: Id<"nominations">) => {
     try {
       const result = await deleteNomination(nominationId);
       
-      if (result.success) {
-        // Refresh data to get updated nominations
-        await fetchAllNominations();
-      } else {
+      if (!result.success) {
         setLocalError(result.error || 'Failed to delete nomination');
       }
       
@@ -141,14 +137,12 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
     setShowNominationDetails(true);
   };
 
-  const handleApproveNomination = async (nominationId: string, approvedBy: string) => {
+  const handleApproveNomination = async (nominationId: Id<"nominations">, approvedBy: string) => {
     try {
       const result = await approveNomination(nominationId, approvedBy);
       
       if (result.success) {
-        // Refresh data to get updated nominations
-        await fetchAllNominations();
-        await refreshData();
+        // Data will update automatically via real-time queries
         setShowNominationDetails(false);
         setSelectedNomination(null);
       } else {
@@ -160,13 +154,12 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
     }
   };
 
-  const handleDeclineNomination = async (nominationId: string, declinedBy: string) => {
+  const handleDeclineNomination = async (nominationId: Id<"nominations">, declinedBy: string) => {
     try {
       const result = await declineNomination(nominationId, declinedBy);
       
       if (result.success) {
-        // Refresh data to get updated nominations
-        await fetchAllNominations();
+        // Data will update automatically via real-time queries
         setShowNominationDetails(false);
         setSelectedNomination(null);
       } else {
@@ -178,13 +171,8 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
     }
   };
 
-  // Load nominations on component mount
-  useEffect(() => {
-    fetchAllNominations();
-  }, []);
-
-  const isLoading = globalLoading || nominationLoading || dataLoading;
-  const error = globalError || nominationError || dataError || localError;
+  const isLoading = nominationLoading || dataLoading;
+  const error = nominationError || dataError || localError;
 
   if (isLoading) {
     return <SectionLoadingSpinner text="Loading nominations and employees..." />;
@@ -198,8 +186,8 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
           <div className="mt-2 space-x-2">
             <button 
               onClick={() => {
-                fetchAllNominations();
-                refreshData();
+                // Data will refresh automatically via real-time queries
+                setLocalError(null);
               }}
               className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors"
             >
@@ -229,6 +217,12 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
           </div>
 
           {showNominationForm && (
+            <>
+              {safeEmployees.length === 0 && (
+                <div className="bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-400 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded mb-4">
+                  <strong>Note:</strong> No employees are available yet. Please add some employees first before creating nominations.
+                </div>
+              )}
             <form onSubmit={(e) => { e.preventDefault(); handleSubmitNomination(); }} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -255,11 +249,15 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
                   required
                 >
                   <option value="">Select an employee</option>
-                  {employees.map((employee) => (
-                    <option key={employee._id} value={employee.name}>
-                      {employee.name}
-                    </option>
-                  ))}
+                  {safeEmployees.length === 0 ? (
+                    <option value="" disabled>No employees available</option>
+                  ) : (
+                    safeEmployees.map((employee) => (
+                      <option key={employee._id} value={employee.name}>
+                        {employee.name}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -299,6 +297,7 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
                 Submit Nomination
               </button>
             </form>
+            </>
           )}
         </div>
 
@@ -306,13 +305,13 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Recent Nominations</h2>
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {nominations.length === 0 ? (
+            {safeNominations.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <p className="mb-2">No nominations yet</p>
                 <p className="text-sm">Submit a nomination to see it here</p>
               </div>
             ) : (
-              nominations.map((nomination) => (
+              safeNominations.map((nomination) => (
                 <div key={nomination._id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
@@ -352,7 +351,7 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
                         View Details
                       </button>
                       <button
-                        onClick={() => handleDeleteNomination(nomination._id!)}
+                        onClick={() => handleDeleteNomination(nomination._id)}
                         className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
                       >
                         Delete
@@ -435,14 +434,14 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
                 {selectedNomination.status === 'pending' && (
                   <div className="flex space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
                     <button
-                      onClick={() => handleApproveNomination(selectedNomination._id!, 'Admin User')}
+                      onClick={() => handleApproveNomination(selectedNomination._id, 'Admin User')}
                       disabled={nominationLoading}
                       className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
                     >
                       {nominationLoading ? 'Processing...' : 'Approve'}
                     </button>
                     <button
-                      onClick={() => handleDeclineNomination(selectedNomination._id!, 'Admin User')}
+                      onClick={() => handleDeclineNomination(selectedNomination._id, 'Admin User')}
                       disabled={nominationLoading}
                       className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
                     >

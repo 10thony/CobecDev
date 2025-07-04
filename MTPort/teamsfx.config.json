@@ -1,0 +1,96 @@
+{
+  "version": "1.0.0",
+  "environmentFolderPath": "./env",
+  "configurations": {
+    "local": {
+      "auth": {
+        "clientId": "your-local-client-id",
+        "clientSecret": "your-local-client-secret",
+        "objectId": "your-local-object-id",
+        "accessAsUser": {
+          "id": "your-local-access-as-user-id"
+        }
+      },
+      "api": {
+        "microsoftGraph": {
+          "endpoint": "https://graph.microsoft.com/v1.0"
+        },
+        "azureFunctions": {
+          "endpoint": "https://your-local-function-app.azurewebsites.net"
+        }
+      },
+      "bot": {
+        "appId": "your-local-bot-app-id",
+        "appPassword": "your-local-bot-app-password"
+      },
+      "frontend": {
+        "domain": "localhost:3000",
+        "endpoint": "https://localhost:3000"
+      },
+      "backend": {
+        "domain": "localhost:7071",
+        "endpoint": "https://localhost:7071"
+      }
+    },
+    "dev": {
+      "auth": {
+        "clientId": "your-dev-client-id",
+        "clientSecret": "your-dev-client-secret",
+        "objectId": "your-dev-object-id",
+        "accessAsUser": {
+          "id": "your-dev-access-as-user-id"
+        }
+      },
+      "api": {
+        "microsoftGraph": {
+          "endpoint": "https://graph.microsoft.com/v1.0"
+        },
+        "azureFunctions": {
+          "endpoint": "https://your-dev-function-app.azurewebsites.net"
+        }
+      },
+      "bot": {
+        "appId": "your-dev-bot-app-id",
+        "appPassword": "your-dev-bot-app-password"
+      },
+      "frontend": {
+        "domain": "your-dev-app.azurewebsites.net",
+        "endpoint": "https://your-dev-app.azurewebsites.net"
+      },
+      "backend": {
+        "domain": "your-dev-function-app.azurewebsites.net",
+        "endpoint": "https://your-dev-function-app.azurewebsites.net"
+      }
+    },
+    "prod": {
+      "auth": {
+        "clientId": "your-prod-client-id",
+        "clientSecret": "your-prod-client-secret",
+        "objectId": "your-prod-object-id",
+        "accessAsUser": {
+          "id": "your-prod-access-as-user-id"
+        }
+      },
+      "api": {
+        "microsoftGraph": {
+          "endpoint": "https://graph.microsoft.com/v1.0"
+        },
+        "azureFunctions": {
+          "endpoint": "https://your-prod-function-app.azurewebsites.net"
+        }
+      },
+      "bot": {
+        "appId": "your-prod-bot-app-id",
+        "appPassword": "your-prod-bot-app-password"
+      },
+      "frontend": {
+        "domain": "your-prod-app.azurewebsites.net",
+        "endpoint": "https://your-prod-app.azurewebsites.net"
+      },
+      "backend": {
+        "domain": "your-prod-function-app.azurewebsites.net",
+        "endpoint": "https://your-prod-function-app.azurewebsites.net"
+      }
+    }
+  }
+} 

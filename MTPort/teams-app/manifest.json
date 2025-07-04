@@ -1,0 +1,58 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.14/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.14",
+  "version": "1.0.0",
+  "id": "ajai-teams-widget",
+  "packageName": "com.ajai.teams.widget",
+  "developer": {
+    "name": "AJAI Team",
+    "websiteUrl": "https://ajai.com",
+    "privacyUrl": "https://ajai.com/privacy",
+    "termsOfUseUrl": "https://ajai.com/terms"
+  },
+  "name": {
+    "short": "AJAI Widget",
+    "full": "AJAI Teams Widget - Vector Search, Data Management, and KFC Management"
+  },
+  "description": {
+    "short": "AI-powered search and management tools for Teams",
+    "full": "AJAI Teams Widget provides advanced vector search capabilities, data management tools, and KFC nomination management, all integrated seamlessly within Microsoft Teams."
+  },
+  "icons": {
+    "outline": "outline.png",
+    "color": "color.png"
+  },
+  "accentColor": "#0078d4",
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://your-app-domain.com/config",
+      "canUpdateConfiguration": true,
+      "scopes": [
+        "team",
+        "groupchat"
+      ]
+    }
+  ],
+  "staticTabs": [
+    {
+      "entityId": "ajai-main-tab",
+      "name": "AJAI",
+      "contentUrl": "https://your-app-domain.com",
+      "websiteUrl": "https://your-app-domain.com",
+      "scopes": [
+        "personal"
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "your-app-domain.com"
+  ],
+  "webApplicationInfo": {
+    "id": "your-client-id",
+    "resource": "https://your-app-domain.com"
+  }
+} 

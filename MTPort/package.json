@@ -1,0 +1,86 @@
+{
+  "name": "ajai-teams-widget",
+  "version": "1.0.0",
+  "description": "AJAI Teams Widget - AI-powered job and resume matching for Microsoft Teams",
+  "private": true,
+  "scripts": {
+    "dev": "teamsfx start --env local",
+    "build": "teamsfx build --env local",
+    "deploy": "teamsfx deploy --env local",
+    "provision": "teamsfx provision --env local",
+    "publish": "teamsfx publish --env local",
+    "test": "jest",
+    "lint": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@microsoft/teamsfx-react": "^2.0.0",
+    "@fluentui/react": "^8.120.0",
+    "@microsoft/microsoft-graph-client": "^3.0.0",
+    "@azure/msal-browser": "^3.7.0",
+    "@azure/msal-react": "^2.0.0",
+    "@microsoft/adaptivecards": "^2.10.0",
+    "@azure/cognitiveservices-textanalytics": "^5.0.0",
+    "@azure/search-documents": "^11.0.0",
+    "@azure/ai-form-recognizer": "^4.0.0",
+    "@azure/storage-blob": "^12.0.0",
+    "@azure/cosmos": "^4.0.0",
+    "@azure/functions": "^4.0.0",
+    "@azure/signalr": "^7.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.0",
+    "webpack-dev-server": "^4.0.0",
+    "html-webpack-plugin": "^5.0.0",
+    "css-loader": "^6.0.0",
+    "style-loader": "^3.0.0",
+    "ts-loader": "^9.0.0",
+    "dotenv": "^16.0.0",
+    "axios": "^1.0.0",
+    "mammoth": "^1.6.0",
+    "pdf-parse": "^1.1.1",
+    "xlsx": "^0.18.5",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.0.0",
+    "eslint-plugin-react-hooks": "^4.0.0",
+    "jest": "^29.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "teamsfx-cli": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "keywords": [
+    "teams",
+    "widget",
+    "ai",
+    "vector-search",
+    "data-management"
+  ],
+  "author": "AJAI Team",
+  "license": "MIT"
+} 

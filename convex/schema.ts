@@ -85,6 +85,45 @@ const applicationTables = {
   }).index("by_user", ["userId"])
     .index("by_type", ["type"])
     .index("by_creation", ["createdAt"]), // For sorting logs chronologically
+
+  // KFC Nominations for employee recognition
+  nominations: defineTable({
+    nominatedBy: v.string(), // Name of person making nomination
+    nominatedEmployee: v.string(), // Name of nominated employee
+    nominationType: v.union(v.literal("Team"), v.literal("Individual"), v.literal("Growth")),
+    description: v.string(), // Description of why they deserve nomination
+    pointsAwarded: v.number(), // Points awarded (10, 20, or 30)
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("declined")),
+    approvedBy: v.optional(v.string()), // Name of person who approved/declined
+    approvedAt: v.optional(v.number()), // Timestamp when approved/declined
+    createdAt: v.number(), // Track when nomination was created
+    updatedAt: v.number(), // Track when nomination was last updated
+  }).index("by_status", ["status"])
+    .index("by_employee", ["nominatedEmployee"])
+    .index("by_nominator", ["nominatedBy"])
+    .index("by_creation", ["createdAt"]), // For sorting by creation date
+
+  // Employees for KFC nominations
+  employees: defineTable({
+    name: v.string(), // Employee name
+    createdAt: v.number(), // Track when employee was added
+    updatedAt: v.number(), // Track when employee was last updated
+  }).index("by_name", ["name"]),
+
+  // KFC Points tracking
+  kfcpoints: defineTable({
+    name: v.string(), // Employee name
+    events: v.array(v.object({
+      type: v.string(), // "Team", "Individual", "Growth"
+      month: v.string(), // "JAN", "FEB", etc.
+      quantity: v.number(), // Number of events
+    })),
+    march_status: v.optional(v.string()), // March status
+    score: v.number(), // Total KFC score
+    createdAt: v.number(), // Track when entry was created
+    updatedAt: v.number(), // Track when entry was last updated
+  }).index("by_name", ["name"])
+    .index("by_score", ["score"]), // For sorting by score
 };
 
 export default defineSchema({

@@ -1,17 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useAction } from 'convex/react';
-import { Nomination } from './nominationService';
+import { useState } from 'react';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
+
+export interface Nomination {
+  _id: Id<"nominations">;
+  nominatedBy: string;
+  nominatedEmployee: string;
+  nominationType: 'Team' | 'Individual' | 'Growth';
+  description: string;
+  pointsAwarded: number;
+  status: 'pending' | 'approved' | 'declined';
+  approvedBy?: string;
+  approvedAt?: number;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export function useNominations() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Convex actions - using any type to avoid TypeScript errors until API is regenerated
-  // These will be properly typed once the Convex API is regenerated
-  const createNominationAction = useAction('nominations:createNomination' as any);
-  const approveNominationAction = useAction('nominations:approveNomination' as any);
-  const declineNominationAction = useAction('nominations:declineNomination' as any);
-  const deleteNominationAction = useAction('nominations:deleteNomination' as any);
+  // Convex mutations
+  const createNominationMutation = useMutation(api.nominations.create);
+  const approveNominationMutation = useMutation(api.nominations.approve);
+  const declineNominationMutation = useMutation(api.nominations.decline);
+  const deleteNominationMutation = useMutation(api.nominations.remove);
 
   // Create a new nomination
   const createNomination = async (
@@ -19,12 +33,12 @@ export function useNominations() {
     nominatedEmployee: string,
     nominationType: 'Team' | 'Individual' | 'Growth',
     description: string
-  ): Promise<{ success: boolean; nominationId?: string; error?: string }> => {
+  ): Promise<{ success: boolean; nominationId?: Id<"nominations">; error?: string }> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await createNominationAction({
+      const result = await createNominationMutation({
         nominatedBy,
         nominatedEmployee,
         nominationType,
@@ -43,19 +57,19 @@ export function useNominations() {
 
   // Approve a nomination
   const approveNomination = async (
-    nominationId: string,
+    nominationId: Id<"nominations">,
     approvedBy: string
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await approveNominationAction({
+      await approveNominationMutation({
         nominationId,
         approvedBy,
       });
 
-      return result;
+      return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to approve nomination';
       setError(errorMessage);
@@ -67,19 +81,19 @@ export function useNominations() {
 
   // Decline a nomination
   const declineNomination = async (
-    nominationId: string,
+    nominationId: Id<"nominations">,
     declinedBy: string
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await declineNominationAction({
+      await declineNominationMutation({
         nominationId,
         declinedBy,
       });
 
-      return result;
+      return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to decline nomination';
       setError(errorMessage);
@@ -91,17 +105,17 @@ export function useNominations() {
 
   // Delete a nomination
   const deleteNomination = async (
-    nominationId: string
+    nominationId: Id<"nominations">
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await deleteNominationAction({
+      await deleteNominationMutation({
         nominationId,
       });
 
-      return result;
+      return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete nomination';
       setError(errorMessage);
@@ -122,54 +136,33 @@ export function useNominations() {
   };
 }
 
-// Hook for fetching nominations
+// Hook for fetching nominations (real-time)
 export function useNominationsData() {
-  const [nominations, setNominations] = useState<Nomination[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Real-time queries - these will automatically update when data changes
+  const allNominations = useQuery(api.nominations.list);
+  const pendingNominations = useQuery(api.nominations.listPending);
+  const employees = useQuery(api.nominations.listEmployees);
+  const kfcPoints = useQuery(api.nominations.listKfcPoints);
 
-  // Move useAction calls to the top level of the hook
-  const getAllNominationsAction = useAction('nominations:getAllNominations' as any);
-  const getPendingNominationsAction = useAction('nominations:getPendingNominations' as any);
-
-  // Function to fetch all nominations
-  const fetchAllNominations = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await getAllNominationsAction({});
-      setNominations(result);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch nominations';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+  return {
+    nominations: allNominations || [],
+    pendingNominations: pendingNominations || [],
+    employees: employees || [],
+    kfcPoints: kfcPoints || [],
+    isLoading: false, // Convex handles loading state automatically
+    error: null, // Convex handles error state automatically
   };
+}
 
-  // Function to fetch pending nominations
-  const fetchPendingNominations = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await getPendingNominationsAction({});
-      setNominations(result);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch pending nominations';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+// Hook for getting nominations by employee
+export function useNominationsByEmployee(employeeName: string) {
+  const nominations = useQuery(api.nominations.listByEmployee, { employeeName }) || [];
+  const kfcPoints = useQuery(api.nominations.getKfcPointsByEmployee, { employeeName });
 
   return {
     nominations,
-    isLoading,
-    error,
-    fetchAllNominations,
-    fetchPendingNominations,
-    clearError: () => setError(null),
+    kfcPoints,
+    isLoading: false,
+    error: null,
   };
 } 
