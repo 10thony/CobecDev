@@ -205,7 +205,12 @@ export const sendOpenAIMessageWithKey = internalAction({
     modelId: v.string(),
     apiKey: v.string(),
   },
-  returns: v.string(),
+  returns: v.object({
+    content: v.string(),
+    modelUsed: v.string(),
+    tokensUsed: v.optional(v.number()),
+    finishReason: v.optional(v.string()),
+  }),
   handler: async (ctx: any, args: any) => {
     try {
       const client = new OpenAI({
@@ -218,7 +223,12 @@ export const sendOpenAIMessageWithKey = internalAction({
         temperature: 0.7,
       });
 
-      return response.choices[0].message.content || "No response generated";
+      return {
+        content: response.choices[0].message.content || "No response generated",
+        modelUsed: args.modelId,
+        tokensUsed: response.usage?.total_tokens,
+        finishReason: response.choices[0].finish_reason || undefined,
+      };
     } catch (error) {
       console.error('Error in OpenAI message:', error);
       throw new Error(`API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -233,7 +243,12 @@ export const sendAnthropicMessageWithKey = internalAction({
     modelId: v.string(),
     apiKey: v.string(),
   },
-  returns: v.string(),
+  returns: v.object({
+    content: v.string(),
+    modelUsed: v.string(),
+    tokensUsed: v.optional(v.number()),
+    finishReason: v.optional(v.string()),
+  }),
   handler: async (ctx: any, args: any) => {
     try {
       const client = new Anthropic({
@@ -246,7 +261,12 @@ export const sendAnthropicMessageWithKey = internalAction({
         messages: [{ role: "user", content: args.message }],
       });
 
-      return response.content[0].type === "text" ? response.content[0].text : "No text response";
+      return {
+        content: response.content[0].type === "text" ? response.content[0].text : "No text response",
+        modelUsed: args.modelId,
+        tokensUsed: (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0),
+        finishReason: response.stop_reason || undefined,
+      };
     } catch (error) {
       console.error('Error in Anthropic message:', error);
       throw new Error(`API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -261,7 +281,12 @@ export const sendGeminiMessageWithKey = internalAction({
     modelId: v.string(),
     apiKey: v.string(),
   },
-  returns: v.string(),
+  returns: v.object({
+    content: v.string(),
+    modelUsed: v.string(),
+    tokensUsed: v.optional(v.number()),
+    finishReason: v.optional(v.string()),
+  }),
   handler: async (ctx: any, args: any) => {
     try {
       const client = new GoogleGenerativeAI(args.apiKey);
@@ -270,7 +295,12 @@ export const sendGeminiMessageWithKey = internalAction({
       const result = await model.generateContent(args.message);
       const response = result.response;
       
-      return response.text();
+      return {
+        content: response.text(),
+        modelUsed: args.modelId,
+        tokensUsed: undefined, // Gemini doesn't provide token usage in this context
+        finishReason: "stop", // Default for Gemini
+      };
     } catch (error) {
       console.error('Error in Google AI message:', error);
       throw new Error(`API error: ${error instanceof Error ? error.message : 'Unknown error'}`);

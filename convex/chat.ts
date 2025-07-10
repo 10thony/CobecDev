@@ -47,25 +47,28 @@ export const sendMessageWithVectorSearch = internalAction({
 
       switch (provider) {
         case "openai":
-          response = await ctx.runAction(internal.nodeActions.sendOpenAIMessageWithKey, {
+          const openaiResponse = await ctx.runAction(internal.nodeActions.sendOpenAIMessageWithKey, {
             message: args.message,
             modelId: args.modelId,
             apiKey: args.apiKey
           });
+          response = openaiResponse.content;
           break;
         case "anthropic":
-          response = await ctx.runAction(internal.nodeActions.sendAnthropicMessageWithKey, {
+          const anthropicResponse = await ctx.runAction(internal.nodeActions.sendAnthropicMessageWithKey, {
             message: args.message,
             modelId: args.modelId,
             apiKey: args.apiKey
           });
+          response = anthropicResponse.content;
           break;
         case "google":
-          response = await ctx.runAction(internal.nodeActions.sendGeminiMessageWithKey, {
+          const googleResponse = await ctx.runAction(internal.nodeActions.sendGeminiMessageWithKey, {
             message: args.message,
             modelId: args.modelId,
             apiKey: args.apiKey
           });
+          response = googleResponse.content;
           break;
         default:
           response = "Sorry, I don't support this model provider yet.";

@@ -12,7 +12,7 @@ async function testClerkIntegration() {
     console.log('1. Testing getClerkUsers function...');
     
     // Test the getClerkUsers function
-    const users = await client.query(api.cobecAdmins.getClerkUsers);
+    const users = await client.action(api.cobecAdmins.getClerkUsers);
     
     if (users && Array.isArray(users)) {
       console.log(`✅ Successfully fetched ${users.length} users from Clerk`);

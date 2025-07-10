@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUserId } from "./auth";
 
@@ -300,36 +300,33 @@ export const removeCobecAdmin = mutation({
 });
 
 // Get all users from Clerk Admin API (admin only)
-export const getClerkUsers = query({
+export const getClerkUsers = action({
   args: {},
-  returns: v.array(v.object({
-    id: v.string(),
-    fullName: v.string(),
-    email: v.string(),
-    createdAt: v.number(),
-    lastSignInAt: v.optional(v.number()),
-  })),
+  returns: v.array(
+    v.object({
+      id: v.string(),
+      fullName: v.string(),
+      email: v.string(),
+      createdAt: v.number(),
+      lastSignInAt: v.optional(v.number()),
+    })
+  ),
   handler: async (ctx) => {
     try {
       // Check if current user is a cobec admin
       const userId = await getCurrentUserId(ctx);
-      const currentUser = await ctx.db
-        .query("cobecadmins")
-        .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", userId))
-        .first();
       
-      if (!currentUser) {
-        // Check against known admin list for initial setup
-        const knownAdmins = [
-          "user_2zK3951nbXRIwNsPwKYvVQAj0nu",
-          "user_2yeq7o5pXddjNeLFDpoz5tTwkWS", 
-          "user_2zH6JiYnykjdwTcTpl7sRU0pKtW",
-          "user_2yhAe3Cu7CnonTn4wyRUzZIqIaF"
-        ];
-        
-        if (!knownAdmins.includes(userId)) {
-          throw new Error("Unauthorized: Only cobec admins can fetch user list");
-        }
+      // For actions, we'll use the known admin list for authorization
+      // since we don't have direct database access in actions
+      const knownAdmins = [
+        "user_2zK3951nbXRIwNsPwKYvVQAj0nu",
+        "user_2yeq7o5pXddjNeLFDpoz5tTwkWS", 
+        "user_2zH6JiYnykjdwTcTpl7sRU0pKtW",
+        "user_2yhAe3Cu7CnonTn4wyRUzZIqIaF"
+      ];
+      
+      if (!knownAdmins.includes(userId)) {
+        throw new Error("Unauthorized: Only cobec admins can fetch user list");
       }
 
       // Get Clerk secret key from environment

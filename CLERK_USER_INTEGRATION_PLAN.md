@@ -85,16 +85,9 @@ Currently, when adding a new Cobec admin, the user must manually enter the Clerk
 
 #### A. Convex Function Structure
 ```typescript
-export const getClerkUsers = query({
+export const getClerkUsers = action({
   args: {},
-  returns: v.array(v.object({
-    id: v.string(),
-    fullName: v.string(),
-    email: v.string(),
-    createdAt: v.number(),
-    lastSignInAt: v.optional(v.number()),
-  })),
-  handler: async (ctx) => {
+  handler: async (ctx: any) => {
     // 1. Check if current user is Cobec admin
     // 2. Fetch users from Clerk Admin API
     // 3. Transform data to required format
@@ -106,10 +99,25 @@ export const getClerkUsers = query({
 #### B. Frontend Integration
 ```typescript
 // Add to KfcPointsManager component
-const clerkUsers = useQuery(api.cobecAdmins.getClerkUsers);
+const getClerkUsersAction = useAction(api.cobecAdmins.getClerkUsers);
 const [selectedUserId, setSelectedUserId] = useState('');
 
 // Replace manual input with dropdown
+const [clerkUsers, setClerkUsers] = useState([]);
+
+// Load users when component mounts
+useEffect(() => {
+  const loadUsers = async () => {
+    try {
+      const users = await getClerkUsersAction();
+      setClerkUsers(users);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    }
+  };
+  loadUsers();
+}, []);
+
 <select 
   value={selectedUserId}
   onChange={(e) => setSelectedUserId(e.target.value)}

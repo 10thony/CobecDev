@@ -3,7 +3,7 @@ import { useTheme } from '../lib/ThemeContext';
 import { getKfcMongoService } from '../lib/kfcMongoService';
 import { useGlobalData } from '../lib/useGlobalData';
 import { SectionLoadingSpinner } from './LoadingSpinner';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
 // Import KFC data directly as fallback
@@ -79,18 +79,37 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
   // Clerk User Integration state
   const [selectedClerkUser, setSelectedClerkUser] = useState<string>('');
   const [clerkUsersError, setClerkUsersError] = useState<string | null>(null);
+  const [clerkUsers, setClerkUsers] = useState<ClerkUser[]>([]);
+  const [isLoadingClerkUsers, setIsLoadingClerkUsers] = useState(false);
   
-  // Fetch Clerk users using Convex
-  const clerkUsers = useQuery(api.cobecAdmins.getClerkUsers) as ClerkUser[] | undefined;
+  // Get Clerk users action
+  const getClerkUsersAction = useAction(api.cobecAdmins.getClerkUsers);
 
-  // Handle Clerk users query errors
-  useEffect(() => {
-    if (clerkUsers === null) {
+  // Load Clerk users when component mounts or when admin management is opened
+  const loadClerkUsers = async () => {
+    if (!isCobecAdmin) return;
+    
+    setIsLoadingClerkUsers(true);
+    setClerkUsersError(null);
+    
+    try {
+      const users = await getClerkUsersAction();
+      setClerkUsers(users);
+    } catch (error) {
+      console.error('Failed to load Clerk users:', error);
       setClerkUsersError("Failed to load users from Clerk. Please check your CLERK_SECRET_KEY configuration.");
-    } else {
-      setClerkUsersError(null);
+      setClerkUsers([]);
+    } finally {
+      setIsLoadingClerkUsers(false);
     }
-  }, [clerkUsers]);
+  };
+
+  // Load Clerk users when admin status changes
+  useEffect(() => {
+    if (isCobecAdmin) {
+      loadClerkUsers();
+    }
+  }, [isCobecAdmin]);
 
   // Load data on component mount
   useEffect(() => {
@@ -524,6 +543,15 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
     setClerkUsersError(null);
   };
 
+  // Open admin management and refresh Clerk users
+  const handleOpenAdminManagement = () => {
+    setShowCobecAdminManagement(true);
+    // Refresh Clerk users when opening admin management
+    if (isCobecAdmin) {
+      loadClerkUsers();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto p-6">
@@ -814,7 +842,7 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
             </button>
             {isCobecAdmin && (
               <button
-                onClick={showCobecAdminManagement ? handleCloseAdminManagement : () => setShowCobecAdminManagement(true)}
+                onClick={showCobecAdminManagement ? handleCloseAdminManagement : handleOpenAdminManagement}
                 className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
               >
                 {showCobecAdminManagement ? 'Cancel' : 'Manage Cobec Admins'}
@@ -854,10 +882,19 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
               
               {/* Clerk Users Dropdown */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Select User from Clerk
-                </label>
-                {clerkUsers === undefined ? (
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Select User from Clerk
+                  </label>
+                  <button
+                    onClick={loadClerkUsers}
+                    disabled={isLoadingClerkUsers}
+                    className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 disabled:bg-gray-400"
+                  >
+                    {isLoadingClerkUsers ? 'Loading...' : 'Refresh'}
+                  </button>
+                </div>
+                {isLoadingClerkUsers ? (
                   <div className="text-center py-4 text-gray-500 dark:text-gray-400">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto mb-2"></div>
                     Loading users from Clerk...
@@ -865,6 +902,12 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
                 ) : clerkUsersError ? (
                   <div className="text-red-600 dark:text-red-400 text-sm mb-2">
                     Error loading users: {clerkUsersError}
+                    <button
+                      onClick={loadClerkUsers}
+                      className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Retry
+                    </button>
                   </div>
                 ) : clerkUsers && clerkUsers.length > 0 ? (
                   <select

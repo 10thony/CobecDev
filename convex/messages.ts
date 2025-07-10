@@ -133,25 +133,28 @@ export const generateAIResponse = internalAction({
       let response = "";
       switch (provider) {
         case "openai":
-          response = await ctx.runAction(internal.nodeActions.sendOpenAIMessageWithKey, {
+          const openaiResponse = await ctx.runAction(internal.nodeActions.sendOpenAIMessageWithKey, {
             message: formattedMessages.map((m: any) => `${m.role}: ${m.content}`).join("\n"),
             modelId: args.modelId,
             apiKey: args.apiKey
           });
+          response = openaiResponse.content;
           break;
         case "anthropic":
-          response = await ctx.runAction(internal.nodeActions.sendAnthropicMessageWithKey, {
+          const anthropicResponse = await ctx.runAction(internal.nodeActions.sendAnthropicMessageWithKey, {
             message: formattedMessages.map((m: any) => `${m.role}: ${m.content}`).join("\n"),
             modelId: args.modelId,
             apiKey: args.apiKey
           });
+          response = anthropicResponse.content;
           break;
         case "google":
-          response = await ctx.runAction(internal.nodeActions.sendGeminiMessageWithKey, {
+          const googleResponse = await ctx.runAction(internal.nodeActions.sendGeminiMessageWithKey, {
             message: formattedMessages.map((m: any) => `${m.role}: ${m.content}`).join("\n"),
             modelId: args.modelId,
             apiKey: args.apiKey
           });
+          response = googleResponse.content;
           break;
         case "huggingface":
           response = `[Hugging Face - ${args.modelId}] I received your message. For now, this is a mock response.`;
