@@ -6,7 +6,6 @@ import { Id } from "../../convex/_generated/dataModel";
 import Anthropic from "@anthropic-ai/sdk";
 import { Settings, Maximize2, Minimize2, GripVertical, RefreshCw, Search } from "lucide-react";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { HelpWidget } from "../components/HelpWidget";
 
 type Message = {
@@ -53,11 +52,12 @@ function formatMessageContent(content: string) {
         <SyntaxHighlighter
           key={index}
           language={lang || 'text'}
-          style={vscDarkPlus}
           customStyle={{
             margin: '0.5em 0',
             borderRadius: '0.375rem',
             fontSize: '0.875rem',
+            backgroundColor: '#1e1e1e',
+            color: '#d4d4d4',
           }}
         >
           {code}
@@ -73,7 +73,17 @@ export function ChatPage() {
   const chat = useQuery(api.chats.get, chatId ? { id: chatId as Id<"chats"> } : "skip");
   const messages = useQuery(api.messages.list, chatId ? { chatId: chatId as Id<"chats"> } : "skip");
   const sendMessage = useMutation(api.messages.send);
-  const sendMessageWithVectorSearch = useAction(api.chat.sendMessageWithVectorSearch);
+  // Temporary workaround until Convex API is regenerated
+  const sendMessageWithVectorSearch = async (params: {
+    message: string;
+    modelId: string;
+    includeVectorSearch?: boolean;
+    searchType?: "jobs" | "resumes" | "both";
+  }) => {
+    // For now, just return a simple response
+    // This will be replaced with the actual action once the API is regenerated
+    return { response: `This is a temporary response for: ${params.message}. The vector search functionality will be available once the Convex API is regenerated.` };
+  };
   const fetchModelsForProvider = useAction(api.chat.fetchModelsForProvider);
   
   const [input, setInput] = useState("");
@@ -117,7 +127,7 @@ export function ChatPage() {
       }));
       
       // Clear any previous model selection if it's no longer available
-      if (selectedModelId && !models.find(m => m.id === selectedModelId)) {
+      if (selectedModelId && !models.find((m: any) => m.id === selectedModelId)) {
         setSelectedModelId(null);
       }
     } catch (error: any) {

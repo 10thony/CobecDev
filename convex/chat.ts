@@ -30,14 +30,16 @@ export const getModelInfo = internalQuery({
 });
 
 // Send message with vector search (simplified since search is now client-side)
-export const sendMessageWithVectorSearch = internalAction({
+export const sendMessageWithVectorSearch = action({
   args: {
     message: v.string(),
     modelId: v.string(),
-    apiKey: v.string(),
+    includeVectorSearch: v.optional(v.boolean()),
     searchType: v.optional(v.union(v.literal("jobs"), v.literal("resumes"), v.literal("both"))),
   },
-  returns: v.string(),
+  returns: v.object({
+    response: v.string(),
+  }),
   handler: async (ctx, args) => {
     try {
       // Since vector search is now handled client-side, we'll just send the message directly
@@ -50,7 +52,7 @@ export const sendMessageWithVectorSearch = internalAction({
           const openaiResponse = await ctx.runAction(internal.nodeActions.sendOpenAIMessageWithKey, {
             message: args.message,
             modelId: args.modelId,
-            apiKey: args.apiKey
+            apiKey: process.env.OPENAI_API_KEY || ""
           });
           response = openaiResponse.content;
           break;
@@ -58,7 +60,7 @@ export const sendMessageWithVectorSearch = internalAction({
           const anthropicResponse = await ctx.runAction(internal.nodeActions.sendAnthropicMessageWithKey, {
             message: args.message,
             modelId: args.modelId,
-            apiKey: args.apiKey
+            apiKey: process.env.ANTHROPIC_API_KEY || ""
           });
           response = anthropicResponse.content;
           break;
@@ -66,7 +68,7 @@ export const sendMessageWithVectorSearch = internalAction({
           const googleResponse = await ctx.runAction(internal.nodeActions.sendGeminiMessageWithKey, {
             message: args.message,
             modelId: args.modelId,
-            apiKey: args.apiKey
+            apiKey: process.env.GOOGLE_AI_API_KEY || ""
           });
           response = googleResponse.content;
           break;
@@ -74,10 +76,10 @@ export const sendMessageWithVectorSearch = internalAction({
           response = "Sorry, I don't support this model provider yet.";
       }
 
-      return response;
+      return { response };
     } catch (error) {
       console.error("Error in sendMessageWithVectorSearch:", error);
-      return "Sorry, I encountered an error while processing your request.";
+      return { response: "Sorry, I encountered an error while processing your request." };
     }
   },
 });

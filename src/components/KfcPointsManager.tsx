@@ -118,6 +118,29 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
     }
   }, [kfcEntries.length, isLoading, refreshData]);
 
+  // Auto-load data if database is empty
+  useEffect(() => {
+    const autoLoadDataIfEmpty = async () => {
+      if (kfcEntries.length === 0 && !isLoading && !error) {
+        try {
+          console.log('🔍 Checking if database is empty...');
+          const db = await mongoClient.getDatabase();
+          const kfcCollection = db.collection('kfcpoints');
+          const count = await kfcCollection.countDocuments({});
+          
+          if (count === 0) {
+            console.log('📄 Database is empty, auto-loading sample data...');
+            await loadKfcDataFromJson();
+          }
+        } catch (err) {
+          console.log('⚠️ Could not check database status, continuing...');
+        }
+      }
+    };
+
+    autoLoadDataIfEmpty();
+  }, [kfcEntries.length, isLoading, error, mongoClient]);
+
   // Check admin status from MongoDB cluster
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -410,6 +433,13 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
       const employeeCount = await employeesCollection.countDocuments({});
       
       console.log(`📊 IndexedDB collection counts - KFC: ${kfcCount}, Employees: ${employeeCount}`);
+      
+      // If IndexedDB is empty, try to load from imported JSON data
+      if (kfcCount === 0) {
+        console.log('📄 IndexedDB is empty, loading from imported JSON data...');
+        await loadKfcDataFromJson();
+        console.log('✅ Loaded data from imported JSON');
+      }
       
       // Test inserting a test document
       const testEntry = {

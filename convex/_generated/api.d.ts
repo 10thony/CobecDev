@@ -19,6 +19,7 @@ import type * as chat from "../chat.js";
 import type * as chats from "../chats.js";
 import type * as cobecAdmins from "../cobecAdmins.js";
 import type * as http from "../http.js";
+import type * as kfcData from "../kfcData.js";
 import type * as logs from "../logs.js";
 import type * as messages from "../messages.js";
 import type * as mongoSearch from "../mongoSearch.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   chats: typeof chats;
   cobecAdmins: typeof cobecAdmins;
   http: typeof http;
+  kfcData: typeof kfcData;
   logs: typeof logs;
   messages: typeof messages;
   mongoSearch: typeof mongoSearch;

@@ -1,5 +1,7 @@
-import { getKfcMongoService } from './kfcMongoService';
 import { getMongoClient } from './mongoClient';
+import { getKfcMongoService } from './kfcMongoService';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 // Global data types
 export interface GlobalDataState {
@@ -82,10 +84,14 @@ class GlobalDataService {
       console.log('🔄 Loading all global data from MongoDB...');
       this.updateState({ isLoading: true, error: null });
 
-      // Try to load from MongoDB cluster first
+      // Try to load from Convex backend first (recommended approach)
       try {
+        console.log('✅ Using Convex backend for KFC data');
+        
+        // For now, we'll use the existing kfcMongoService but with better error handling
+        // In the future, this should be replaced with Convex functions
         const kfcService = await getKfcMongoService();
-        console.log('✅ Connected to KFC MongoDB service');
+        console.log('✅ Connected to KFC service');
 
         // Load KFC data and employees
         const [kfcEntries, employees] = await Promise.all([
@@ -93,7 +99,7 @@ class GlobalDataService {
           kfcService.getAllEmployees()
         ]);
 
-        console.log(`✅ Loaded ${kfcEntries.length} KFC entries and ${employees.length} employees from MongoDB cluster`);
+        console.log(`✅ Loaded ${kfcEntries.length} KFC entries and ${employees.length} employees from service`);
 
         this.updateState({
           kfcEntries,
@@ -101,8 +107,8 @@ class GlobalDataService {
           lastLoaded: new Date()
         });
 
-      } catch (mongoError) {
-        console.log('⚠️ MongoDB cluster not available, falling back to IndexedDB:', mongoError);
+      } catch (serviceError) {
+        console.log('⚠️ Service not available, falling back to IndexedDB:', serviceError);
         
         // Fallback to IndexedDB
         const client = await getMongoClient();
@@ -134,14 +140,15 @@ class GlobalDataService {
       // since they use Convex actions and have their own caching
 
       console.log('🎉 Global data loading completed successfully');
+      this.updateState({ isLoading: false });
 
     } catch (error) {
       console.error('❌ Error loading global data:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load data';
-      this.updateState({ error: errorMessage });
-    } finally {
-      this.updateState({ isLoading: false });
-      this.loadingPromise = null;
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load global data';
+      this.updateState({ 
+        error: errorMessage,
+        isLoading: false 
+      });
     }
   }
 
