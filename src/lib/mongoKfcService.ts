@@ -31,6 +31,9 @@ export interface Nomination {
   nominationType: 'Team' | 'Individual' | 'Growth';
   description: string;
   pointsAwarded: number;
+  status?: 'pending' | 'approved' | 'declined';
+  approvedBy?: string;
+  approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,10 +43,20 @@ class MongoKfcService {
   private readonly uri: string;
 
   constructor() {
-    // Get MongoDB credentials from environment variables
-    const MONGODB_USERNAME = process.env.MONGODB_USERNAME || 'adminuser';
-    const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || 'hnuWXvLBzcDfUbdZ';
-    const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || 'demo.y407omc.mongodb.net';
+    // Get MongoDB credentials - handle both browser and Node.js environments
+    let MONGODB_USERNAME, MONGODB_PASSWORD, MONGODB_CLUSTER;
+    
+    if (typeof window !== 'undefined') {
+      // Browser environment - use hardcoded values or import.meta.env
+      MONGODB_USERNAME = '';
+      MONGODB_PASSWORD = '';
+      MONGODB_CLUSTER = '';
+    } else {
+      // Node.js environment - use process.env
+      MONGODB_USERNAME = process.env.MONGODB_USERNAME || '';
+      MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || '';
+      MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || '';
+    }
 
     this.uri = `mongodb+srv://${MONGODB_USERNAME}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_CLUSTER}/?retryWrites=true&w=majority`;
   }
@@ -228,6 +241,153 @@ class MongoKfcService {
       return result.insertedId.toString();
     } catch (error) {
       console.error('❌ Error inserting nomination:', error);
+      throw error;
+    }
+  }
+
+  async updateNomination(nominationId: string, updates: Partial<Nomination>): Promise<boolean> {
+    try {
+      const db = await this.getDatabase();
+      const collection = db.collection('nominations');
+      
+      const result = await collection.updateOne(
+        { _id: nominationId },
+        { 
+          $set: { 
+            ...updates,
+            updatedAt: new Date()
+          }
+        }
+      );
+      
+      return result.modifiedCount > 0;
+    } catch (error) {
+      console.error('❌ Error updating nomination:', error);
+      throw error;
+    }
+  }
+
+  async approveNomination(nominationId: string, approvedBy: string): Promise<boolean> {
+    try {
+      const db = await this.getDatabase();
+      const collection = db.collection('nominations');
+      
+      // Get the nomination first
+      const nomination = await collection.findOne({ _id: nominationId });
+      if (!nomination) {
+        throw new Error('Nomination not found');
+      }
+      
+      const now = new Date();
+      
+      // Update nomination status
+      const result = await collection.updateOne(
+        { _id: nominationId },
+        { 
+          $set: { 
+            status: 'approved',
+            approvedBy,
+            approvedAt: now,
+            updatedAt: now
+          }
+        }
+      );
+      
+      // Update KFC points for the nominated employee
+      if (result.modifiedCount > 0) {
+        await this.updateKfcPointsForNomination(nomination.nominatedEmployee, nomination.pointsAwarded, nomination.nominationType);
+      }
+      
+      return result.modifiedCount > 0;
+    } catch (error) {
+      console.error('❌ Error approving nomination:', error);
+      throw error;
+    }
+  }
+
+  async declineNomination(nominationId: string, declinedBy: string): Promise<boolean> {
+    try {
+      const db = await this.getDatabase();
+      const collection = db.collection('nominations');
+      
+      const result = await collection.updateOne(
+        { _id: nominationId },
+        { 
+          $set: { 
+            status: 'declined',
+            approvedBy: declinedBy, // Reusing the field for declinedBy
+            approvedAt: new Date(),
+            updatedAt: new Date()
+          }
+        }
+      );
+      
+      return result.modifiedCount > 0;
+    } catch (error) {
+      console.error('❌ Error declining nomination:', error);
+      throw error;
+    }
+  }
+
+  async deleteNomination(nominationId: string): Promise<boolean> {
+    try {
+      const db = await this.getDatabase();
+      const collection = db.collection('nominations');
+      
+      const result = await collection.deleteOne({ _id: nominationId });
+      return result.deletedCount > 0;
+    } catch (error) {
+      console.error('❌ Error deleting nomination:', error);
+      throw error;
+    }
+  }
+
+  private async updateKfcPointsForNomination(employeeName: string, pointsAwarded: number, nominationType: string): Promise<void> {
+    try {
+      const db = await this.getDatabase();
+      const collection = db.collection('kfcpoints');
+      
+      // Find existing KFC entry
+      const kfcEntry = await collection.findOne({ name: employeeName });
+      
+      if (kfcEntry) {
+        // Add new event to the employee's KFC entry
+        const newEvent = {
+          type: nominationType === 'Growth' ? 'Individ' : nominationType,
+          month: new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+          quantity: 1
+        };
+        
+        const updatedEvents = [...(kfcEntry.events || []), newEvent];
+        const newScore = (kfcEntry.score || 0) + pointsAwarded;
+        
+        await collection.updateOne(
+          { name: employeeName },
+          {
+            $set: {
+              events: updatedEvents,
+              score: newScore,
+              updatedAt: new Date()
+            }
+          }
+        );
+      } else {
+        // Create new KFC entry if it doesn't exist
+        await collection.insertOne({
+          name: employeeName,
+          events: [{
+            type: nominationType === 'Growth' ? 'Individ' : nominationType,
+            month: new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+            quantity: 1
+          }],
+          march_status: undefined,
+          score: pointsAwarded,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error updating KFC points:', error);
       throw error;
     }
   }

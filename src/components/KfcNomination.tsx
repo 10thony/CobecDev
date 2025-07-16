@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../lib/ThemeContext';
 import { useNominations, useNominationsData } from '../lib/useNominations';
-import NominationService from '../lib/nominationService';
 import { SectionLoadingSpinner } from './LoadingSpinner';
-
 import { Id } from '../../convex/_generated/dataModel';
 
 interface Employee {
@@ -58,7 +56,10 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
     nominations, 
     employees,
     isLoading: dataLoading, 
-    error: dataError
+    error: dataError,
+    dataSource,
+    hasRealTimeFeatures,
+    refreshData
   } = useNominationsData();
   
   // Handle case when data is still loading or undefined
@@ -171,11 +172,37 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
     }
   };
 
+  const getNominationTypeBadgeColor = (type: 'Team' | 'Individual' | 'Growth'): string => {
+    switch (type) {
+      case 'Team':
+        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
+      case 'Individual':
+        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300';
+      case 'Growth':
+        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
+      default:
+        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300';
+    }
+  };
+
+  const getStatusBadgeColor = (status: 'pending' | 'approved' | 'declined'): string => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
+      case 'approved':
+        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
+      case 'declined':
+        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300';
+      default:
+        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300';
+    }
+  };
+
   const isLoading = nominationLoading || dataLoading;
   const error = nominationError || dataError || localError;
 
   if (isLoading) {
-    return <SectionLoadingSpinner text="Loading nominations and employees..." />;
+    return <SectionLoadingSpinner text="Loading nominations and employees from MongoDB cluster..." />;
   }
 
   if (error) {
@@ -201,7 +228,27 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">KFC Nominations</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">KFC Nominations</h1>
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <span>📊 {safeNominations.length} nominations, {safeEmployees.length} employees</span>
+                      {dataSource && (
+            <span className="ml-2 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded text-xs">
+              💾 MongoDB {hasRealTimeFeatures && '🔄 + Real-time'}
+            </span>
+          )}
+          </div>
+          <button
+            onClick={refreshData}
+            disabled={dataLoading}
+            className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+            title="Refresh data"
+          >
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Nomination Form */}
@@ -292,9 +339,10 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
 
               <button
                 type="submit"
-                className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
+                disabled={nominationLoading || !nominatorName.trim() || !nominatedEmployee.trim() || !description.trim()}
+                className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Nomination
+                {nominationLoading ? 'Submitting...' : 'Submit Nomination'}
               </button>
             </form>
             </>
@@ -324,12 +372,12 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
                     </div>
                     <div className="text-right ml-4">
                       <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium mb-2 ${
-                        NominationService.getNominationTypeBadgeColor(nomination.nominationType)
+                        getNominationTypeBadgeColor(nomination.nominationType)
                       }`}>
                         {nomination.nominationType}
                       </span>
                       <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium mb-2 ${
-                        NominationService.getStatusBadgeColor(nomination.status)
+                        getStatusBadgeColor(nomination.status)
                       }`}>
                         {nomination.status}
                       </span>
@@ -399,12 +447,12 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
 
                 <div className="flex space-x-2">
                   <span className={`inline-block px-3 py-1 text-sm rounded-full font-medium ${
-                    NominationService.getNominationTypeBadgeColor(selectedNomination.nominationType)
+                    getNominationTypeBadgeColor(selectedNomination.nominationType)
                   }`}>
                     {selectedNomination.nominationType}
                   </span>
                   <span className={`inline-block px-3 py-1 text-sm rounded-full font-medium ${
-                    NominationService.getStatusBadgeColor(selectedNomination.status)
+                    getStatusBadgeColor(selectedNomination.status)
                   }`}>
                     {selectedNomination.status}
                   </span>

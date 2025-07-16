@@ -63,6 +63,7 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
   const [showLoadDataButton, setShowLoadDataButton] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [dbStatus, setDbStatus] = useState<{kfcCount: number, employeeCount: number} | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Cobec Admin Management state
   const [showCobecAdminManagement, setShowCobecAdminManagement] = useState(false);
@@ -81,6 +82,14 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
   const [clerkUsersError, setClerkUsersError] = useState<string | null>(null);
   const [clerkUsers, setClerkUsers] = useState<ClerkUser[]>([]);
   const [isLoadingClerkUsers, setIsLoadingClerkUsers] = useState(false);
+  
+  // Nomination form state
+  const [showNominationForm, setShowNominationForm] = useState(false);
+  const [nominatorName, setNominatorName] = useState('');
+  const [nominationType, setNominationType] = useState<'Team' | 'Individual' | 'Growth'>('Team');
+  const [description, setDescription] = useState('');
+  const [isSubmittingNomination, setIsSubmittingNomination] = useState(false);
+  const [nominationError, setNominationError] = useState<string | null>(null);
   
   // Get Clerk users action
   const getClerkUsersAction = useAction(api.cobecAdmins.getClerkUsers);
@@ -293,38 +302,80 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
   const handleAddEvent = async () => {
     if (!selectedEntry) return;
     
-    const newEvent: KfcEvent = {
-      type: 'Team',
-      month: 'JAN',
-      quantity: 1
-    };
-    
+    // Instead of adding an event directly, open the nomination form
+    setShowNominationForm(true);
+    setNominatorName('');
+    setNominationType('Team');
+    setDescription('');
+    setNominationError(null);
+  };
+
+  const handleSubmitNomination = async () => {
+    if (!selectedEntry || !nominatorName.trim() || !description.trim()) {
+      setNominationError('Please fill in all fields');
+      return;
+    }
+
+    setIsSubmittingNomination(true);
+    setNominationError(null);
+
     try {
       const db = await mongoClient.getDatabase();
-      const collection = db.collection('kfcpoints');
+      const nominationsCollection = db.collection('nominations');
       
-      const updatedEvents = [...selectedEntry.events, newEvent];
-      
-      await collection.updateOne(
-        { _id: selectedEntry._id },
-        { 
-          $set: { 
-            events: updatedEvents,
-            updatedAt: new Date()
-          }
+      // Calculate points based on nomination type
+      const getPointsForNominationType = (type: 'Team' | 'Individual' | 'Growth'): number => {
+        switch (type) {
+          case 'Team':
+            return 10;
+          case 'Individual':
+            return 20;
+          case 'Growth':
+            return 30;
+          default:
+            return 0;
         }
-      );
+      };
+
+      const pointsAwarded = getPointsForNominationType(nominationType);
+      const now = new Date();
+
+      const nomination = {
+        nominatedBy: nominatorName.trim(),
+        nominatedEmployee: selectedEntry.name,
+        nominationType,
+        description: description.trim(),
+        pointsAwarded,
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now
+      };
+
+      await nominationsCollection.insertOne(nomination);
       
-      // Update selected entry
-      const updatedEntry = { ...selectedEntry, events: updatedEvents };
-      setSelectedEntry(updatedEntry);
+      setSuccessMessage(`Successfully created nomination for ${selectedEntry.name}`);
+      setShowNominationForm(false);
+      setNominatorName('');
+      setNominationType('Team');
+      setDescription('');
       
-      // Refresh data to update the list
+      // Refresh data to show the new nomination
       await refreshData();
       
-    } catch (err) {
-      console.error('Failed to add event:', err);
+    } catch (error) {
+      console.error('Failed to submit nomination:', error);
+      setNominationError(error instanceof Error ? error.message : 'Failed to submit nomination');
+    } finally {
+      setIsSubmittingNomination(false);
     }
+  };
+
+  const handleCancelNomination = () => {
+    setShowNominationForm(false);
+    setNominatorName('');
+    setNominationType('Team');
+    setDescription('');
+    setNominationError(null);
   };
 
   const handleRemoveEvent = async (eventIndex: number) => {
@@ -582,6 +633,11 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
     }
   };
 
+  // Filter KFC entries based on search query
+  const filteredKfcEntries = kfcEntries.filter(entry =>
+    entry.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto p-6">
@@ -709,26 +765,69 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
         {/* KFC Entries List */}
         <div className="lg:col-span-2">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">KFC Entries</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">KFC Entries</h2>
+              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                <span>Showing {filteredKfcEntries.length} of {kfcEntries.length} entries</span>
+              </div>
+            </div>
+            
+            {/* Search Bar */}
+            <div className="mb-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by employee name..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+            
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {kfcEntries.length === 0 ? (
+              {filteredKfcEntries.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-gray-500 dark:text-gray-400 mb-4">
                     <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <p className="text-lg font-medium">No KFC entries found in database</p>
-                    <p className="text-sm">The database appears to be empty. You can load sample data from the JSON file.</p>
+                    <p className="text-lg font-medium">
+                      {searchQuery ? 'No matching entries found' : 'No KFC entries found in database'}
+                    </p>
+                    <p className="text-sm">
+                      {searchQuery 
+                        ? `No entries match "${searchQuery}". Try a different search term.`
+                        : 'The database appears to be empty. You can load sample data from the JSON file.'
+                      }
+                    </p>
                   </div>
-                  <button
-                    onClick={loadKfcDataFromJson}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    Load Sample Data from JSON
-                  </button>
+                  {!searchQuery && (
+                    <button
+                      onClick={loadKfcDataFromJson}
+                      className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Load Sample Data from JSON
+                    </button>
+                  )}
                 </div>
               ) : (
-                kfcEntries.map((entry, index) => (
+                filteredKfcEntries.map((entry, index) => (
                   <div
                     key={entry._id || `entry-${index}`}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
@@ -834,7 +933,7 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
                       onClick={handleAddEvent}
                       className="w-full mt-2 bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors"
                     >
-                      Add Event
+                      Nominate Points
                     </button>
                   </div>
                 </div>
@@ -1097,6 +1196,77 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = ({ mongoClient }) => {
             >
               Load Data from JSON
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Nomination Form */}
+      {showNominationForm && selectedEntry && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+              Nominate Points for {selectedEntry.name}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Nominator Name
+                </label>
+                <input
+                  type="text"
+                  value={nominatorName}
+                  onChange={(e) => setNominatorName(e.target.value)}
+                  placeholder="Your name"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Nomination Type
+                </label>
+                <select
+                  value={nominationType}
+                  onChange={(e) => setNominationType(e.target.value as 'Team' | 'Individual' | 'Growth')}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="Team">Team Effort (10 points)</option>
+                  <option value="Individual">Individual Achievement (20 points)</option>
+                  <option value="Growth">Growth & Development (30 points)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe why you are nominating this employee..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  rows={4}
+                />
+              </div>
+              {nominationError && (
+                <div className="text-red-600 dark:text-red-400 text-sm">
+                  {nominationError}
+                </div>
+              )}
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={handleCancelNomination}
+                  className="px-4 py-2 rounded-md transition-colors bg-gray-300 hover:bg-gray-400 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitNomination}
+                  disabled={isSubmittingNomination || !nominatorName.trim() || !description.trim()}
+                  className="px-4 py-2 rounded-md transition-colors bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmittingNomination ? 'Submitting...' : 'Submit Nomination'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
