@@ -143,6 +143,7 @@ export const getCurrentUserCobecAdmin = query({
       role: v.optional(v.string()),
       createdAt: v.number(),
       updatedAt: v.number(),
+      _creationTime: v.optional(v.number()), // Convex automatically adds this field
     }),
     v.null()
   ),
@@ -175,6 +176,7 @@ export const getAllCobecAdmins = query({
       role: v.optional(v.string()),
       createdAt: v.number(),
       updatedAt: v.number(),
+      _creationTime: v.optional(v.number()), // Convex automatically adds this field
     })
   ),
   handler: async (ctx) => {
@@ -367,4 +369,97 @@ export const getClerkUsers = action({
       throw error;
     }
   },
-}); 
+});
+
+// Get cobec admin by Clerk user ID
+export const getByClerkUserId = query({
+  args: { clerkUserId: v.string() },
+  returns: v.union(
+    v.object({
+      _id: v.id("cobecadmins"),
+      clerkUserId: v.string(),
+      name: v.optional(v.string()),
+      email: v.optional(v.string()),
+      role: v.optional(v.string()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      _creationTime: v.optional(v.number()), // Convex automatically adds this field
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    try {
+      const admin = await ctx.db
+        .query("cobecadmins")
+        .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", args.clerkUserId))
+        .first();
+      
+      return admin;
+    } catch (error) {
+      console.error("Error fetching cobec admin by Clerk user ID:", error);
+      throw error;
+    }
+  },
+});
+
+// List all cobec admins
+export const list = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("cobecadmins"),
+      clerkUserId: v.string(),
+      name: v.optional(v.string()),
+      email: v.optional(v.string()),
+      role: v.optional(v.string()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      _creationTime: v.optional(v.number()), // Convex automatically adds this field
+    })
+  ),
+  handler: async (ctx) => {
+    try {
+      const admins = await ctx.db
+        .query("cobecadmins")
+        .withIndex("by_creation")
+        .order("desc")
+        .collect();
+      
+      return admins;
+    } catch (error) {
+      console.error("Error fetching cobec admins:", error);
+      throw error;
+    }
+  },
+});
+
+// Insert new cobec admin
+export const insert = mutation({
+  args: {
+    clerkUserId: v.string(),
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    role: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const now = Date.now();
+      const adminId = await ctx.db.insert("cobecadmins", {
+        clerkUserId: args.clerkUserId,
+        name: args.name,
+        email: args.email,
+        role: args.role,
+        createdAt: args.createdAt || now,
+        updatedAt: args.updatedAt || now,
+      });
+      
+      console.log(`✅ Created cobec admin: ${args.clerkUserId}`);
+      return adminId;
+    } catch (error) {
+      console.error("Error creating cobec admin:", error);
+      throw error;
+    }
+  },
+});

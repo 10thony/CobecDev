@@ -1,6 +1,7 @@
+"use node";
 // convex/openai.ts
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { action } from "./_generated/server";
 
 // Helper function to determine the correct token parameter for OpenAI models
 const getOpenAITokenParameter = (modelId: string) => {
@@ -12,7 +13,7 @@ const getOpenAITokenParameter = (modelId: string) => {
   return { max_tokens: 150 };
 };
 
-export const chatCompletion = mutation({
+export const chatCompletion = action({
   args: {
     prompt: v.string(),
     model: v.optional(v.string()), // Make model optional with a default value

@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
-import { getKfcMongoService } from './kfcMongoService';
 
 export interface Nomination {
   _id: Id<"nominations">;
@@ -28,7 +27,7 @@ export function useNominations() {
   const declineNominationMutation = useMutation(api.nominations.decline);
   const deleteNominationMutation = useMutation(api.nominations.remove);
 
-  // Create a new nomination (MongoDB primary, Convex optional)
+  // Create a new nomination (Convex primary)
   const createNomination = async (
     nominatedBy: string,
     nominatedEmployee: string,
@@ -39,39 +38,15 @@ export function useNominations() {
     setError(null);
 
     try {
-      // Primary: Create in MongoDB
-      const kfcService = await getKfcMongoService();
-      const pointsAwarded = getPointsForNominationType(nominationType);
-      
-      const nomination = {
+      const nominationId = await createNominationMutation({
         nominatedBy: nominatedBy.trim(),
         nominatedEmployee: nominatedEmployee.trim(),
         nominationType,
         description: description.trim(),
-        pointsAwarded,
-        status: 'pending' as const,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+      });
       
-      const nominationId = await kfcService.insertNomination(nomination);
-      console.log(`✅ Created nomination in MongoDB: ${nominationId}`);
-      
-      // Optional: Also create in Convex for real-time features (if available)
-      try {
-        await createNominationMutation({
-          nominatedBy: nomination.nominatedBy,
-          nominatedEmployee: nomination.nominatedEmployee,
-          nominationType: nomination.nominationType,
-          description: nomination.description,
-        });
-        console.log('✅ Also created nomination in Convex for real-time features');
-      } catch (convexError) {
-        console.warn('⚠️ Failed to create nomination in Convex (optional):', convexError);
-        // Don't fail the operation if Convex fails
-      }
-
-      return { success: true, nominationId: nominationId as any };
+      console.log(`✅ Created nomination in Convex: ${nominationId}`);
+      return { success: true, nominationId };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create nomination';
       setError(errorMessage);
@@ -81,7 +56,7 @@ export function useNominations() {
     }
   };
 
-  // Approve a nomination (MongoDB primary, Convex optional)
+  // Approve a nomination (Convex primary)
   const approveNomination = async (
     nominationId: Id<"nominations">,
     approvedBy: string
@@ -90,28 +65,12 @@ export function useNominations() {
     setError(null);
 
     try {
-      // Primary: Update in MongoDB
-      const kfcService = await getKfcMongoService();
-      const success = await kfcService.approveNomination(nominationId as string, approvedBy);
+      await approveNominationMutation({
+        nominationId,
+        approvedBy,
+      });
       
-      if (!success) {
-        throw new Error('Failed to approve nomination in MongoDB');
-      }
-      
-      console.log('✅ Approved nomination in MongoDB');
-      
-      // Optional: Also update in Convex for real-time features
-      try {
-        await approveNominationMutation({
-          nominationId,
-          approvedBy,
-        });
-        console.log('✅ Also approved nomination in Convex for real-time features');
-      } catch (convexError) {
-        console.warn('⚠️ Failed to approve nomination in Convex (optional):', convexError);
-        // Don't fail the operation if Convex fails
-      }
-
+      console.log('✅ Approved nomination in Convex');
       return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to approve nomination';
@@ -122,7 +81,7 @@ export function useNominations() {
     }
   };
 
-  // Decline a nomination (MongoDB primary, Convex optional)
+  // Decline a nomination (Convex primary)
   const declineNomination = async (
     nominationId: Id<"nominations">,
     declinedBy: string
@@ -131,28 +90,12 @@ export function useNominations() {
     setError(null);
 
     try {
-      // Primary: Update in MongoDB
-      const kfcService = await getKfcMongoService();
-      const success = await kfcService.declineNomination(nominationId as string, declinedBy);
+      await declineNominationMutation({
+        nominationId,
+        declinedBy,
+      });
       
-      if (!success) {
-        throw new Error('Failed to decline nomination in MongoDB');
-      }
-      
-      console.log('✅ Declined nomination in MongoDB');
-      
-      // Optional: Also update in Convex for real-time features
-      try {
-        await declineNominationMutation({
-          nominationId,
-          declinedBy,
-        });
-        console.log('✅ Also declined nomination in Convex for real-time features');
-      } catch (convexError) {
-        console.warn('⚠️ Failed to decline nomination in Convex (optional):', convexError);
-        // Don't fail the operation if Convex fails
-      }
-
+      console.log('✅ Declined nomination in Convex');
       return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to decline nomination';
@@ -163,7 +106,7 @@ export function useNominations() {
     }
   };
 
-  // Delete a nomination (MongoDB primary, Convex optional)
+  // Delete a nomination (Convex primary)
   const deleteNomination = async (
     nominationId: Id<"nominations">,
   ): Promise<{ success: boolean; error?: string }> => {
@@ -171,27 +114,11 @@ export function useNominations() {
     setError(null);
 
     try {
-      // Primary: Delete from MongoDB
-      const kfcService = await getKfcMongoService();
-      const success = await kfcService.deleteNomination(nominationId as string);
+      await deleteNominationMutation({
+        nominationId,
+      });
       
-      if (!success) {
-        throw new Error('Failed to delete nomination from MongoDB');
-      }
-      
-      console.log('✅ Deleted nomination from MongoDB');
-      
-      // Optional: Also delete from Convex for real-time features
-      try {
-        await deleteNominationMutation({
-          nominationId,
-        });
-        console.log('✅ Also deleted nomination from Convex for real-time features');
-      } catch (convexError) {
-        console.warn('⚠️ Failed to delete nomination from Convex (optional):', convexError);
-        // Don't fail the operation if Convex fails
-      }
-
+      console.log('✅ Deleted nomination from Convex');
       return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete nomination';
@@ -266,7 +193,7 @@ export function useNominationsData() {
       
       setMongoData({
         nominations: nominations.map((nom: any) => ({
-          _id: nom._id || `mongo-${nom.nominatedEmployee}-${Date.now()}`,
+          _id: nom._id ? nom._id.toString() : `mongo-${nom.nominatedEmployee}-${Date.now()}`,
           nominatedBy: nom.nominatedBy,
           nominatedEmployee: nom.nominatedEmployee,
           nominationType: nom.nominationType,
@@ -279,13 +206,13 @@ export function useNominationsData() {
           updatedAt: nom.updatedAt?.getTime() || Date.now()
         })),
         employees: employees.map((emp: any) => ({
-          _id: emp._id || `mongo-${emp.name}`,
+          _id: emp._id ? emp._id.toString() : `mongo-${emp.name}`,
           name: emp.name,
           createdAt: emp.createdAt?.getTime() || Date.now(),
           updatedAt: emp.updatedAt?.getTime() || Date.now()
         })),
         kfcPoints: kfcPoints.map((kfc: any) => ({
-          _id: kfc._id || `mongo-${kfc.name}`,
+          _id: kfc._id ? kfc._id.toString() : `mongo-${kfc.name}`,
           name: kfc.name,
           events: kfc.events || [],
           march_status: kfc.march_status,

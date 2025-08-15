@@ -17,7 +17,7 @@ import { KfcManagementPage } from "./pages/KfcManagementPage";
 import TempChatPage from "./pages/TempChatPage";
 import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider } from "./lib/ThemeContext";
-import globalDataService from "./lib/globalDataService";
+// Global data service removed - using Convex real-time queries instead
 
 export default function App() {
   return (
@@ -56,13 +56,7 @@ function AppContent() {
 function AuthenticatedApp() {
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
   
-  // Initialize global data when user is authenticated
-  React.useEffect(() => {
-    if (userRole !== undefined) {
-      console.log('🔄 Initializing global data for authenticated user...');
-      globalDataService.loadAllData();
-    }
-  }, [userRole]);
+  // Global data is now handled by Convex real-time queries in individual components
   
   if (userRole === undefined) {
     return (

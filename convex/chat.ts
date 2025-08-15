@@ -1,33 +1,9 @@
+"use node";
 import { internalQuery, internalAction, action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
-// Get model info (internal)
-export const getModelInfo = internalQuery({
-  args: { modelId: v.id("aiModels") },
-  returns: v.union(v.object({
-    _id: v.id("aiModels"),
-    _creationTime: v.number(),
-    name: v.string(),
-    provider: v.string(),
-    modelId: v.string(),
-    apiKeyEnvVar: v.string(),
-    isActive: v.boolean(),
-    description: v.optional(v.string()),
-    maxTokens: v.optional(v.number()),
-    temperature: v.optional(v.number()),
-    helpLinks: v.optional(v.array(v.object({
-      title: v.string(),
-      url: v.string(),
-      description: v.optional(v.string()),
-    }))),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }), v.null()),
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.modelId);
-  },
-});
+
 
 // Send message with vector search (simplified since search is now client-side)
 export const sendMessageWithVectorSearch = action({

@@ -2,7 +2,7 @@
 import { action, query, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import { api } from "./_generated/api";
 
 // Initialize Gemini AI for embeddings
@@ -10,11 +10,31 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
 
 // MongoDB credentials
-const MONGODB_USERNAME = process.env.MONGODB_USERNAME || '';
-const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || '';
-const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || '';
+const MONGODB_HOST = process.env.MONGODB_HOST || 'localhost';
+const MONGODB_PORT = process.env.MONGODB_PORT || '27017';
+const MONGODB_DATABASE = process.env.MONGODB_DATABASE || 'workdemos';
+const MONGODB_USERNAME = process.env.MONGODB_USERNAME;
+const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD;
 
-const uri = `mongodb+srv://${MONGODB_USERNAME}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_CLUSTER}/workdemos?retryWrites=true&w=majority`;
+let uri: string;
+if (MONGODB_USERNAME && MONGODB_PASSWORD) {
+  uri = `mongodb://${MONGODB_USERNAME}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}`;
+} else {
+  uri = `mongodb://${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}`;
+}
+
+// Helper function to create MongoDB client with consistent configuration
+function createMongoClient() {
+  return new MongoClient(uri, {
+    connectTimeoutMS: 10000,
+    socketTimeoutMS: 10000,
+    maxPoolSize: 1,
+    minPoolSize: 0,
+    maxIdleTimeMS: 30000,
+    // No SSL/TLS needed for local MongoDB
+    // No serverApi version needed for local MongoDB
+  });
+}
 
 // Generate embedding for search query using Gemini
 async function generateQueryEmbedding(query: string) {
@@ -186,7 +206,7 @@ function mapResumeDataForFrontend(resume: any): any {
     searchableText: convertedResume.searchableText,
     extractedSkills: convertedResume.extractedSkills,
     embedding: convertedResume.embedding,
-    _metadata: convertedResume._metadata,
+    metadata: convertedResume.metadata,
     processedAt: convertedResume.processedAt,
     embeddingGeneratedAt: convertedResume.embeddingGeneratedAt,
     
@@ -366,22 +386,8 @@ export const searchSimilarJobsEnhanced = action({
       console.log(`Extracted skills: ${extractedSkills.join(', ')}`);
       console.log(`Minimum similarity: ${minSimilarity}`);
       
-      // Connect to MongoDB with serverless-optimized settings
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      // Connect to MongoDB with local-optimized settings
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -564,22 +570,8 @@ export const searchSimilarResumesEnhanced = action({
       console.log(`Extracted skills: ${extractedSkills.join(', ')}`);
       console.log(`Minimum similarity: ${minSimilarity}`);
       
-      // Connect to MongoDB with serverless-optimized settings
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      // Connect to MongoDB with local-optimized settings
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -847,21 +839,7 @@ export const multiEmbeddingJobSearch = action({
       console.log(`Minimum similarity threshold: ${minSimilarity}`);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -952,21 +930,7 @@ export const multiEmbeddingResumeSearch = action({
       console.log(`Minimum similarity threshold: ${minSimilarity}`);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1047,22 +1011,8 @@ export const getJobById = action({
     try {
       console.log(`Fetching job with ID: "${args.jobId}"`);
       
-      // Connect to MongoDB with serverless-optimized settings
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      // Connect to MongoDB with local-optimized settings
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1118,22 +1068,8 @@ export const getResumeById = action({
     try {
       console.log(`Fetching resume with ID: "${args.resumeId}"`);
       
-      // Connect to MongoDB with serverless-optimized settings
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      // Connect to MongoDB with local-optimized settings
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1206,22 +1142,8 @@ export const searchSimilarJobs = action({
       // Generate embedding for the query
       const queryEmbedding = await generateQueryEmbedding(args.query);
       
-      // Connect to MongoDB with serverless-optimized settings
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      // Connect to MongoDB with local-optimized settings
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1295,22 +1217,8 @@ export const searchSimilarResumes = action({
       // Generate embedding for the query
       const queryEmbedding = await generateQueryEmbedding(args.query);
       
-      // Connect to MongoDB with serverless-optimized settings
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      // Connect to MongoDB with local-optimized settings
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1486,21 +1394,7 @@ export const testResumeMapping = action({
       console.log(`Testing resume mapping for ID: "${args.resumeId}"`);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1597,21 +1491,7 @@ export const updateResume = action({
       console.log('Updates:', args.updates);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1756,21 +1636,7 @@ export const searchSimilarJobsPure = action({
       console.log(`Minimum similarity threshold: ${minSimilarity}`);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1849,21 +1715,7 @@ export const searchSimilarResumesPure = action({
       console.log(`Minimum similarity threshold: ${minSimilarity}`);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -2004,21 +1856,7 @@ export const crossMatchedVectorSearch = action({
       console.log(`Cross-match threshold: ${crossMatchThreshold}`);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -2342,21 +2180,7 @@ export const updateResumeWithDocument = action({
       const structuredData = await parseResumeWithAI(extractedText);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        tls: true,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -2397,7 +2221,7 @@ export const updateResumeWithDocument = action({
         certifications: structuredData.certifications || 'n/a',
         professionalMemberships: structuredData.professionalMemberships || 'n/a',
         securityClearance: structuredData.securityClearance || 'n/a',
-        _metadata: {
+        metadata: {
           fileName: args.fileName,
           importedAt: new Date(),
           parsedAt: new Date(),

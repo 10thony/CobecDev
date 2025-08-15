@@ -162,7 +162,7 @@ export const approve = mutation({
           month: new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase(),
           quantity: 1
         }],
-        march_status: undefined,
+        march_status: null,
         score: nomination.pointsAwarded,
         createdAt: now,
         updatedAt: now

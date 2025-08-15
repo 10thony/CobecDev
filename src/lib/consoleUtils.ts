@@ -1,9 +1,8 @@
-import { forceDatabaseReinitialization, debugDatabaseStatus } from './mongoClient';
 import { getDatabaseInfo, resetDatabase } from './databaseUtils';
 
 /**
- * Console utilities for debugging and managing the IndexedDB database
- * These functions can be called from the browser console
+ * Console utilities for debugging and managing the database
+ * Updated for Convex migration - IndexedDB functionality removed
  */
 
 // Make these functions available globally for console access
@@ -18,13 +17,15 @@ declare global {
 
 /**
  * Reset the KFC database (delete and recreate)
+ * Updated for Convex - this functionality is not needed with Convex
  * Usage: resetKfcDatabase()
  */
 export async function resetKfcDatabase(): Promise<void> {
   try {
     console.log('🔄 Resetting KFC database...');
-    await forceDatabaseReinitialization();
-    console.log('✅ Database reset successfully!');
+    console.log('ℹ️  Note: This function is deprecated. Convex handles database management automatically.');
+    await resetDatabase();
+    console.log('✅ Database reset completed (no action taken - Convex handles this automatically)');
     console.log('🔄 Refreshing page in 2 seconds...');
     setTimeout(() => window.location.reload(), 2000);
   } catch (error) {
@@ -34,20 +35,21 @@ export async function resetKfcDatabase(): Promise<void> {
 
 /**
  * Check the KFC database status
+ * Updated for Convex
  * Usage: checkKfcDatabase()
  */
 export async function checkKfcDatabase(): Promise<void> {
   try {
     console.log('🔍 Checking KFC database status...');
-    const status = await debugDatabaseStatus();
-    console.log('📊 Database Status:', status);
+    const access = await getDatabaseInfo();
+    console.log('📊 Database Status:', access);
     
-    if (status.isConnected) {
-      console.log('✅ Database is connected and working');
+    if (access.access.accessible) {
+      console.log('✅ Database is connected and working (Convex)');
     } else {
-      console.log('❌ Database is not connected');
-      if (status.error) {
-        console.log('🚨 Error:', status.error);
+      console.log('❌ Database is not accessible');
+      if (access.access.error) {
+        console.log('🚨 Error:', access.access.error);
       }
     }
   } catch (error) {
@@ -57,6 +59,7 @@ export async function checkKfcDatabase(): Promise<void> {
 
 /**
  * Get detailed database information
+ * Updated for Convex
  * Usage: debugKfcDatabase()
  */
 export async function debugKfcDatabase(): Promise<void> {
@@ -66,13 +69,13 @@ export async function debugKfcDatabase(): Promise<void> {
     console.log('📊 Database Info:', info);
     
     if (info.supported) {
-      console.log('✅ IndexedDB is supported');
+      console.log('✅ IndexedDB is supported (but not used - Convex handles storage)');
     } else {
-      console.log('❌ IndexedDB is not supported');
+      console.log('❌ IndexedDB is not supported (but not needed - using Convex)');
     }
     
     if (info.access.accessible) {
-      console.log('✅ Database is accessible');
+      console.log('✅ Database is accessible (Convex)');
     } else {
       console.log('❌ Database is not accessible');
       if (info.access.error) {
@@ -86,6 +89,7 @@ export async function debugKfcDatabase(): Promise<void> {
 
 /**
  * Get database information and display it nicely
+ * Updated for Convex
  * Usage: getKfcDatabaseInfo()
  */
 export async function getKfcDatabaseInfo(): Promise<void> {
@@ -98,18 +102,19 @@ export async function getKfcDatabaseInfo(): Promise<void> {
     console.log('Database Version:', info.version);
     console.log('Database Accessible:', info.access.accessible ? '✅ Yes' : '❌ No');
     console.log('Connection Status:', info.status.isConnected ? '✅ Connected' : '❌ Disconnected');
-    
-    if (info.access.error) {
-      console.log('🚨 Access Error:', info.access.error);
-    }
-    
-    if (info.status.error) {
-      console.log('🚨 Status Error:', info.status.error);
-    }
-    
+    console.log('Database Type:', '🔄 Convex (Cloud Database)');
     console.groupEnd();
+    
+    if (info.access.accessible) {
+      console.log('✅ Database is working correctly with Convex');
+    } else {
+      console.log('❌ Database has issues');
+      if (info.access.error) {
+        console.log('🚨 Error:', info.access.error);
+      }
+    }
   } catch (error) {
-    console.error('❌ Failed to get database information:', error);
+    console.error('❌ Failed to get database info:', error);
   }
 }
 

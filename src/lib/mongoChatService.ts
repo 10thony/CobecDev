@@ -1,5 +1,4 @@
-import { getMongoClient } from './mongoClient';
-import { JobPosting, Resume } from './mongoClient';
+import { JobPosting, Resume } from './clientDataService';
 
 // OpenAI API configuration
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
@@ -53,42 +52,18 @@ async function generateQueryEmbedding(query: string): Promise<number[]> {
 }
 
 // Search resumes in local MongoDB
+// Updated for Convex migration - this function now returns a placeholder
 async function searchResumesInMongo(query: string, limit: number = 10): Promise<Resume[]> {
   try {
-    console.log(`Searching resumes for: "${query}"`);
+    console.log(`Searching resumes for: "${query}" (Convex migration - using placeholder)`);
     
     // Generate embedding for the query
     const queryEmbedding = await generateQueryEmbedding(query);
     
-    // Get MongoDB client and collection
-    const client = await getMongoClient();
-    const db = client.getDatabase('workdemos');
-    const resumesCollection = db.collection('resumes');
-    
-    // Get all resumes
-    const resumes = await resumesCollection.find({}).toArray();
-    
-    console.log(`Found ${resumes.length} resumes in database`);
-    
-    // Calculate similarities for resumes with embeddings
-    const similarities = resumes
-      .filter(resume => resume.embedding && Array.isArray(resume.embedding))
-      .map(resume => ({
-        resume: resume as Resume,
-        similarity: cosineSimilarity(queryEmbedding, resume.embedding)
-      }));
-    
-    // Sort by similarity (highest first)
-    similarities.sort((a, b) => b.similarity - a.similarity);
-    
-    // Return top results
-    const results = similarities.slice(0, limit).map(item => ({
-      ...item.resume,
-      similarity: item.similarity
-    }));
-    
-    console.log(`Returning ${results.length} matching resumes`);
-    return results;
+    // For now, return empty results since we're migrating to Convex
+    // In a real implementation, you would use Convex queries here
+    console.log(`Convex migration: Resume search not yet implemented`);
+    return [];
     
   } catch (error) {
     console.error('Error searching resumes:', error);
@@ -97,45 +72,21 @@ async function searchResumesInMongo(query: string, limit: number = 10): Promise<
 }
 
 // Search job postings in local MongoDB
+// Updated for Convex migration - this function now returns a placeholder
 async function searchJobsInMongo(query: string, limit: number = 10): Promise<JobPosting[]> {
   try {
-    console.log(`Searching jobs for: "${query}"`);
+    console.log(`Searching job postings for: "${query}" (Convex migration - using placeholder)`);
     
     // Generate embedding for the query
     const queryEmbedding = await generateQueryEmbedding(query);
     
-    // Get MongoDB client and collection
-    const client = await getMongoClient();
-    const db = client.getDatabase('workdemos');
-    const jobsCollection = db.collection('jobpostings');
-    
-    // Get all job postings
-    const jobs = await jobsCollection.find({}).toArray();
-    
-    console.log(`Found ${jobs.length} jobs in database`);
-    
-    // Calculate similarities for jobs with embeddings
-    const similarities = jobs
-      .filter(job => job.embedding && Array.isArray(job.embedding))
-      .map(job => ({
-        job: job as JobPosting,
-        similarity: cosineSimilarity(queryEmbedding, job.embedding)
-      }));
-    
-    // Sort by similarity (highest first)
-    similarities.sort((a, b) => b.similarity - a.similarity);
-    
-    // Return top results
-    const results = similarities.slice(0, limit).map(item => ({
-      ...item.job,
-      similarity: item.similarity
-    }));
-    
-    console.log(`Returning ${results.length} matching jobs`);
-    return results;
+    // For now, return empty results since we're migrating to Convex
+    // In a real implementation, you would use Convex queries here
+    console.log(`Convex migration: Job search not yet implemented`);
+    return [];
     
   } catch (error) {
-    console.error('Error searching jobs:', error);
+    console.error('Error searching job postings:', error);
     throw error;
   }
 }

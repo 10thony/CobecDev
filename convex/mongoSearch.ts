@@ -1,23 +1,43 @@
 "use node";
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient } from "mongodb";
 import OpenAI from "openai";
 import * as XLSX from 'xlsx';
 import * as mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 // MongoDB credentials
-const MONGODB_USERNAME = process.env.MONGODB_USERNAME || '';
-const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || '';
-const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || '';
+const MONGODB_HOST = process.env.MONGODB_HOST || 'localhost';
+const MONGODB_PORT = process.env.MONGODB_PORT || '27017';
+const MONGODB_DATABASE = process.env.MONGODB_DATABASE || 'workdemos';
+const MONGODB_USERNAME = process.env.MONGODB_USERNAME;
+const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD;
 
-const uri = `mongodb+srv://${MONGODB_USERNAME}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_CLUSTER}/workdemos?retryWrites=true&w=majority`;
+let uri: string;
+if (MONGODB_USERNAME && MONGODB_PASSWORD) {
+  uri = `mongodb://${MONGODB_USERNAME}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}`;
+} else {
+  uri = `mongodb://${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}`;
+}
 
 // Initialize OpenAI for embeddings
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
+
+// Helper function to create MongoDB client with consistent configuration
+function createMongoClient() {
+  return new MongoClient(uri, {
+    connectTimeoutMS: 10000,
+    socketTimeoutMS: 10000,
+    maxPoolSize: 1,
+    minPoolSize: 0,
+    maxIdleTimeMS: 30000,
+    // No SSL/TLS needed for local MongoDB
+    // No serverApi version needed for local MongoDB
+  });
+}
 
 // Helper function to recursively convert all ObjectId fields to strings
 function convertMongoDocument(doc: any): any {
@@ -90,18 +110,7 @@ export const getAllJobPostings = action({
     let client;
     
     try {
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 30000,
-        socketTimeoutMS: 30000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -131,18 +140,7 @@ export const getAllResumes = action({
     let client;
     
     try {
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 30000,
-        socketTimeoutMS: 30000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -177,18 +175,7 @@ export const searchJobPostings = action({
     let client;
     
     try {
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 30000,
-        socketTimeoutMS: 30000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -268,18 +255,7 @@ export const importExcelData = action({
       console.log(`Processing ${jobListings.length} job listings from Excel file`);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -317,7 +293,7 @@ export const importExcelData = action({
             educationRequired: job['Education Required'] || 'N/A',
             applicationDeadline: job['Application Deadline'] || 'N/A',
             contactInfo: job['Contact Info'] || 'N/A',
-            _metadata: {
+            metadata: {
               originalIndex: i,
               importedAt: new Date(),
               sourceFile: args.fileName,
@@ -385,18 +361,7 @@ export const importJsonData = action({
       const jsonData = JSON.parse(content);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -427,7 +392,7 @@ export const importJsonData = action({
         certifications: structuredData.certifications || '',
         professionalMemberships: structuredData.professionalMemberships || '',
         securityClearance: structuredData.securityClearance || '',
-        _metadata: {
+        metadata: {
           fileName: args.fileName,
           importedAt: new Date(),
           parsedAt: new Date()
@@ -588,18 +553,7 @@ export const importOfficeDocument = action({
       const structuredData = await parseResumeWithAI(extractedText);
       
       // Connect to MongoDB
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -624,7 +578,7 @@ export const importOfficeDocument = action({
         certifications: structuredData.certifications || 'n/a',
         professionalMemberships: structuredData.professionalMemberships || 'n/a',
         securityClearance: structuredData.securityClearance || 'n/a',
-        _metadata: {
+        metadata: {
           fileName: args.fileName,
           importedAt: new Date(),
           parsedAt: new Date()
@@ -686,21 +640,7 @@ export const clearAllData = action({
     let client;
     
     try {
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-        retryWrites: true,
-        retryReads: true,
-        ssl: true,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -942,18 +882,7 @@ export const searchResumesInMongo = action({
       const queryEmbedding = await generateQueryEmbedding(args.query);
       
       // Connect to MongoDB with serverless-optimized settings
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1013,18 +942,7 @@ export const searchJobsInMongo = action({
       const queryEmbedding = await generateQueryEmbedding(args.query);
       
       // Connect to MongoDB with serverless-optimized settings
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');
@@ -1085,18 +1003,7 @@ export const filterResumesByText = action({
       console.log(`Filtering resumes with criteria:`, args);
       
       // Connect to MongoDB with serverless-optimized settings
-      client = new MongoClient(uri, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 10000,
-        maxPoolSize: 1,
-        minPoolSize: 0,
-        maxIdleTimeMS: 30000,
-      });
+      client = createMongoClient();
       
       await client.connect();
       const db = client.db('workdemos');

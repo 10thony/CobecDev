@@ -39,8 +39,10 @@ const applicationTables = {
     role: v.optional(v.string()),
     createdAt: v.number(), // Track when admin was added
     updatedAt: v.number(), // Track when admin was last updated
+    _creationTime: v.optional(v.number()), // Convex automatically adds this field
   }).index("by_clerkUserId", ["clerkUserId"])
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    .index("by_creation", ["createdAt"]), // For sorting by creation date
 
   // Chat conversations - now using Clerk user IDs
   chats: defineTable({
@@ -108,7 +110,8 @@ const applicationTables = {
     name: v.string(), // Employee name
     createdAt: v.number(), // Track when employee was added
     updatedAt: v.number(), // Track when employee was last updated
-  }).index("by_name", ["name"]),
+  }).index("by_name", ["name"])
+    .index("by_creation", ["createdAt"]), // For sorting by creation date
 
   // KFC Points tracking
   kfcpoints: defineTable({
@@ -116,14 +119,122 @@ const applicationTables = {
     events: v.array(v.object({
       type: v.string(), // "Team", "Individual", "Growth"
       month: v.string(), // "JAN", "FEB", etc.
-      quantity: v.number(), // Number of events
+      quantity: v.optional(v.number()), // Number of events (optional for backward compatibility)
     })),
-    march_status: v.optional(v.string()), // March status
+    march_status: v.union(v.string(), v.null()), // March status (can be null)
     score: v.number(), // Total KFC score
     createdAt: v.number(), // Track when entry was created
     updatedAt: v.number(), // Track when entry was last updated
   }).index("by_name", ["name"])
-    .index("by_score", ["score"]), // For sorting by score
+    .index("by_score", ["score"]) // For sorting by score
+    .index("by_creation", ["createdAt"]), // For sorting by creation date
+
+  // Job Postings - migrated from MongoDB with proper vector support
+  jobpostings: defineTable({
+    jobTitle: v.string(),
+    location: v.string(),
+    salary: v.string(),
+    openDate: v.string(),
+    closeDate: v.string(),
+    jobLink: v.string(),
+    jobType: v.string(),
+    jobSummary: v.string(),
+    duties: v.string(),
+    requirements: v.string(),
+    qualifications: v.string(),
+    education: v.array(v.string()),
+    howToApply: v.string(),
+    additionalInformation: v.string(),
+    department: v.string(),
+    seriesGrade: v.string(),
+    travelRequired: v.string(),
+    workSchedule: v.string(),
+    securityClearance: v.string(),
+    experienceRequired: v.string(),
+    educationRequired: v.string(),
+    applicationDeadline: v.string(),
+    contactInfo: v.string(),
+    searchableText: v.optional(v.string()),
+    extractedSkills: v.optional(v.array(v.string())),
+    // Embedding array for vector search (will migrate to v.vector() when available)
+    embedding: v.optional(v.array(v.number())), // Gemini embedding dimension
+    // Additional fields for migration compatibility
+    _id: v.optional(v.string()), // MongoDB ObjectId compatibility
+    _index: v.optional(v.number()), // Source data index
+    metadata: v.optional(v.object({
+      originalIndex: v.optional(v.number()),
+      importedAt: v.number(),
+      sourceFile: v.optional(v.string()),
+      dataType: v.string(),
+      embeddingModel: v.optional(v.string()),
+      parsedAt: v.optional(v.number()),
+      processedAt: v.optional(v.object({
+        date: v.string(),
+      })),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_jobTitle", ["jobTitle"])
+    .index("by_location", ["location"])
+    .index("by_department", ["department"])
+    .index("by_creation", ["createdAt"])
+    .index("by_metadata_import", ["metadata.importedAt"])
+    .index("by_metadata_source", ["metadata.sourceFile"])
+    // Vector similarity search index (for future v.vector() migration)
+    .index("by_embedding", ["embedding"]),
+
+  // Resumes - migrated from MongoDB with proper vector support
+  resumes: defineTable({
+    filename: v.string(),
+    originalText: v.string(),
+    personalInfo: v.object({
+      firstName: v.string(),
+      middleName: v.string(),
+      lastName: v.string(),
+      email: v.string(),
+      phone: v.string(),
+      yearsOfExperience: v.number(),
+    }),
+    professionalSummary: v.string(),
+    education: v.array(v.string()),
+    experience: v.array(v.object({
+      title: v.string(),
+      company: v.string(),
+      location: v.string(),
+      duration: v.string(),
+      responsibilities: v.array(v.string()),
+    })),
+    skills: v.array(v.string()),
+    certifications: v.string(),
+    professionalMemberships: v.string(),
+    securityClearance: v.string(),
+    searchableText: v.optional(v.string()),
+    extractedSkills: v.optional(v.array(v.string())),
+    // Embedding array for vector search (will migrate to v.vector() when available)
+    embedding: v.optional(v.array(v.number())), // Gemini embedding dimension
+    // Additional fields for migration compatibility
+    _id: v.optional(v.string()), // MongoDB ObjectId compatibility
+    _metadata: v.optional(v.any()), // Legacy metadata compatibility
+    metadata: v.optional(v.object({
+      filePath: v.optional(v.string()),
+      fileName: v.string(),
+      importedAt: v.number(),
+      parsedAt: v.number(),
+      dataType: v.optional(v.string()), // Add dataType field for resumes
+      embeddingModel: v.optional(v.string()),
+      processedAt: v.optional(v.object({
+        date: v.string(),
+      })),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_filename", ["filename"])
+    .index("by_email", ["personalInfo.email"])
+    .index("by_creation", ["createdAt"])
+    .index("by_metadata_import", ["metadata.importedAt"])
+    .index("by_metadata_model", ["metadata.embeddingModel"])
+    // Vector similarity search index (for future v.vector() migration)
+    .index("by_embedding", ["embedding"]),
 };
 
 export default defineSchema({

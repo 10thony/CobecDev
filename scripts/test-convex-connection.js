@@ -1,7 +1,7 @@
-const { ConvexHttpClient } = require('convex/browser');
+const { ConvexHttpClient } = require('convex/server');
 
 // Convex configuration
-const CONVEX_URL = process.env.CONVEX_URL || 'https://keen-ant-543.convex.cloud';
+const CONVEX_URL = process.env.VITE_CONVEX_URL || 'https://keen-ant-543.convex.cloud';
 
 async function testConvexConnection() {
   let convexClient;

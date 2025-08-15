@@ -1,81 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../lib/ThemeContext';
-import { useNominations, useNominationsData } from '../lib/useNominations';
-import { SectionLoadingSpinner } from './LoadingSpinner';
-import { Id } from '../../convex/_generated/dataModel';
-
-interface Employee {
-  _id: Id<"employees">;
-  name: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface KfcEntry {
-  _id: Id<"kfcpoints">;
-  name: string;
-  events: any[];
-  march_status?: string;
-  score: number;
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface Nomination {
-  _id: Id<"nominations">;
-  nominatedBy: string;
-  nominatedEmployee: string;
-  nominationType: 'Team' | 'Individual' | 'Growth';
-  description: string;
-  pointsAwarded: number;
-  status: 'pending' | 'approved' | 'declined';
-  approvedBy?: string;
-  approvedAt?: number;
-  createdAt: number;
-  updatedAt: number;
-}
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 interface KfcNominationProps {
-  mongoClient: any;
+  // Props interface for future extensibility
 }
 
-const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
+const KfcNomination: React.FC<KfcNominationProps> = () => {
   const { theme } = useTheme();
-  
-  // Nomination hooks
-  const { 
-    createNomination, 
-    approveNomination, 
-    declineNomination, 
-    deleteNomination, 
-    isLoading: nominationLoading, 
-    error: nominationError 
-  } = useNominations();
-  
-  const { 
-    nominations, 
-    employees,
-    isLoading: dataLoading, 
-    error: dataError,
-    dataSource,
-    hasRealTimeFeatures,
-    refreshData
-  } = useNominationsData();
-  
-  // Handle case when data is still loading or undefined
-  const safeNominations = nominations || [];
-  const safeEmployees = employees || [];
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Form state
   const [nominatorName, setNominatorName] = useState('');
   const [nominatedEmployee, setNominatedEmployee] = useState('');
   const [nominationType, setNominationType] = useState<'Team' | 'Individual' | 'Growth'>('Team');
   const [description, setDescription] = useState('');
-  const [showNominationForm, setShowNominationForm] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
-  const [selectedNomination, setSelectedNomination] = useState<Nomination | null>(null);
-  const [showNominationDetails, setShowNominationDetails] = useState(false);
 
+  // Convex queries and mutations
+  const employees = useQuery(api.kfcData.getAllEmployees);
+  const nominations = useQuery(api.nominations.list);
+  const pendingNominations = useQuery(api.nominations.listPending);
+  
+  const createNomination = useMutation(api.nominations.create);
+  const approveNomination = useMutation(api.nominations.approve);
+  const declineNomination = useMutation(api.nominations.decline);
+  const deleteNomination = useMutation(api.nominations.remove);
+
+  // Calculate points based on nomination type
   const getPointsForNominationType = (type: 'Team' | 'Individual' | 'Growth'): number => {
     switch (type) {
       case 'Team':
@@ -89,419 +43,355 @@ const KfcNomination: React.FC<KfcNominationProps> = ({ mongoClient }) => {
     }
   };
 
-  const handleSubmitNomination = async () => {
+  // Submit nomination
+  const handleSubmitNomination = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!nominatorName.trim() || !nominatedEmployee.trim() || !description.trim()) {
-      setLocalError('Please fill in all fields');
+      setError('Please fill in all fields');
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      const result = await createNomination(
-        nominatorName.trim(),
-        nominatedEmployee.trim(),
+      await createNomination({
+        nominatedBy: nominatorName.trim(),
+        nominatedEmployee: nominatedEmployee.trim(),
         nominationType,
-        description.trim()
-      );
-
-      if (result.success) {
-        // Reset form - data will update automatically via real-time queries
-        setNominatorName('');
-        setNominatedEmployee('');
-        setNominationType('Team');
-        setDescription('');
-        setShowNominationForm(false);
-        setLocalError(null);
-      } else {
-        setLocalError(result.error || 'Failed to submit nomination');
-      }
+        description: description.trim()
+      });
       
+      setSuccessMessage(`Successfully created nomination for ${nominatedEmployee}`);
+      
+      // Reset form
+      setNominatorName('');
+      setNominatedEmployee('');
+      setNominationType('Team');
+      setDescription('');
+      
+      console.log(`✅ Created nomination for ${nominatedEmployee}`);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : 'Failed to submit nomination');
+      setError(err instanceof Error ? err.message : 'Failed to create nomination');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDeleteNomination = async (nominationId: Id<"nominations">) => {
+  // Approve nomination
+  const handleApproveNomination = async (nominationId: string) => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      const result = await deleteNomination(nominationId);
+      await approveNomination({
+        nominationId: nominationId as any, // Type assertion for Convex ID
+        approvedBy: 'Admin' // You can get this from auth context
+      });
       
-      if (!result.success) {
-        setLocalError(result.error || 'Failed to delete nomination');
-      }
-      
+      setSuccessMessage('Nomination approved successfully');
+      console.log(`✅ Approved nomination: ${nominationId}`);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : 'Failed to delete nomination');
+      setError(err instanceof Error ? err.message : 'Failed to approve nomination');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleViewNominationDetails = (nomination: Nomination) => {
-    setSelectedNomination(nomination);
-    setShowNominationDetails(true);
-  };
-
-  const handleApproveNomination = async (nominationId: Id<"nominations">, approvedBy: string) => {
+  // Decline nomination
+  const handleDeclineNomination = async (nominationId: string) => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      const result = await approveNomination(nominationId, approvedBy);
+      await declineNomination({
+        nominationId: nominationId as any, // Type assertion for Convex ID
+        declinedBy: 'Admin' // You can get this from auth context
+      });
       
-      if (result.success) {
-        // Data will update automatically via real-time queries
-        setShowNominationDetails(false);
-        setSelectedNomination(null);
-      } else {
-        setLocalError(result.error || 'Failed to approve nomination');
-      }
-      
+      setSuccessMessage('Nomination declined successfully');
+      console.log(`✅ Declined nomination: ${nominationId}`);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : 'Failed to approve nomination');
+      setError(err instanceof Error ? err.message : 'Failed to decline nomination');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDeclineNomination = async (nominationId: Id<"nominations">, declinedBy: string) => {
+  // Delete nomination
+  const handleDeleteNomination = async (nominationId: string) => {
+    if (!confirm('Are you sure you want to delete this nomination?')) {
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      const result = await declineNomination(nominationId, declinedBy);
+      await deleteNomination({
+        nominationId: nominationId as any // Type assertion for Convex ID
+      });
       
-      if (result.success) {
-        // Data will update automatically via real-time queries
-        setShowNominationDetails(false);
-        setSelectedNomination(null);
-      } else {
-        setLocalError(result.error || 'Failed to decline nomination');
-      }
-      
+      setSuccessMessage('Nomination deleted successfully');
+      console.log(`✅ Deleted nomination: ${nominationId}`);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : 'Failed to decline nomination');
+      setError(err instanceof Error ? err.message : 'Failed to delete nomination');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getNominationTypeBadgeColor = (type: 'Team' | 'Individual' | 'Growth'): string => {
-    switch (type) {
-      case 'Team':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
-      case 'Individual':
-        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300';
-      case 'Growth':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
-      default:
-        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300';
-    }
+  // Clear success message
+  const clearSuccessMessage = () => {
+    setSuccessMessage(null);
   };
 
-  const getStatusBadgeColor = (status: 'pending' | 'approved' | 'declined'): string => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
-      case 'approved':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
-      case 'declined':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300';
-      default:
-        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300';
-    }
-  };
-
-  const isLoading = nominationLoading || dataLoading;
-  const error = nominationError || dataError || localError;
-
-  if (isLoading) {
-    return <SectionLoadingSpinner text="Loading nominations and employees from MongoDB cluster..." />;
-  }
-
-  if (error) {
+  // Loading state
+  if (employees === undefined || nominations === undefined || pendingNominations === undefined) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
-          <strong>Error:</strong> {error}
-          <div className="mt-2 space-x-2">
-            <button 
-              onClick={() => {
-                // Data will refresh automatically via real-time queries
-                setLocalError(null);
-              }}
-              className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
+      <div className={`p-6 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <span className="ml-2">Loading nomination data...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className={`p-6 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">KFC Nominations</h1>
-        <div className="flex items-center space-x-4">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            <span>📊 {safeNominations.length} nominations, {safeEmployees.length} employees</span>
-                      {dataSource && (
-            <span className="ml-2 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded text-xs">
-              💾 MongoDB {hasRealTimeFeatures && '🔄 + Real-time'}
-            </span>
-          )}
-          </div>
+        <h2 className="text-2xl font-bold">KFC Nominations</h2>
+        <div className="text-sm text-gray-500">
+          {pendingNominations?.length || 0} pending nominations
+        </div>
+      </div>
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex justify-between items-center">
+          <span>{successMessage}</span>
           <button
-            onClick={refreshData}
-            disabled={dataLoading}
-            className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-            title="Refresh data"
+            onClick={clearSuccessMessage}
+            className="text-green-600 hover:text-green-800"
           >
-            🔄 Refresh
+            ×
           </button>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Nomination Form */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Submit Nomination</h2>
-            <button
-              onClick={() => setShowNominationForm(!showNominationForm)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              {showNominationForm ? 'Cancel' : 'New Nomination'}
-            </button>
-          </div>
+      )}
 
-          {showNominationForm && (
-            <>
-              {safeEmployees.length === 0 && (
-                <div className="bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-400 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded mb-4">
-                  <strong>Note:</strong> No employees are available yet. Please add some employees first before creating nominations.
-                </div>
-              )}
-            <form onSubmit={(e) => { e.preventDefault(); handleSubmitNomination(); }} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Nominated By
-                </label>
-                <input
-                  type="text"
-                  value={nominatorName}
-                  onChange={(e) => setNominatorName(e.target.value)}
-                  placeholder="Your name"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Nominate Employee
-                </label>
-                <select
-                  value={nominatedEmployee}
-                  onChange={(e) => setNominatedEmployee(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  required
-                >
-                  <option value="">Select an employee</option>
-                  {safeEmployees.length === 0 ? (
-                    <option value="" disabled>No employees available</option>
-                  ) : (
-                    safeEmployees.map((employee) => (
-                      <option key={employee._id} value={employee.name}>
-                        {employee.name}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Nomination Type
-                </label>
-                <select
-                  value={nominationType}
-                  onChange={(e) => setNominationType(e.target.value as 'Team' | 'Individual' | 'Growth')}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="Team">Team (10 points)</option>
-                  <option value="Individual">Individual (20 points)</option>
-                  <option value="Growth">Growth (30 points)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe why this person deserves the nomination..."
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={nominationLoading || !nominatorName.trim() || !nominatedEmployee.trim() || !description.trim()}
-                className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {nominationLoading ? 'Submitting...' : 'Submit Nomination'}
-              </button>
-            </form>
-            </>
-          )}
-        </div>
-
-        {/* Nominations List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Recent Nominations</h2>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {safeNominations.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <p className="mb-2">No nominations yet</p>
-                <p className="text-sm">Submit a nomination to see it here</p>
-              </div>
-            ) : (
-              safeNominations.map((nomination) => (
-                <div key={nomination._id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
-                        {nomination.nominatedEmployee}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Nominated by <span className="font-medium">{nomination.nominatedBy}</span>
-                      </p>
-                    </div>
-                    <div className="text-right ml-4">
-                      <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium mb-2 ${
-                        getNominationTypeBadgeColor(nomination.nominationType)
-                      }`}>
-                        {nomination.nominationType}
-                      </span>
-                      <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium mb-2 ${
-                        getStatusBadgeColor(nomination.status)
-                      }`}>
-                        {nomination.status}
-                      </span>
-                      <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                        +{nomination.pointsAwarded} pts
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm mb-3 leading-relaxed">
-                    {nomination.description}
-                  </p>
-                  <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-                    <span>{new Date(nomination.createdAt).toLocaleDateString()}</span>
-                    <div className="space-x-2">
-                      <button
-                        onClick={() => handleViewNominationDetails(nomination)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                      >
-                        View Details
-                      </button>
-                      <button
-                        onClick={() => handleDeleteNomination(nomination._id)}
-                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Nomination Details Modal */}
-      {showNominationDetails && selectedNomination && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Nomination Details
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowNominationDetails(false);
-                    setSelectedNomination(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    {selectedNomination.nominatedEmployee}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Nominated by <span className="font-medium">{selectedNomination.nominatedBy}</span>
-                  </p>
-                </div>
-
-                <div className="flex space-x-2">
-                  <span className={`inline-block px-3 py-1 text-sm rounded-full font-medium ${
-                    getNominationTypeBadgeColor(selectedNomination.nominationType)
-                  }`}>
-                    {selectedNomination.nominationType}
-                  </span>
-                  <span className={`inline-block px-3 py-1 text-sm rounded-full font-medium ${
-                    getStatusBadgeColor(selectedNomination.status)
-                  }`}>
-                    {selectedNomination.status}
-                  </span>
-                  <span className="inline-block px-3 py-1 text-sm rounded-full font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                    +{selectedNomination.pointsAwarded} pts
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Description</h4>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-                    {selectedNomination.description}
-                  </p>
-                </div>
-
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  <p>Created: {new Date(selectedNomination.createdAt).toLocaleString()}</p>
-                  {selectedNomination.approvedAt && (
-                    <p>Processed: {new Date(selectedNomination.approvedAt).toLocaleString()}</p>
-                  )}
-                  {selectedNomination.approvedBy && (
-                    <p>Processed by: {selectedNomination.approvedBy}</p>
-                  )}
-                </div>
-
-                {/* Admin Actions */}
-                {selectedNomination.status === 'pending' && (
-                  <div className="flex space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
-                    <button
-                      onClick={() => handleApproveNomination(selectedNomination._id, 'Admin User')}
-                      disabled={nominationLoading}
-                      className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
-                    >
-                      {nominationLoading ? 'Processing...' : 'Approve'}
-                    </button>
-                    <button
-                      onClick={() => handleDeclineNomination(selectedNomination._id, 'Admin User')}
-                      disabled={nominationLoading}
-                      className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
-                    >
-                      {nominationLoading ? 'Processing...' : 'Decline'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          {error}
         </div>
       )}
+
+      {/* Create Nomination Form */}
+      <div className="mb-8 p-6 border rounded-lg">
+        <h3 className="text-lg font-semibold mb-4">Create New Nomination</h3>
+        <form onSubmit={handleSubmitNomination} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nominator Name</label>
+              <input
+                type="text"
+                value={nominatorName}
+                onChange={(e) => setNominatorName(e.target.value)}
+                placeholder="Your name"
+                className={`w-full px-3 py-2 border rounded-lg ${
+                  theme === 'dark' 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Nominated Employee</label>
+              <select
+                value={nominatedEmployee}
+                onChange={(e) => setNominatedEmployee(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg ${
+                  theme === 'dark' 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                required
+              >
+                <option value="">Select an employee...</option>
+                {employees?.map((employee) => (
+                  <option key={employee._id} value={employee.name}>
+                    {employee.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Nomination Type</label>
+            <select
+              value={nominationType}
+              onChange={(e) => setNominationType(e.target.value as 'Team' | 'Individual' | 'Growth')}
+              className={`w-full px-3 py-2 border rounded-lg ${
+                theme === 'dark' 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              }`}
+            >
+              <option value="Team">Team Effort ({getPointsForNominationType('Team')} points)</option>
+              <option value="Individual">Individual Achievement ({getPointsForNominationType('Individual')} points)</option>
+              <option value="Growth">Growth & Development ({getPointsForNominationType('Growth')} points)</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe why you are nominating this employee..."
+              rows={4}
+              className={`w-full px-3 py-2 border rounded-lg ${
+                theme === 'dark' 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              }`}
+              required
+            />
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`px-6 py-2 rounded-lg ${
+              theme === 'dark' 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            } disabled:opacity-50`}
+          >
+            {isLoading ? 'Creating...' : 'Create Nomination'}
+          </button>
+        </form>
+      </div>
+
+      {/* Pending Nominations */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold mb-4">Pending Nominations ({pendingNominations?.length || 0})</h3>
+        <div className="space-y-4">
+          {pendingNominations?.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No pending nominations
+            </div>
+          ) : (
+            pendingNominations?.map((nomination) => (
+              <div
+                key={nomination._id}
+                className={`p-4 border rounded-lg ${
+                  theme === 'dark' 
+                    ? 'bg-gray-700 border-gray-600' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-semibold">{nomination.nominatedEmployee}</h4>
+                    <p className="text-sm text-gray-500">
+                      Nominated by {nomination.nominatedBy} • {nomination.nominationType} • {nomination.pointsAwarded} points
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleApproveNomination(nomination._id)}
+                      disabled={isLoading}
+                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleDeclineNomination(nomination._id)}
+                      disabled={isLoading}
+                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                    >
+                      Decline
+                    </button>
+                    <button
+                      onClick={() => handleDeleteNomination(nomination._id)}
+                      disabled={isLoading}
+                      className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm">{nomination.description}</p>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* All Nominations */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">All Nominations ({nominations?.length || 0})</h3>
+        <div className="space-y-4">
+          {nominations?.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No nominations found
+            </div>
+          ) : (
+            nominations?.map((nomination) => (
+              <div
+                key={nomination._id}
+                className={`p-4 border rounded-lg ${
+                  theme === 'dark' 
+                    ? 'bg-gray-700 border-gray-600' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-semibold">{nomination.nominatedEmployee}</h4>
+                    <p className="text-sm text-gray-500">
+                      Nominated by {nomination.nominatedBy} • {nomination.nominationType} • {nomination.pointsAwarded} points
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Status: <span className={`font-medium ${
+                        nomination.status === 'approved' ? 'text-green-600' :
+                        nomination.status === 'declined' ? 'text-red-600' : 'text-yellow-600'
+                      }`}>
+                        {nomination.status.charAt(0).toUpperCase() + nomination.status.slice(1)}
+                      </span>
+                      {nomination.approvedBy && ` by ${nomination.approvedBy}`}
+                    </p>
+                  </div>
+                  {nomination.status === 'pending' && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleApproveNomination(nomination._id)}
+                        disabled={isLoading}
+                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleDeclineNomination(nomination._id)}
+                        disabled={isLoading}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm">{nomination.description}</p>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 };
