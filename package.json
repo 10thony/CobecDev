@@ -35,7 +35,11 @@
     "semantic:embeddings": "node scripts/generate-embeddings.js",
     "semantic:embeddings:jobs": "node scripts/generate-embeddings.js --job-postings",
     "semantic:embeddings:resumes": "node scripts/generate-embeddings.js --resumes",
-    "semantic:embeddings:kfc": "node scripts/generate-embeddings.js --kfc-points"
+    "semantic:embeddings:kfc": "node scripts/generate-embeddings.js --kfc-points",
+    "embeddings:regenerate": "node scripts/embedding-regeneration-agent.js",
+    "embeddings:regenerate:dry-run": "set NODE_ENV=development && node scripts/embedding-regeneration-agent.js --dry-run",
+    "embeddings:validate": "node scripts/embedding-regeneration-agent.js --validate-only",
+    "embeddings:test": "node scripts/test-embedding-regeneration-agent.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.54.0",

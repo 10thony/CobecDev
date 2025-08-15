@@ -1,0 +1,157 @@
+{
+  "timestamp": "2025-08-15T21:40:20.778Z",
+  "summary": {
+    "totalDocuments": 364,
+    "documentsProcessed": 1,
+    "documentsUpdated": 0,
+    "errors": 1
+  },
+  "collections": {
+    "resumes": {
+      "total": 183,
+      "withEmbeddings": 182,
+      "withoutEmbeddings": 1,
+      "outdated": 0,
+      "lowConfidence": 1,
+      "needsUpdate": 2
+    },
+    "jobpostings": {
+      "total": 181,
+      "withEmbeddings": 181,
+      "withoutEmbeddings": 0,
+      "outdated": 0,
+      "lowConfidence": 0,
+      "needsUpdate": 0
+    }
+  },
+  "skillTaxonomy": {},
+  "processing": {
+    "averageTimePerDocument": null,
+    "successRate": 0
+  },
+  "validation": {
+    "resumes": {
+      "averageConfidence": 0.700000000000002,
+      "invalid": 1,
+      "total": 183,
+      "valid": 182
+    },
+    "jobpostings": {
+      "averageConfidence": 0.700000000000002,
+      "invalid": 0,
+      "total": 181,
+      "valid": 181
+    }
+  },
+  "searchTests": {
+    "resumes": [
+      {
+        "query": "who can build apps for the iphone",
+        "expectedSkills": [
+          "iOS",
+          "Swift",
+          "iPhone",
+          "mobile development"
+        ],
+        "results": [],
+        "topResultSimilarity": 0,
+        "hasExpectedSkills": 0
+      },
+      {
+        "query": "experienced React developer",
+        "expectedSkills": [
+          "React",
+          "JavaScript",
+          "frontend",
+          "web development"
+        ],
+        "results": [],
+        "topResultSimilarity": 0,
+        "hasExpectedSkills": 0
+      },
+      {
+        "query": "Python data scientist",
+        "expectedSkills": [
+          "Python",
+          "data science",
+          "machine learning",
+          "pandas"
+        ],
+        "results": [],
+        "topResultSimilarity": 0,
+        "hasExpectedSkills": 0
+      },
+      {
+        "query": "DevOps engineer with AWS experience",
+        "expectedSkills": [
+          "DevOps",
+          "AWS",
+          "cloud",
+          "infrastructure"
+        ],
+        "results": [],
+        "topResultSimilarity": 0,
+        "hasExpectedSkills": 0
+      }
+    ],
+    "jobpostings": [
+      {
+        "query": "who can build apps for the iphone",
+        "expectedSkills": [
+          "iOS",
+          "Swift",
+          "iPhone",
+          "mobile development"
+        ],
+        "results": [],
+        "topResultSimilarity": 0,
+        "hasExpectedSkills": 0
+      },
+      {
+        "query": "experienced React developer",
+        "expectedSkills": [
+          "React",
+          "JavaScript",
+          "frontend",
+          "web development"
+        ],
+        "results": [],
+        "topResultSimilarity": 0,
+        "hasExpectedSkills": 0
+      },
+      {
+        "query": "Python data scientist",
+        "expectedSkills": [
+          "Python",
+          "data science",
+          "machine learning",
+          "pandas"
+        ],
+        "results": [],
+        "topResultSimilarity": 0,
+        "hasExpectedSkills": 0
+      },
+      {
+        "query": "DevOps engineer with AWS experience",
+        "expectedSkills": [
+          "DevOps",
+          "AWS",
+          "cloud",
+          "infrastructure"
+        ],
+        "results": [],
+        "topResultSimilarity": 0,
+        "hasExpectedSkills": 0
+      }
+    ],
+    "overall": {
+      "totalQueries": 4,
+      "successfulQueries": 4
+    }
+  },
+  "recommendations": [
+    "Consider running regeneration again to process 2 remaining documents",
+    "High error rate (100.0%). Review failed documents and consider retry",
+    "Low skill consistency (0.70). Consider rebuilding skill taxonomy"
+  ]
+}

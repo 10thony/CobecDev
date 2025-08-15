@@ -44,6 +44,31 @@ interface ProcessingStatus {
   processedItems: number;
 }
 
+interface EmbeddingManagementConfig {
+  selectedCollection: 'resumes' | 'jobpostings';
+  selectedColumn: string;
+  batchSize: 5 | 10 | 20 | 50;
+  similarityThreshold: number;
+  showAdvancedOptions: boolean;
+  enableColumnEditing: boolean;
+  qualityMetrics: {
+    coveragePercentage: number;
+    averageConfidence: number;
+    lastRegeneration: Date;
+    totalItems: number;
+    itemsWithEmbeddings: number;
+  };
+}
+
+interface ColumnDefinition {
+  name: string;
+  displayName: string;
+  searchable: boolean;
+  weight: number;
+  validationRules: string[];
+  sampleData: string[];
+}
+
 export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps) {
   const [selectedTable, setSelectedTable] = useState<'jobs' | 'resumes' | 'both'>('both');
   const [batchSize, setBatchSize] = useState(10);
@@ -56,16 +81,49 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
     processedItems: 0
   });
 
+  // Enhanced configuration state
+  const [config, setConfig] = useState<EmbeddingManagementConfig>({
+    selectedCollection: 'jobpostings',
+    selectedColumn: 'jobTitle',
+    batchSize: 10,
+    similarityThreshold: 0.5,
+    showAdvancedOptions: false,
+    enableColumnEditing: false,
+    qualityMetrics: {
+      coveragePercentage: 0,
+      averageConfidence: 0,
+      lastRegeneration: new Date(),
+      totalItems: 0,
+      itemsWithEmbeddings: 0
+    }
+  });
+
+  // Column definitions for different collections
+  const columnDefinitions: Record<string, ColumnDefinition[]> = {
+    jobpostings: [
+      { name: 'jobTitle', displayName: 'Job Title', searchable: true, weight: 1.0, validationRules: ['required', 'minLength:3'], sampleData: [] },
+      { name: 'jobDescription', displayName: 'Job Description', searchable: true, weight: 0.8, validationRules: ['required', 'minLength:10'], sampleData: [] },
+      { name: 'location', displayName: 'Location', searchable: true, weight: 0.6, validationRules: ['required'], sampleData: [] },
+      { name: 'extractedSkills', displayName: 'Skills', searchable: true, weight: 0.9, validationRules: ['array'], sampleData: [] },
+      { name: 'experienceLevel', displayName: 'Experience Level', searchable: true, weight: 0.7, validationRules: ['required'], sampleData: [] }
+    ],
+    resumes: [
+      { name: 'processedMetadata.name', displayName: 'Name', searchable: true, weight: 0.5, validationRules: ['required'], sampleData: [] },
+      { name: 'processedMetadata.summary', displayName: 'Summary', searchable: true, weight: 0.8, validationRules: ['required', 'minLength:10'], sampleData: [] },
+      { name: 'extractedSkills', displayName: 'Skills', searchable: true, weight: 0.9, validationRules: ['array'], sampleData: [] },
+      { name: 'processedMetadata.experience', displayName: 'Experience', searchable: true, weight: 0.7, validationRules: ['required'], sampleData: [] },
+      { name: 'processedMetadata.education', displayName: 'Education', searchable: true, weight: 0.6, validationRules: ['required'], sampleData: [] }
+    ]
+  };
+
   // Fetch data
   const jobPostings = useQuery(api.jobPostings.list);
   const resumes = useQuery(api.resumes.list);
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
 
   // Actions
-  const generateJobEmbeddings = useAction(api.embeddingService.generateJobEmbeddings);
-  const generateResumeEmbeddings = useAction(api.embeddingService.generateResumeEmbeddings);
-  const regenerateEmbeddings = useAction(api.embeddingService.regenerateEmbeddings);
-  const deleteEmbeddings = useAction(api.embeddingService.deleteEmbeddings);
+  const generateJobEmbedding = useAction(api.embeddingManagement.generateJobPostingEmbedding);
+  const generateResumeEmbedding = useAction(api.embeddingManagement.generateResumeEmbedding);
 
   // Calculate embedding statistics
   const calculateStats = (): EmbeddingStats => {
@@ -89,6 +147,26 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
   };
 
   const stats = calculateStats();
+
+  // Update quality metrics when data changes
+  React.useEffect(() => {
+    if (jobPostings && resumes) {
+      const totalItems = jobPostings.length + resumes.length;
+      const itemsWithEmbeddings = 
+        (jobPostings?.filter(job => job.embedding)?.length || 0) +
+        (resumes?.filter(resume => resume.embedding)?.length || 0);
+      
+      setConfig(prev => ({
+        ...prev,
+        qualityMetrics: {
+          ...prev.qualityMetrics,
+          coveragePercentage: totalItems > 0 ? (itemsWithEmbeddings / totalItems) * 100 : 0,
+          totalItems,
+          itemsWithEmbeddings
+        }
+      }));
+    }
+  }, [jobPostings, resumes]);
 
   // Handle embedding generation
   const handleGenerateEmbeddings = async () => {
@@ -120,10 +198,25 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
             totalItems: jobsNeedingEmbeddings.length
           }));
 
-          await generateJobEmbeddings({
-            batchSize,
-            limit: jobsNeedingEmbeddings.length
-          });
+          // Process jobs in batches
+          for (let i = 0; i < jobsNeedingEmbeddings.length; i += config.batchSize) {
+            const batch = jobsNeedingEmbeddings.slice(i, i + config.batchSize);
+            
+            for (const job of batch) {
+              if (job.completeSearchableText) {
+                await generateJobEmbedding({
+                  jobPostingId: job._id,
+                  completeSearchableText: job.completeSearchableText
+                });
+                
+                setProcessingStatus(prev => ({
+                  ...prev,
+                  processedItems: prev.processedItems + 1,
+                  progress: ((prev.processedItems + 1) / prev.totalItems) * 100
+                }));
+              }
+            }
+          }
           
           totalProcessed += jobsNeedingEmbeddings.length;
         }
@@ -140,10 +233,25 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
             totalItems: resumesNeedingEmbeddings.length
           }));
 
-          await generateResumeEmbeddings({
-            batchSize,
-            limit: resumesNeedingEmbeddings.length
-          });
+          // Process resumes in batches
+          for (let i = 0; i < resumesNeedingEmbeddings.length; i += config.batchSize) {
+            const batch = resumesNeedingEmbeddings.slice(i, i + config.batchSize);
+            
+            for (const resume of batch) {
+              if (resume.completeSearchableText) {
+                await generateResumeEmbedding({
+                  resumeId: resume._id,
+                  completeSearchableText: resume.completeSearchableText
+                });
+                
+                setProcessingStatus(prev => ({
+                  ...prev,
+                  processedItems: prev.processedItems + 1,
+                  progress: ((prev.processedItems + 1) / prev.totalItems) * 100
+                }));
+              }
+            }
+          }
           
           totalProcessed += resumesNeedingEmbeddings.length;
         }
@@ -172,97 +280,9 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
     }
   };
 
-  // Handle embedding regeneration
-  const handleRegenerateEmbeddings = async () => {
-    if (!userRole || userRole !== 'admin') {
-      alert('Only administrators can regenerate embeddings');
-      return;
-    }
 
-    if (!confirm('This will regenerate all embeddings for the selected table(s). This may take some time and will overwrite existing embeddings. Continue?')) {
-      return;
-    }
 
-    setProcessingStatus({
-      isProcessing: true,
-      currentOperation: 'Regenerating embeddings...',
-      progress: 0,
-      totalItems: 0,
-      processedItems: 0
-    });
 
-    try {
-      let totalItems = 0;
-
-      if (selectedTable === 'jobs' || selectedTable === 'both') {
-        totalItems += jobPostings?.length || 0;
-      }
-
-      if (selectedTable === 'resumes' || selectedTable === 'both') {
-        totalItems += resumes?.length || 0;
-      }
-
-      setProcessingStatus(prev => ({
-        ...prev,
-        totalItems
-      }));
-
-      await regenerateEmbeddings({
-        table: selectedTable,
-        batchSize
-      });
-
-      setProcessingStatus(prev => ({
-        ...prev,
-        isProcessing: false,
-        progress: 100,
-        processedItems: totalItems
-      }));
-
-      // Refresh data after processing
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-
-    } catch (error) {
-      console.error('Failed to regenerate embeddings:', error);
-      setProcessingStatus(prev => ({
-        ...prev,
-        isProcessing: false,
-        currentOperation: 'Error occurred during processing'
-      }));
-      alert('Failed to regenerate embeddings. Check console for details.');
-    }
-  };
-
-  // Handle embedding deletion
-  const handleDeleteEmbeddings = async () => {
-    if (!userRole || userRole !== 'admin') {
-      alert('Only administrators can delete embeddings');
-      return;
-    }
-
-    if (!confirm('This will delete ALL embeddings for the selected table(s). This action cannot be undone. Continue?')) {
-      return;
-    }
-
-    try {
-      await deleteEmbeddings({
-        table: selectedTable
-      });
-
-      alert('Embeddings deleted successfully');
-      
-      // Refresh data after deletion
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-
-    } catch (error) {
-      console.error('Failed to delete embeddings:', error);
-      alert('Failed to delete embeddings. Check console for details.');
-    }
-  };
 
   // Check if user is admin
   if (userRole !== 'admin') {
@@ -390,8 +410,8 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
               Batch Size
             </label>
             <select
-              value={batchSize}
-              onChange={(e) => setBatchSize(parseInt(e.target.value))}
+              value={config.batchSize}
+              onChange={(e) => setConfig(prev => ({ ...prev, batchSize: Number(e.target.value) as 5 | 10 | 20 | 50 }))}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
             >
               <option value={5}>5 items</option>
@@ -431,45 +451,104 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
         )}
       </div>
 
+      {/* Enhanced Configuration */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Configuration
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Collection Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Collection
+            </label>
+            <select
+              value={config.selectedCollection}
+              onChange={(e) => setConfig(prev => ({ ...prev, selectedCollection: e.target.value as 'resumes' | 'jobpostings' }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="jobpostings">Job Postings</option>
+              <option value="resumes">Resumes</option>
+            </select>
+          </div>
+
+          {/* Column Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Focus Column
+            </label>
+            <select
+              value={config.selectedColumn}
+              onChange={(e) => setConfig(prev => ({ ...prev, selectedColumn: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {columnDefinitions[config.selectedCollection]?.map((col) => (
+                <option key={col.name} value={col.name}>
+                  {col.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Quality Metrics */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Coverage</span>
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                {config.qualityMetrics.coveragePercentage.toFixed(1)}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 mt-2">
+              <div
+                className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${config.qualityMetrics.coveragePercentage}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Items</span>
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                {config.qualityMetrics.totalItems}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">With Embeddings</span>
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                {config.qualityMetrics.itemsWithEmbeddings}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Action Buttons */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Actions
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           <button
             onClick={handleGenerateEmbeddings}
             disabled={processingStatus.isProcessing}
             className="flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors"
           >
             <Play className="h-5 w-5 mr-2" />
-            Generate New
-          </button>
-
-          <button
-            onClick={handleRegenerateEmbeddings}
-            disabled={processingStatus.isProcessing}
-            className="flex items-center justify-center px-4 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-400 text-white font-medium rounded-lg transition-colors"
-          >
-            <RefreshCw className="h-5 w-5 mr-2" />
-            Regenerate All
-          </button>
-
-          <button
-            onClick={handleDeleteEmbeddings}
-            disabled={processingStatus.isProcessing}
-            className="flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium rounded-lg transition-colors"
-          >
-            <Trash2 className="h-5 w-5 mr-2" />
-            Delete All
+            Generate New Embeddings
           </button>
         </div>
 
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
           <p><strong>Generate New:</strong> Creates embeddings for items that don't have them</p>
-          <p><strong>Regenerate All:</strong> Recreates all embeddings (overwrites existing)</p>
-          <p><strong>Delete All:</strong> Removes all embeddings (irreversible)</p>
+          <p><strong>Note:</strong> Only administrators can generate embeddings</p>
         </div>
       </div>
 

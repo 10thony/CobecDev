@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from 'convex/react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../convex/_generated/api';
 import { HRDashboard } from '../components/HRDashboard';
 import { EmbeddingManagement } from '../components/EmbeddingManagement';
 import { EnhancedSearchInterface } from '../components/EnhancedSearchInterface';
+import { SearchExplanation } from '../components/SearchExplanation';
 import { 
   Target, 
   Search, 
@@ -13,13 +15,36 @@ import {
   Settings,
   Briefcase,
   User,
-  TrendingUp
+  TrendingUp,
+  ExternalLink,
+  Info
 } from 'lucide-react';
 
 export function HRDashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'search' | 'embeddings'>('overview');
   const [searchResults, setSearchResults] = useState<any>(null);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
+  const navigate = useNavigate();
+
+  // Navigation handlers for search results
+  const handleJobClick = (job: any) => {
+    const jobId = job._id || job.jobTitle;
+    const finalJobId = String(jobId);
+    const encodedJobId = encodeURIComponent(finalJobId);
+    navigate(`/job/${encodedJobId}`);
+  };
+
+  const handleResumeClick = (resume: any) => {
+    const resumeId = resume._id || resume.processedMetadata?.name;
+    const finalResumeId = String(resumeId);
+    const encodedResumeId = encodeURIComponent(finalResumeId);
+    navigate(`/resume/${encodedResumeId}`);
+  };
+
+  const handleResultSelect = (result: any) => {
+    setSelectedResult(selectedResult?._id === result._id ? null : result);
+  };
 
   const tabs = [
     {
@@ -56,9 +81,15 @@ export function HRDashboardPage() {
             <EnhancedSearchInterface onResultsUpdate={handleSearchResults} />
             {searchResults && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Search Results
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Search Results
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Click on any result to view details
+                  </p>
+                </div>
                 <div className="space-y-4">
                   {searchResults.jobs?.results && searchResults.jobs.results.length > 0 && (
                     <div>
@@ -70,22 +101,34 @@ export function HRDashboardPage() {
                         {searchResults.jobs.results.map((job: any, index: number) => (
                           <div
                             key={job._id}
-                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-600/50 cursor-pointer transition-colors"
+                            onClick={() => handleJobClick(job)}
                           >
                             <div className="flex items-center justify-between">
                               <div>
                                 <h5 className="font-medium text-gray-900 dark:text-white">{job.jobTitle}</h5>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">{job.location}</p>
                               </div>
-                              <div className="text-right">
+                              <div className="text-right flex items-center space-x-2">
                                 <span className="text-sm font-medium text-gray-900 dark:text-white">
                                   {(job.similarity * 100).toFixed(1)}% match
                                 </span>
-                                <div className={`w-3 h-3 rounded-full mt-1 ${
+                                <div className={`w-3 h-3 rounded-full ${
                                   job.similarity >= 0.8 ? 'bg-green-500' :
                                   job.similarity >= 0.6 ? 'bg-yellow-500' :
                                   'bg-red-500'
                                 }`} />
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleResultSelect(job);
+                                  }}
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                                  title="View explanation"
+                                >
+                                  <Info className="h-4 w-4 text-blue-500" />
+                                </button>
+                                <ExternalLink className="h-4 w-4 text-gray-400" />
                               </div>
                             </div>
                           </div>
@@ -104,7 +147,8 @@ export function HRDashboardPage() {
                         {searchResults.resumes.results.map((resume: any, index: number) => (
                           <div
                             key={resume._id}
-                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-600/50 cursor-pointer transition-colors"
+                            onClick={() => handleResumeClick(resume)}
                           >
                             <div className="flex items-center justify-between">
                               <div>
@@ -115,15 +159,26 @@ export function HRDashboardPage() {
                                   {resume.processedMetadata?.email || 'No email'}
                                 </p>
                               </div>
-                              <div className="text-right">
+                              <div className="text-right flex items-center space-x-2">
                                 <span className="text-sm font-medium text-gray-900 dark:text-white">
                                   {(resume.similarity * 100).toFixed(1)}% match
                                 </span>
-                                <div className={`w-3 h-3 rounded-full mt-1 ${
+                                <div className={`w-3 h-3 rounded-full ${
                                   resume.similarity >= 0.8 ? 'bg-green-500' :
                                   resume.similarity >= 0.6 ? 'bg-yellow-500' :
                                   'bg-red-500'
                                 }`} />
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleResultSelect(resume);
+                                  }}
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                                  title="View explanation"
+                                >
+                                  <Info className="h-4 w-4 text-blue-500" />
+                                </button>
+                                <ExternalLink className="h-4 w-4 text-gray-400" />
                               </div>
                             </div>
                           </div>
@@ -145,6 +200,13 @@ export function HRDashboardPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Search Explanation */}
+            {selectedResult && selectedResult.explanation && (
+              <div className="mt-6">
+                <SearchExplanation explanation={selectedResult.explanation} />
               </div>
             )}
           </div>
