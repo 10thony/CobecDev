@@ -1,0 +1,26 @@
+{
+  "summary": {
+    "totalProcessed": 0,
+    "totalFailed": 0,
+    "timestamp": "2025-08-15T03:28:24.258Z",
+    "duration": 3060
+  },
+  "details": {
+    "jobPostings": {
+      "processed": 0,
+      "failed": 0,
+      "errors": []
+    },
+    "resumes": {
+      "processed": 0,
+      "failed": 0,
+      "errors": []
+    },
+    "kfcPoints": {
+      "processed": 0,
+      "failed": 0,
+      "errors": []
+    }
+  },
+  "searchTest": false
+}

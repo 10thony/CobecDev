@@ -14,6 +14,7 @@ import * as logs from "./logs";
 import * as auth from "./auth";
 import * as openai from "./openai";
 import * as nodeActions from "./nodeActions";
+import * as vectorSearch from "./vectorSearch";
 
 // Export all functions as a single API object
 export default {
@@ -33,4 +34,5 @@ export default {
   auth,
   openai,
   nodeActions,
+  vectorSearch,
 };

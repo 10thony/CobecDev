@@ -123,11 +123,20 @@ const applicationTables = {
     })),
     march_status: v.union(v.string(), v.null()), // March status (can be null)
     score: v.number(), // Total KFC score
+    // Complete searchable text for semantic search (aggregated, deduplicated content)
+    completeSearchableText: v.optional(v.string()),
+    // Embedding fields for semantic search on individual fields
+    embedding: v.optional(v.array(v.number())), // Gemini MRL 2048 embedding dimension
+    embeddingModel: v.optional(v.string()), // Track which model generated embedding
+    embeddingGeneratedAt: v.optional(v.number()), // Timestamp for embedding freshness
     createdAt: v.number(), // Track when entry was created
     updatedAt: v.number(), // Track when entry was last updated
   }).index("by_name", ["name"])
     .index("by_score", ["score"]) // For sorting by score
-    .index("by_creation", ["createdAt"]), // For sorting by creation date
+    .index("by_creation", ["createdAt"]) // For sorting by creation date
+    .index("by_embedding", ["embedding"]) // Vector similarity search index
+    .index("by_embedding_model", ["embeddingModel"])
+    .index("by_embedding_generated", ["embeddingGeneratedAt"]),
 
   // Job Postings - migrated from MongoDB with proper vector support
   jobpostings: defineTable({
@@ -156,8 +165,12 @@ const applicationTables = {
     contactInfo: v.string(),
     searchableText: v.optional(v.string()),
     extractedSkills: v.optional(v.array(v.string())),
-    // Embedding array for vector search (will migrate to v.vector() when available)
-    embedding: v.optional(v.array(v.number())), // Gemini embedding dimension
+    // Complete searchable text for semantic search (aggregated, deduplicated content)
+    completeSearchableText: v.optional(v.string()),
+    // Enhanced embedding fields for semantic search
+    embedding: v.optional(v.array(v.number())), // Gemini MRL 2048 embedding dimension
+    embeddingModel: v.optional(v.string()), // Track which model generated embedding
+    embeddingGeneratedAt: v.optional(v.number()), // Timestamp for embedding freshness
     // Additional fields for migration compatibility
     _id: v.optional(v.string()), // MongoDB ObjectId compatibility
     _index: v.optional(v.number()), // Source data index
@@ -181,7 +194,9 @@ const applicationTables = {
     .index("by_metadata_import", ["metadata.importedAt"])
     .index("by_metadata_source", ["metadata.sourceFile"])
     // Vector similarity search index (for future v.vector() migration)
-    .index("by_embedding", ["embedding"]),
+    .index("by_embedding", ["embedding"])
+    .index("by_embedding_model", ["embeddingModel"])
+    .index("by_embedding_generated", ["embeddingGeneratedAt"]),
 
   // Resumes - migrated from MongoDB with proper vector support
   resumes: defineTable({
@@ -210,8 +225,12 @@ const applicationTables = {
     securityClearance: v.string(),
     searchableText: v.optional(v.string()),
     extractedSkills: v.optional(v.array(v.string())),
-    // Embedding array for vector search (will migrate to v.vector() when available)
-    embedding: v.optional(v.array(v.number())), // Gemini embedding dimension
+    // Complete searchable text for semantic search (aggregated, deduplicated content)
+    completeSearchableText: v.optional(v.string()),
+    // Enhanced embedding fields for semantic search
+    embedding: v.optional(v.array(v.number())), // Gemini MRL 2048 embedding dimension
+    embeddingModel: v.optional(v.string()), // Track which model generated embedding
+    embeddingGeneratedAt: v.optional(v.number()), // Timestamp for embedding freshness
     // Additional fields for migration compatibility
     _id: v.optional(v.string()), // MongoDB ObjectId compatibility
     _metadata: v.optional(v.any()), // Legacy metadata compatibility
@@ -234,7 +253,9 @@ const applicationTables = {
     .index("by_metadata_import", ["metadata.importedAt"])
     .index("by_metadata_model", ["metadata.embeddingModel"])
     // Vector similarity search index (for future v.vector() migration)
-    .index("by_embedding", ["embedding"]),
+    .index("by_embedding", ["embedding"])
+    .index("by_embedding_model", ["embeddingModel"])
+    .index("by_embedding_generated", ["embeddingGeneratedAt"]),
 };
 
 export default defineSchema({

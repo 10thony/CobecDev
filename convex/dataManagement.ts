@@ -396,7 +396,7 @@ export const importData = action({
               if (overwrite) {
                 // Check if job exists and update
                 const existingJobs = await ctx.runQuery(api.jobPostings.list);
-                const existingJob = existingJobs.find(j => j.jobTitle === job.jobTitle);
+                const existingJob = existingJobs.find((j: any) => j.jobTitle === job.jobTitle);
                 
                 if (existingJob) {
                   await ctx.runMutation(api.jobPostings.update, {
@@ -432,7 +432,7 @@ export const importData = action({
               if (overwrite) {
                 // Check if resume exists and update
                 const existingResumes = await ctx.runQuery(api.resumes.list);
-                const existingResume = existingResumes.find(r => r.filename === resume.filename);
+                const existingResume = existingResumes.find((r: any) => r.filename === resume.filename);
                 
                 if (existingResume) {
                   await ctx.runMutation(api.resumes.update, {

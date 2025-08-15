@@ -1,0 +1,32 @@
+{
+  "summary": {
+    "totalProcessed": 426,
+    "totalFailed": 1,
+    "timestamp": "2025-08-15T03:18:27.734Z"
+  },
+  "details": {
+    "jobPostings": {
+      "processed": 181,
+      "failed": 0,
+      "errors": []
+    },
+    "resumes": {
+      "processed": 182,
+      "failed": 1,
+      "errors": [
+        {
+          "type": "resume",
+          "id": "mn7b6am4h8fzfxkj3rr2w392ex7npa6j",
+          "filename": "Action Items and Notes.docx",
+          "error": "[Request ID: 01c6f16cbec173b5] Server Error\nUncaught Error: Value is too large (1.38 MiB > maximum size 1 MiB)\n",
+          "timestamp": "2025-08-15T03:18:21.987Z"
+        }
+      ]
+    },
+    "kfcPoints": {
+      "processed": 63,
+      "failed": 0,
+      "errors": []
+    }
+  }
+}

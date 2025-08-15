@@ -14,6 +14,7 @@ import { DataManagementPage } from "./pages/DataManagementPage";
 import { JobDetailsPage } from "./pages/JobDetailsPage";
 import { ResumeDetailsPage } from "./pages/ResumeDetailsPage";
 import { KfcManagementPage } from "./pages/KfcManagementPage";
+import { HRDashboardPage } from "./pages/HRDashboardPage";
 import TempChatPage from "./pages/TempChatPage";
 import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider } from "./lib/ThemeContext";
@@ -72,6 +73,7 @@ function AuthenticatedApp() {
         <Route path="/" element={<HomePage />} />
         <Route path="/chat/:chatId" element={<ChatPage />} />
         <Route path="/vector-search" element={<VectorSearchPage />} />
+        <Route path="/hr-dashboard" element={<HRDashboardPage />} />
         <Route path="/test-job" element={<div>Test Job Route Works!</div>} />
         <Route path="/job/:jobId" element={<JobDetailsPage />} />
         <Route path="/resume/:resumeId" element={<ResumeDetailsPage />} />

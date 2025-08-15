@@ -338,6 +338,41 @@ export const update = mutation({
   },
 });
 
+// Update KFC entry embeddings and searchable text
+export const updateEmbeddings = mutation({
+  args: {
+    _id: v.id("kfcpoints"),
+    completeSearchableText: v.optional(v.string()),
+    embedding: v.array(v.number()),
+    embeddingModel: v.string(),
+    embeddingGeneratedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const now = Date.now();
+      const updateData: any = {
+        embedding: args.embedding,
+        embeddingModel: args.embeddingModel,
+        embeddingGeneratedAt: args.embeddingGeneratedAt,
+        updatedAt: now,
+      };
+      
+      // Only update completeSearchableText if provided
+      if (args.completeSearchableText !== undefined) {
+        updateData.completeSearchableText = args.completeSearchableText;
+      }
+      
+      await ctx.db.patch(args._id, updateData);
+      
+      console.log(`✅ Updated KFC entry embeddings: ${args._id}`);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Error updating KFC entry embeddings:', error);
+      throw error;
+    }
+  },
+});
+
 // Insert new KFC entry
 export const insert = mutation({
   args: {

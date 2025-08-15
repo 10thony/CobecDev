@@ -4,7 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
 import { Sidebar } from "./Sidebar";
 import { DarkModeToggle } from "./DarkModeToggle";
-import { Palette, Search, Database, Trophy } from "lucide-react";
+import { Palette, Search, Database, Trophy, Target } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -58,6 +58,17 @@ export function Layout({ children }: LayoutProps) {
               >
                 <Trophy size={14} />
                 <span>KFC Management</span>
+              </Link>
+              <Link
+                to="/hr-dashboard"
+                className={`px-3 py-1 rounded-md text-sm font-medium flex items-center space-x-1 ${
+                  location.pathname === "/hr-dashboard"
+                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                    : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <Target size={14} />
+                <span>HR Dashboard</span>
               </Link>
               {userRole === "admin" && (
                 <Link

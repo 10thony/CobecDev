@@ -20,6 +20,8 @@ import type * as chats from "../chats.js";
 import type * as cobecAdmins from "../cobecAdmins.js";
 import type * as convexVectorSearch from "../convexVectorSearch.js";
 import type * as dataManagement from "../dataManagement.js";
+import type * as embeddingManagement from "../embeddingManagement.js";
+import type * as embeddingService from "../embeddingService.js";
 import type * as employees from "../employees.js";
 import type * as http from "../http.js";
 import type * as jobPostings from "../jobPostings.js";
@@ -53,6 +55,8 @@ declare const fullApi: ApiFromModules<{
   cobecAdmins: typeof cobecAdmins;
   convexVectorSearch: typeof convexVectorSearch;
   dataManagement: typeof dataManagement;
+  embeddingManagement: typeof embeddingManagement;
+  embeddingService: typeof embeddingService;
   employees: typeof employees;
   http: typeof http;
   jobPostings: typeof jobPostings;

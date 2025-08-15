@@ -30,7 +30,12 @@
     "migrate:workdemos:resumes": "node scripts/migrate-workdemos-data.js --type resumes",
     "migrate:workdemos:cobecadmins": "node scripts/migrate-workdemos-data.js --type cobecadmins",
     "migrate:workdemos:employees": "node scripts/migrate-workdemos-data.js --type employees",
-    "migrate:workdemos:kfcpoints": "node scripts/migrate-workdemos-data.js --type kfcpoints"
+    "migrate:workdemos:kfcpoints": "node scripts/migrate-workdemos-data.js --type kfcpoints",
+    "semantic:setup": "node scripts/setup-semantic-search.js",
+    "semantic:embeddings": "node scripts/generate-embeddings.js",
+    "semantic:embeddings:jobs": "node scripts/generate-embeddings.js --job-postings",
+    "semantic:embeddings:resumes": "node scripts/generate-embeddings.js --resumes",
+    "semantic:embeddings:kfc": "node scripts/generate-embeddings.js --kfc-points"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.54.0",
