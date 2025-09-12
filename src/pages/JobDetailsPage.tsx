@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Briefcase, MapPin, DollarSign, Calendar, Building, Clock, User, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -32,44 +33,45 @@ export function JobDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   
   const searchSimilarJobs = useAction(api.vectorSearch.searchSimilarJobs);
-  const getJobById = useAction(api.vectorSearch.getJobById);
+  const getJobById = useQuery(api.jobPostings.get, 
+    jobId ? { id: decodeURIComponent(jobId) as Id<"jobpostings"> } : "skip"
+  );
 
   console.log('JobDetailsPage rendered with jobId:', jobId);
 
   useEffect(() => {
-    const fetchJobDetails = async () => {
-      if (!jobId) {
-        setError("No job ID provided");
-        setLoading(false);
-        return;
-      }
+    if (!jobId) {
+      setError("No job ID provided");
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Decode the job ID from URL
-        const decodedJobId = decodeURIComponent(jobId);
-        console.log('Decoded Job ID:', decodedJobId);
-        
-        // Use the new getJobById action
-        const jobDetails = await getJobById({
-          jobId: decodedJobId,
-        });
-        
-        if (jobDetails) {
-          setJobDetails(jobDetails);
-        } else {
-          setError("Job not found");
-        }
-      } catch (err: any) {
-        setError(err.message || "Failed to load job details");
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (getJobById === undefined) {
+      setLoading(true);
+      return;
+    }
 
-    fetchJobDetails();
+    if (getJobById === null) {
+      setError("Job not found");
+      setLoading(false);
+      return;
+    }
+
+    console.log('JobDetailsPage received data:', {
+      _id: getJobById._id,
+      jobTitle: getJobById.jobTitle,
+      location: getJobById.location,
+      department: getJobById.department,
+      salary: getJobById.salary,
+      hasJobSummary: !!getJobById.jobSummary,
+      hasDuties: !!getJobById.duties,
+      hasRequirements: !!getJobById.requirements,
+      hasQualifications: !!getJobById.qualifications
+    });
+    
+    setJobDetails(getJobById);
+    setLoading(false);
+    setError(null);
   }, [jobId, getJobById]);
 
   const formatSimilarity = (similarity: number) => {

@@ -122,15 +122,15 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
 
   // Actions
-  const generateJobEmbedding = useAction(api.embeddingManagement.generateJobPostingEmbedding);
-  const generateResumeEmbedding = useAction(api.embeddingManagement.generateResumeEmbedding);
+  const generateBatchEmbeddings = useAction(api.vectorEmbeddingService.generateBatchVectorEmbeddings);
+  const getNovelQueries = useQuery(api.vectorEmbeddingQueries.getNovelUserQueries, {});
 
   // Calculate embedding statistics
   const calculateStats = (): EmbeddingStats => {
     const totalJobs = jobPostings?.length || 0;
     const totalResumes = resumes?.length || 0;
-    const jobsWithEmbeddings = jobPostings?.filter(job => job.embedding)?.length || 0;
-    const resumesWithEmbeddings = resumes?.filter(resume => resume.embedding)?.length || 0;
+    const jobsWithEmbeddings = jobPostings?.filter((job: any) => job.embedding)?.length || 0;
+    const resumesWithEmbeddings = resumes?.filter((resume: any) => resume.embedding)?.length || 0;
     
     return {
       totalJobs,
@@ -153,8 +153,8 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
     if (jobPostings && resumes) {
       const totalItems = jobPostings.length + resumes.length;
       const itemsWithEmbeddings = 
-        (jobPostings?.filter(job => job.embedding)?.length || 0) +
-        (resumes?.filter(resume => resume.embedding)?.length || 0);
+        (jobPostings?.filter((job: any) => job.embedding)?.length || 0) +
+        (resumes?.filter((resume: any) => resume.embedding)?.length || 0);
       
       setConfig(prev => ({
         ...prev,
@@ -177,100 +177,53 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
 
     setProcessingStatus({
       isProcessing: true,
-      currentOperation: 'Generating embeddings...',
+      currentOperation: 'Generating vector-aware embeddings...',
       progress: 0,
       totalItems: 0,
       processedItems: 0
     });
 
     try {
+      const collections = selectedTable === 'both' ? ['jobs', 'resumes'] : [selectedTable];
       let totalProcessed = 0;
-      let totalItems = 0;
+      let totalErrors = 0;
 
-      if (selectedTable === 'jobs' || selectedTable === 'both') {
-        const jobsNeedingEmbeddings = jobPostings?.filter(job => !job.embedding) || [];
-        totalItems += jobsNeedingEmbeddings.length;
+      for (const collectionType of collections) {
+        const collection = collectionType === 'jobs' ? 'jobpostings' : 'resumes';
         
-        if (jobsNeedingEmbeddings.length > 0) {
-          setProcessingStatus(prev => ({
-            ...prev,
-            currentOperation: 'Generating job embeddings...',
-            totalItems: jobsNeedingEmbeddings.length
-          }));
+        setProcessingStatus(prev => ({
+          ...prev,
+          currentOperation: `Generating ${collection} embeddings with vector prompts...`,
+        }));
 
-          // Process jobs in batches
-          for (let i = 0; i < jobsNeedingEmbeddings.length; i += config.batchSize) {
-            const batch = jobsNeedingEmbeddings.slice(i, i + config.batchSize);
-            
-            for (const job of batch) {
-              if (job.completeSearchableText) {
-                await generateJobEmbedding({
-                  jobPostingId: job._id,
-                  completeSearchableText: job.completeSearchableText
-                });
-                
-                setProcessingStatus(prev => ({
-                  ...prev,
-                  processedItems: prev.processedItems + 1,
-                  progress: ((prev.processedItems + 1) / prev.totalItems) * 100
-                }));
-              }
-            }
-          }
-          
-          totalProcessed += jobsNeedingEmbeddings.length;
-        }
-      }
+        const result = await generateBatchEmbeddings({
+          collection,
+          batchSize: config.batchSize,
+          forceRegenerate: false
+        });
 
-      if (selectedTable === 'resumes' || selectedTable === 'both') {
-        const resumesNeedingEmbeddings = resumes?.filter(resume => !resume.embedding) || [];
-        totalItems += resumesNeedingEmbeddings.length;
-        
-        if (resumesNeedingEmbeddings.length > 0) {
-          setProcessingStatus(prev => ({
-            ...prev,
-            currentOperation: 'Generating resume embeddings...',
-            totalItems: resumesNeedingEmbeddings.length
-          }));
+        totalProcessed += result.successful;
+        totalErrors += result.failed;
 
-          // Process resumes in batches
-          for (let i = 0; i < resumesNeedingEmbeddings.length; i += config.batchSize) {
-            const batch = resumesNeedingEmbeddings.slice(i, i + config.batchSize);
-            
-            for (const resume of batch) {
-              if (resume.completeSearchableText) {
-                await generateResumeEmbedding({
-                  resumeId: resume._id,
-                  completeSearchableText: resume.completeSearchableText
-                });
-                
-                setProcessingStatus(prev => ({
-                  ...prev,
-                  processedItems: prev.processedItems + 1,
-                  progress: ((prev.processedItems + 1) / prev.totalItems) * 100
-                }));
-              }
-            }
-          }
-          
-          totalProcessed += resumesNeedingEmbeddings.length;
-        }
+        setProcessingStatus(prev => ({
+          ...prev,
+          processedItems: totalProcessed,
+          progress: ((totalProcessed + totalErrors) / (result.total || 1)) * 100
+        }));
       }
 
       setProcessingStatus(prev => ({
         ...prev,
         isProcessing: false,
         progress: 100,
-        processedItems: totalProcessed
+        currentOperation: `Completed: ${totalProcessed} updated, ${totalErrors} errors`
       }));
 
-      // Refresh data after processing
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      // Data will automatically refresh via Convex reactive queries
+      // No need for manual page reload
 
     } catch (error) {
-      console.error('Failed to generate embeddings:', error);
+      console.error('Failed to generate vector-aware embeddings:', error);
       setProcessingStatus(prev => ({
         ...prev,
         isProcessing: false,
@@ -547,10 +500,46 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
         </div>
 
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-          <p><strong>Generate New:</strong> Creates embeddings for items that don't have them</p>
+          <p><strong>Generate New:</strong> Creates vector-aware embeddings using prompt enhancement</p>
           <p><strong>Note:</strong> Only administrators can generate embeddings</p>
         </div>
       </div>
+
+      {/* Novel User Queries Section */}
+      {getNovelQueries && getNovelQueries.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Discovered Search Patterns
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            These user queries appear frequently and could enhance future embeddings:
+          </p>
+          
+          <div className="space-y-3">
+            {getNovelQueries.slice(0, 10).map((queryData: any, index: number) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    "{queryData.query}"
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Used {queryData.usageCount} times | Confidence: {(queryData.averageConfidence * 100).toFixed(0)}%
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    // In a full implementation, this would add the query to the static prompts
+                    console.log('Add to prompts:', queryData.query);
+                  }}
+                  className="ml-4 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                >
+                  Add to Prompts
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Processing Status */}
       {processingStatus.isProcessing && (

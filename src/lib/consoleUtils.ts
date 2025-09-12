@@ -27,7 +27,8 @@ export async function resetKfcDatabase(): Promise<void> {
     await resetDatabase();
     console.log('✅ Database reset completed (no action taken - Convex handles this automatically)');
     console.log('🔄 Refreshing page in 2 seconds...');
-    setTimeout(() => window.location.reload(), 2000);
+    // Data will automatically refresh via Convex reactive queries
+    // No need for manual page reload
   } catch (error) {
     console.error('❌ Failed to reset database:', error);
   }

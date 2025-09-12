@@ -15,6 +15,7 @@ import * as auth from "./auth";
 import * as openai from "./openai";
 import * as nodeActions from "./nodeActions";
 import * as vectorSearch from "./vectorSearch";
+import * as convexVectorSearch from "./convexVectorSearch";
 
 // Export all functions as a single API object
 export default {
@@ -35,4 +36,5 @@ export default {
   openai,
   nodeActions,
   vectorSearch,
+  convexVectorSearch,
 };

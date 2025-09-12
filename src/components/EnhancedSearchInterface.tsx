@@ -74,8 +74,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
   // Actions
-  const searchSimilarJobs = useAction(api.vectorSearch.searchSimilarJobs);
-  const searchSimilarResumes = useAction(api.vectorSearch.searchSimilarResumes);
+  const vectorAwareSearch = useAction(api.vectorEmbeddingService.vectorAwareSemanticSearch);
   
   // Convex client for queries
   const convex = useConvex();
@@ -122,65 +121,39 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
     saveRecentSearch(query.trim());
 
     try {
-      let results;
+      // Prepare search context from filters
+      const searchContext = {
+        industry: filters.location.length > 0 ? undefined : undefined, // Could be derived from location
+        skills: filters.skills,
+        location: filters.location.length > 0 ? filters.location[0] : undefined,
+        experience_level: filters.experienceLevel.length > 0 ? filters.experienceLevel[0] : undefined,
+      };
 
-      if (options.useHybridSearch) {
-        // Use cross-table semantic search
-        results = await convex.query(api.vectorSearch.crossTableSemanticSearch, {
-          query: query.trim(),
-          searchType,
-          limit: options.resultLimit,
-          similarityThreshold: options.similarityThreshold
-        });
-      } else if (searchType === 'jobs') {
-        results = await searchSimilarJobs({
-          query: query.trim(),
-          limit: options.resultLimit,
-          similarityThreshold: options.similarityThreshold
-        });
-      } else if (searchType === 'resumes') {
-        results = await searchSimilarResumes({
-          query: query.trim(),
-          limit: options.resultLimit,
-          similarityThreshold: options.similarityThreshold
-        });
-      } else {
-        // Search both separately
-        const [jobsResults, resumesResults] = await Promise.all([
-          searchSimilarJobs({
-            query: query.trim(),
-            limit: options.resultLimit,
-            similarityThreshold: options.similarityThreshold
-          }),
-          searchSimilarResumes({
-            query: query.trim(),
-            limit: options.resultLimit,
-            similarityThreshold: options.similarityThreshold
-          })
-        ]);
-        
-        results = {
-          jobs: jobsResults,
-          resumes: resumesResults,
-          searchType: 'both'
-        };
-      }
+      // Use vector-aware search
+      const results = await vectorAwareSearch({
+        query: query.trim(),
+        targetCollection: searchType,
+        limit: options.resultLimit,
+        minSimilarity: options.similarityThreshold,
+        context: searchContext
+      });
 
-      // Apply filters if any are set
+      // Apply additional filters if any are set
+      let processedResults = results;
       if (Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : f !== '')) {
-        results = applyFilters(results);
+        processedResults = { ...results, results: applyFilters(results.results) };
       }
 
       // Apply sorting
-      results = applySorting(results);
+      processedResults = { ...processedResults, results: applySorting(processedResults.results) };
 
       // Notify parent component
       if (onResultsUpdate) {
-        onResultsUpdate(results);
+        onResultsUpdate(processedResults);
       }
 
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error('Vector-aware search failed:', error);
       alert('Search failed. Please try again.');
     } finally {
       setIsSearching(false);
@@ -356,7 +329,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-4 pt-6 px-6 ${className}`}>
       {/* Main Search Bar */}
       <div className="relative">
         <div className="flex items-center space-x-2">

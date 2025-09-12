@@ -2,7 +2,7 @@
 // Handles Excel file imports and JSON data processing in the browser
 // Updated for Convex migration
 
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 
 // Define types based on Convex schema
 export interface JobPosting {
@@ -86,12 +86,27 @@ export async function readExcelFile(file: File): Promise<JobPosting[]> {
     
     // Read the Excel file
     const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+    
+    // Get the first worksheet
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      throw new Error('No worksheets found in Excel file');
+    }
     
     // Convert to JSON
-    const jobListings = XLSX.utils.sheet_to_json(worksheet);
+    const jobListings: any[] = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header row
+      
+      const rowData: any = {};
+      row.eachCell((cell, colNumber) => {
+        const header = worksheet.getRow(1).getCell(colNumber).value?.toString() || `Column${colNumber}`;
+        rowData[header] = cell.value?.toString() || '';
+      });
+      jobListings.push(rowData);
+    });
     
     console.log(`Found ${jobListings.length} job listings in Excel file`);
     

@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect } from "react";
 import { ArrowLeft, User, MapPin, Mail, Phone, Calendar, GraduationCap, Briefcase, Award, FileText, ExternalLink, Save, Edit3, X, Check, Upload } from "lucide-react";
 
@@ -55,7 +56,9 @@ export function ResumeDetailsPage() {
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   
-  const getResumeById = useAction(api.vectorSearch.getResumeById);
+  const getResumeById = useQuery(api.resumes.get, 
+    resumeId ? { id: decodeURIComponent(resumeId) as Id<"resumes"> } : "skip"
+  );
   const updateResume = useAction(api.vectorSearch.updateResume);
   const updateResumeWithDocument = useAction(api.vectorSearch.updateResumeWithDocument);
 
@@ -79,70 +82,60 @@ export function ResumeDetailsPage() {
   console.log('ResumeDetailsPage rendered with resumeId:', resumeId);
 
   useEffect(() => {
-    const fetchResumeDetails = async () => {
-      if (!resumeId) {
-        setError("No resume ID provided");
-        setLoading(false);
-        return;
-      }
+    if (!resumeId) {
+      setError("No resume ID provided");
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Decode the resume ID from URL
-        const decodedResumeId = decodeURIComponent(resumeId);
-        console.log('Decoded Resume ID:', decodedResumeId);
-        
-        // Use the getResumeById action
-        const resumeDetails = await getResumeById({
-          resumeId: decodedResumeId,
-        });
-        
-        console.log('ResumeDetailsPage received data:', {
-          _id: resumeDetails._id,
-          filename: resumeDetails.filename,
-          hasProcessedMetadata: !!resumeDetails.processedMetadata,
-          processedMetadataKeys: resumeDetails.processedMetadata ? Object.keys(resumeDetails.processedMetadata) : [],
-          name: resumeDetails.processedMetadata?.name,
-          email: resumeDetails.processedMetadata?.email,
-          phone: resumeDetails.processedMetadata?.phone,
-          hasProfessionalSummary: !!resumeDetails.professionalSummary,
-          hasWorkExperience: !!resumeDetails.workExperience,
-          hasEducation: !!resumeDetails.education,
-          hasSkills: !!resumeDetails.skills
-        });
-        
-        if (resumeDetails) {
-          setResumeDetails(resumeDetails);
-          
-          // Initialize form data
-          setFormData({
-            name: resumeDetails.processedMetadata?.name || '',
-            email: resumeDetails.processedMetadata?.email || '',
-            phone: resumeDetails.processedMetadata?.phone || '',
-            location: resumeDetails.processedMetadata?.location || '',
-            yearsOfExperience: resumeDetails.processedMetadata?.yearsOfExperience || 0,
-            professionalSummary: resumeDetails.professionalSummary || '',
-            workExperience: resumeDetails.workExperience || '',
-            education: resumeDetails.education || '',
-            skills: resumeDetails.skills || '',
-            certifications: resumeDetails.certifications || '',
-            projects: resumeDetails.projects || '',
-            languages: resumeDetails.languages || '',
-            additionalInformation: resumeDetails.additionalInformation || '',
-          });
-        } else {
-          setError("Resume not found");
-        }
-      } catch (err: any) {
-        setError(err.message || "Failed to load resume details");
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (getResumeById === undefined) {
+      setLoading(true);
+      return;
+    }
 
-    fetchResumeDetails();
+    if (getResumeById === null) {
+      setError("Resume not found");
+      setLoading(false);
+      return;
+    }
+
+    console.log('ResumeDetailsPage received data:', {
+      _id: getResumeById._id,
+      filename: getResumeById.filename,
+      hasPersonalInfo: !!getResumeById.personalInfo,
+      personalInfoKeys: getResumeById.personalInfo ? Object.keys(getResumeById.personalInfo) : [],
+      firstName: getResumeById.personalInfo?.firstName,
+      email: getResumeById.personalInfo?.email,
+      phone: getResumeById.personalInfo?.phone,
+      hasProfessionalSummary: !!getResumeById.professionalSummary,
+      hasExperience: !!getResumeById.experience,
+      hasEducation: !!getResumeById.education,
+      hasSkills: !!getResumeById.skills
+    });
+    
+    setResumeDetails(getResumeById);
+    
+    // Initialize form data using the correct structure from resumes table
+    setFormData({
+      name: `${getResumeById.personalInfo?.firstName || ''} ${getResumeById.personalInfo?.lastName || ''}`.trim(),
+      email: getResumeById.personalInfo?.email || '',
+      phone: getResumeById.personalInfo?.phone || '',
+      location: '', // This field doesn't exist in the current schema
+      yearsOfExperience: getResumeById.personalInfo?.yearsOfExperience || 0,
+      professionalSummary: getResumeById.professionalSummary || '',
+      workExperience: getResumeById.experience?.map(exp => 
+        `${exp.title} at ${exp.company} (${exp.duration})\n${exp.responsibilities.join('\n')}`
+      ).join('\n\n') || '',
+      education: getResumeById.education?.join('\n') || '',
+      skills: getResumeById.skills?.join(', ') || '',
+      certifications: getResumeById.certifications || '',
+      projects: '', // This field doesn't exist in the current schema
+      languages: '', // This field doesn't exist in the current schema
+      additionalInformation: getResumeById.professionalMemberships || '',
+    });
+    
+    setLoading(false);
+    setError(null);
   }, [resumeId, getResumeById]);
 
   const handleInputChange = (field: keyof FormData, value: string | number) => {
@@ -191,19 +184,21 @@ export function ResumeDetailsPage() {
     // Reset form data to original values
     if (resumeDetails) {
       setFormData({
-        name: resumeDetails.processedMetadata?.name || '',
-        email: resumeDetails.processedMetadata?.email || '',
-        phone: resumeDetails.processedMetadata?.phone || '',
-        location: resumeDetails.processedMetadata?.location || '',
-        yearsOfExperience: resumeDetails.processedMetadata?.yearsOfExperience || 0,
+        name: `${resumeDetails.personalInfo?.firstName || ''} ${resumeDetails.personalInfo?.lastName || ''}`.trim(),
+        email: resumeDetails.personalInfo?.email || '',
+        phone: resumeDetails.personalInfo?.phone || '',
+        location: '', // This field doesn't exist in the current schema
+        yearsOfExperience: resumeDetails.personalInfo?.yearsOfExperience || 0,
         professionalSummary: resumeDetails.professionalSummary || '',
-        workExperience: resumeDetails.workExperience || '',
-        education: resumeDetails.education || '',
-        skills: resumeDetails.skills || '',
+        workExperience: resumeDetails.experience?.map(exp => 
+          `${exp.title} at ${exp.company} (${exp.duration})\n${exp.responsibilities.join('\n')}`
+        ).join('\n\n') || '',
+        education: resumeDetails.education?.join('\n') || '',
+        skills: resumeDetails.skills?.join(', ') || '',
         certifications: resumeDetails.certifications || '',
-        projects: resumeDetails.projects || '',
-        languages: resumeDetails.languages || '',
-        additionalInformation: resumeDetails.additionalInformation || '',
+        projects: '', // This field doesn't exist in the current schema
+        languages: '', // This field doesn't exist in the current schema
+        additionalInformation: resumeDetails.professionalMemberships || '',
       });
     }
     setIsEditing(false);
@@ -256,21 +251,23 @@ export function ResumeDetailsPage() {
         if (result.updatedResume) {
           setResumeDetails(result.updatedResume);
           
-          // Update form data with new values
+          // Update form data with new values using correct structure
           setFormData({
-            name: result.updatedResume.processedMetadata?.name || '',
-            email: result.updatedResume.processedMetadata?.email || '',
-            phone: result.updatedResume.processedMetadata?.phone || '',
-            location: result.updatedResume.processedMetadata?.location || '',
-            yearsOfExperience: result.updatedResume.processedMetadata?.yearsOfExperience || 0,
+            name: `${result.updatedResume.personalInfo?.firstName || ''} ${result.updatedResume.personalInfo?.lastName || ''}`.trim(),
+            email: result.updatedResume.personalInfo?.email || '',
+            phone: result.updatedResume.personalInfo?.phone || '',
+            location: '', // This field doesn't exist in the current schema
+            yearsOfExperience: result.updatedResume.personalInfo?.yearsOfExperience || 0,
             professionalSummary: result.updatedResume.professionalSummary || '',
-            workExperience: result.updatedResume.workExperience || '',
-            education: result.updatedResume.education || '',
-            skills: result.updatedResume.skills || '',
+            workExperience: result.updatedResume.experience?.map(exp => 
+              `${exp.title} at ${exp.company} (${exp.duration})\n${exp.responsibilities.join('\n')}`
+            ).join('\n\n') || '',
+            education: result.updatedResume.education?.join('\n') || '',
+            skills: result.updatedResume.skills?.join(', ') || '',
             certifications: result.updatedResume.certifications || '',
-            projects: result.updatedResume.projects || '',
-            languages: result.updatedResume.languages || '',
-            additionalInformation: result.updatedResume.additionalInformation || '',
+            projects: '', // This field doesn't exist in the current schema
+            languages: '', // This field doesn't exist in the current schema
+            additionalInformation: result.updatedResume.professionalMemberships || '',
           });
         }
         
@@ -353,11 +350,11 @@ export function ResumeDetailsPage() {
     );
   }
 
-  const candidateName = resumeDetails.processedMetadata?.name || "Unknown Candidate";
-  const email = resumeDetails.processedMetadata?.email || "N/A";
-  const phone = resumeDetails.processedMetadata?.phone || "N/A";
-  const location = resumeDetails.processedMetadata?.location || "N/A";
-  const experience = resumeDetails.processedMetadata?.yearsOfExperience || "N/A";
+  const candidateName = `${resumeDetails.personalInfo?.firstName || ''} ${resumeDetails.personalInfo?.lastName || ''}`.trim() || "Unknown Candidate";
+  const email = resumeDetails.personalInfo?.email || "N/A";
+  const phone = resumeDetails.personalInfo?.phone || "N/A";
+  const location = "N/A"; // This field doesn't exist in current schema
+  const experience = resumeDetails.personalInfo?.yearsOfExperience || "N/A";
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -635,7 +632,9 @@ export function ResumeDetailsPage() {
             ) : (
               <div className="prose dark:prose-invert max-w-none">
                 <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                  {resumeDetails.workExperience || "No work experience available."}
+                  {resumeDetails.experience?.map(exp => 
+                    `${exp.title} at ${exp.company} (${exp.duration})\n${exp.responsibilities.join('\n')}`
+                  ).join('\n\n') || "No work experience available."}
                 </div>
               </div>
             )}
@@ -657,7 +656,7 @@ export function ResumeDetailsPage() {
             ) : (
               <div className="prose dark:prose-invert max-w-none">
                 <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                  {resumeDetails.education || "No education information available."}
+                  {resumeDetails.education?.join('\n') || "No education information available."}
                 </div>
               </div>
             )}
@@ -679,7 +678,7 @@ export function ResumeDetailsPage() {
             ) : (
               <div className="prose dark:prose-invert max-w-none">
                 <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                  {resumeDetails.skills || "No skills information available."}
+                  {resumeDetails.skills?.join(', ') || "No skills information available."}
                 </div>
               </div>
             )}
@@ -763,7 +762,7 @@ export function ResumeDetailsPage() {
             ) : (
               <div className="prose dark:prose-invert max-w-none">
                 <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                  {resumeDetails.additionalInformation || "No additional information available."}
+                  {resumeDetails.professionalMemberships || "No additional information available."}
                 </div>
               </div>
             )}

@@ -5,11 +5,8 @@ import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { Toaster } from "sonner";
 import { Layout } from "./components/Layout";
-import { ChatPage } from "./pages/ChatPage";
-import { AdminPage } from "./pages/AdminPage";
 import { HomePage } from "./pages/HomePage";
 import { ThemeConfigPage } from "./pages/ThemeConfigPage";
-import { VectorSearchPage } from "./pages/VectorSearchPage";
 import { DataManagementPage } from "./pages/DataManagementPage";
 import { JobDetailsPage } from "./pages/JobDetailsPage";
 import { ResumeDetailsPage } from "./pages/ResumeDetailsPage";
@@ -71,8 +68,6 @@ function AuthenticatedApp() {
     <Layout>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/chat/:chatId" element={<ChatPage />} />
-        <Route path="/vector-search" element={<VectorSearchPage />} />
         <Route path="/hr-dashboard" element={<HRDashboardPage />} />
         <Route path="/test-job" element={<div>Test Job Route Works!</div>} />
         <Route path="/job/:jobId" element={<JobDetailsPage />} />
@@ -80,9 +75,6 @@ function AuthenticatedApp() {
         <Route path="/theme-config" element={<ThemeConfigPage />} />
         <Route path="/data-management" element={<DataManagementPage />} />
         <Route path="/kfc-management" element={<KfcManagementPage />} />
-        {userRole === "admin" && (
-          <Route path="/admin" element={<AdminPage />} />
-        )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

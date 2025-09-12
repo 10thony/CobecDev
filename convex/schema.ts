@@ -256,6 +256,33 @@ const applicationTables = {
     .index("by_embedding", ["embedding"])
     .index("by_embedding_model", ["embeddingModel"])
     .index("by_embedding_generated", ["embeddingGeneratedAt"]),
+
+  // User queries for dynamic prompt learning
+  userQueries: defineTable({
+    query: v.string(),
+    promptsUsed: v.array(v.string()),
+    confidence: v.number(),
+    timestamp: v.number(),
+    addedToPrompts: v.boolean(),
+    usageCount: v.optional(v.number()),
+    category: v.optional(v.string()),
+    effectiveness: v.optional(v.number()),
+  }).index("by_added_to_prompts", ["addedToPrompts"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_query", ["query"]),
+
+  // Vector search prompts for embedding generation
+  vectorSearchPrompts: defineTable({
+    text: v.string(),
+    category: v.string(),
+    usageCount: v.number(),
+    effectiveness: v.number(),
+    needsEmbeddingRegeneration: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_category", ["category"])
+    .index("by_needs_regeneration", ["needsEmbeddingRegeneration"])
+    .index("by_usage", ["usageCount"])
+    .index("by_effectiveness", ["effectiveness"]),
 };
 
 export default defineSchema({

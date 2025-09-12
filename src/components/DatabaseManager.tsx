@@ -42,8 +42,9 @@ const DatabaseManager: React.FC = () => {
       const result = await resetDatabase();
       
       if (result.success) {
-        alert('Database reset successfully! The page will refresh in 2 seconds.');
-        setTimeout(() => window.location.reload(), 2000);
+        alert('Database reset successfully! Data will refresh automatically.');
+        // Data will automatically refresh via Convex reactive queries
+        // No need for manual page reload
       } else {
         setError(result.error || 'Failed to reset database');
       }

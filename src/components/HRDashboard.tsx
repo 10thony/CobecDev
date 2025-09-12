@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
 import { 
   Briefcase, 
   User, 
@@ -32,15 +33,35 @@ export function HRDashboard({ className = '' }: HRDashboardProps) {
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [similarityThreshold, setSimilarityThreshold] = useState(0.5);
   const [matchLimit, setMatchLimit] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Fetch data
   const jobPostings = useQuery(api.jobPostings.list);
   const resumes = useQuery(api.resumes.list);
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
 
-  // Actions
-  const findMatchingResumesForJob = useAction(api.vectorSearch.findMatchingResumesForJob);
-  const findMatchingJobsForResume = useAction(api.vectorSearch.findMatchingJobsForResume);
+  // Queries for matching (these are actually queries, not actions)
+  const findMatchingResumesForJob = useQuery(api.vectorSearch.findMatchingResumesForJob, 
+    selectedJobId ? { 
+      jobPostingId: selectedJobId as Id<"jobpostings">, 
+      limit: matchLimit, 
+      similarityThreshold 
+    } : "skip"
+  );
+  const findMatchingJobsForResume = useQuery(api.vectorSearch.findMatchingJobsForResume,
+    selectedResumeId ? {
+      resumeId: selectedResumeId as Id<"resumes">,
+      limit: matchLimit,
+      similarityThreshold
+    } : "skip"
+  );
+
+  // Actions for enhanced search with proper vector similarity
+  const searchResumesWithEmbedding = useAction(api.vectorSearch.searchResumesWithEmbedding);
+  const searchJobPostingsWithEmbedding = useAction(api.vectorSearch.searchJobPostingsWithEmbedding);
+  const unifiedSearchWithEmbedding = useAction(api.vectorSearch.unifiedSemanticSearchWithEmbedding);
 
   // State for matching results
   const [jobMatches, setJobMatches] = useState<any>(null);
@@ -106,45 +127,65 @@ export function HRDashboard({ className = '' }: HRDashboardProps) {
     return insights;
   };
 
-  const handleJobSelect = async (jobId: string) => {
+  const handleJobSelect = (jobId: string) => {
     setSelectedJobId(jobId);
     setSelectedResumeId(null);
-    setIsLoading(true);
-
-    try {
-      const matches = await findMatchingResumesForJob({
-        jobPostingId: jobId,
-        limit: matchLimit,
-        similarityThreshold
-      });
-      setJobMatches(matches);
-      setResumeMatches(null);
-    } catch (error) {
-      console.error('Failed to find matching resumes:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    setResumeMatches(null);
   };
 
-  const handleResumeSelect = async (resumeId: string) => {
+  const handleResumeSelect = (resumeId: string) => {
     setSelectedResumeId(resumeId);
     setSelectedJobId(null);
-    setIsLoading(true);
+    setJobMatches(null);
+  };
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
     try {
-      const matches = await findMatchingJobsForResume({
-        resumeId: resumeId,
+      const results = await unifiedSearchWithEmbedding({
+        query: searchQuery,
         limit: matchLimit,
-        similarityThreshold
+        similarityThreshold,
+        useSkillEnhancement: true,
+        includeSkillAnalysis: true
       });
-      setResumeMatches(matches);
-      setJobMatches(null);
+      setSearchResults(results);
     } catch (error) {
-      console.error('Failed to find matching jobs:', error);
+      console.error("Search error:", error);
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
+
+  // Update matches when queries return results
+  React.useEffect(() => {
+    if (findMatchingResumesForJob && selectedJobId) {
+      setJobMatches(findMatchingResumesForJob);
+      setIsLoading(false);
+    }
+  }, [findMatchingResumesForJob, selectedJobId]);
+
+  React.useEffect(() => {
+    if (findMatchingJobsForResume && selectedResumeId) {
+      setResumeMatches(findMatchingJobsForResume);
+      setIsLoading(false);
+    }
+  }, [findMatchingJobsForResume, selectedResumeId]);
+
+  // Set loading state when queries are triggered
+  React.useEffect(() => {
+    if (selectedJobId) {
+      setIsLoading(true);
+    }
+  }, [selectedJobId]);
+
+  React.useEffect(() => {
+    if (selectedResumeId) {
+      setIsLoading(true);
+    }
+  }, [selectedResumeId]);
 
   const insights = generateInsights();
 
@@ -256,8 +297,46 @@ export function HRDashboard({ className = '' }: HRDashboardProps) {
       {/* Search Controls */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Matching Configuration
+          AI-Powered Search
         </h3>
+        
+        {/* Search Input */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Search Query
+          </label>
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="e.g., 'who can build apps for the iPhone' or 'iOS developers'"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            />
+            <button
+              onClick={handleSearch}
+              disabled={isSearching || !searchQuery.trim()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {isSearching ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Searching...</span>
+                </>
+              ) : (
+                <>
+                  <Target className="h-4 w-4" />
+                  <span>Search</span>
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Use natural language to find candidates or job postings. Try queries like "iOS developers", "project managers with 5+ years", or "cybersecurity experts".
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -327,9 +406,9 @@ export function HRDashboard({ className = '' }: HRDashboardProps) {
                   </div>
                   <div className="flex items-center space-x-2">
                     {job.embedding ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" title="Has embeddings" />
+                      <CheckCircle className="h-4 w-4 text-green-500" />
                     ) : (
-                      <Clock className="h-4 w-4 text-yellow-500" title="Needs embeddings" />
+                      <Clock className="h-4 w-4 text-yellow-500" />
                     )}
                   </div>
                 </div>
@@ -359,17 +438,17 @@ export function HRDashboard({ className = '' }: HRDashboardProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900 dark:text-white">
-                      {resume.processedMetadata?.name || resume.filename}
+                      {resume.personalInfo ? `${resume.personalInfo.firstName} ${resume.personalInfo.lastName}` : resume.filename}
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {resume.processedMetadata?.email || 'No email'}
+                      {resume.personalInfo?.email || 'No email'}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
                     {resume.embedding ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" title="Has embeddings" />
+                      <CheckCircle className="h-4 w-4 text-green-500" />
                     ) : (
-                      <Clock className="h-4 w-4 text-yellow-500" title="Needs embeddings" />
+                      <Clock className="h-4 w-4 text-yellow-500" />
                     )}
                   </div>
                 </div>
@@ -378,6 +457,138 @@ export function HRDashboard({ className = '' }: HRDashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Search Results */}
+      {searchResults && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Search Results for: "{searchQuery}"
+          </h3>
+          
+          <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            Found {searchResults.totalFound.total} total matches ({searchResults.totalFound.resumes} resumes, {searchResults.totalFound.jobPostings} job postings)
+          </div>
+
+          {/* Resume Results */}
+          {searchResults.results.resumes.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                <User className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" />
+                Matching Resumes ({searchResults.results.resumes.length})
+              </h4>
+              <div className="space-y-3">
+                {searchResults.results.resumes.map((resume: any, index: number) => (
+                  <div
+                    key={resume._id}
+                    className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="font-medium text-gray-900 dark:text-white">
+                        {resume.personalInfo ? `${resume.personalInfo.firstName} ${resume.personalInfo.lastName}` : resume.filename}
+                      </h5>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Similarity: {(resume.similarity * 100).toFixed(1)}%
+                        </span>
+                        <div className={`w-3 h-3 rounded-full ${
+                          resume.similarity >= 0.8 ? 'bg-green-500' :
+                          resume.similarity >= 0.6 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`} />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Email:</span> {resume.personalInfo?.email || 'N/A'}
+                        </p>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Skills:</span> {resume.skills?.slice(0, 3).join(', ') || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Experience:</span> {resume.personalInfo?.yearsOfExperience ? `${resume.personalInfo.yearsOfExperience} years` : 'N/A'}
+                        </p>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Education:</span> {resume.education?.join(', ') || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Job Posting Results */}
+          {searchResults.results.jobPostings.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
+                Matching Job Postings ({searchResults.results.jobPostings.length})
+              </h4>
+              <div className="space-y-3">
+                {searchResults.results.jobPostings.map((job: any, index: number) => (
+                  <div
+                    key={job._id}
+                    className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="font-medium text-gray-900 dark:text-white">{job.jobTitle}</h5>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Similarity: {(job.similarity * 100).toFixed(1)}%
+                        </span>
+                        <div className={`w-3 h-3 rounded-full ${
+                          job.similarity >= 0.8 ? 'bg-green-500' :
+                          job.similarity >= 0.6 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`} />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Location:</span> {job.location || 'N/A'}
+                        </p>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Type:</span> {job.jobType || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Requirements:</span> {job.experiencedRequired || 'N/A'}
+                        </p>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Education:</span> {job.educationRequired || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {searchResults.results.resumes.length === 0 && searchResults.results.jobPostings.length === 0 && (
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No Matches Found
+              </h4>
+              <p className="text-gray-600 dark:text-gray-400">
+                No results found for "{searchQuery}" with the current similarity threshold of {(similarityThreshold * 100).toFixed(0)}%.
+              </p>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
+                Try lowering the similarity threshold or using different search terms.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Matching Results */}
       {isLoading && (
@@ -405,7 +616,7 @@ export function HRDashboard({ className = '' }: HRDashboardProps) {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium text-gray-900 dark:text-white">
-                      {resume.processedMetadata?.name || resume.filename}
+                      {resume.personalInfo ? `${resume.personalInfo.firstName} ${resume.personalInfo.lastName}` : resume.filename}
                     </h4>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -422,18 +633,18 @@ export function HRDashboard({ className = '' }: HRDashboardProps) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Email:</span> {resume.processedMetadata?.email || 'N/A'}
+                        <span className="font-medium">Email:</span> {resume.personalInfo?.email || 'N/A'}
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Skills:</span> {resume.processedMetadata?.skills?.slice(0, 3).join(', ') || 'N/A'}
+                        <span className="font-medium">Skills:</span> {resume.skills?.slice(0, 3).join(', ') || 'N/A'}
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Experience:</span> {resume.processedMetadata?.experience || 'N/A'}
+                        <span className="font-medium">Experience:</span> {resume.personalInfo?.yearsOfExperience ? `${resume.personalInfo.yearsOfExperience} years` : 'N/A'}
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Education:</span> {resume.processedMetadata?.education || 'N/A'}
+                        <span className="font-medium">Education:</span> {resume.education?.join(', ') || 'N/A'}
                       </p>
                     </div>
                   </div>
@@ -464,11 +675,97 @@ export function HRDashboard({ className = '' }: HRDashboardProps) {
         </div>
       )}
 
+      {/* System Overview Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          System Performance Overview
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Briefcase className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Jobs</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {totalJobs}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <User className="h-8 w-8 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Resumes</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {totalResumes}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <BarChart3 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Search Quality</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {(similarityThreshold * 100).toFixed(0)}%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <TrendingUp className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">AI Model</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  Gemini MRL
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Getting Started with HR Dashboard Help */}
+        <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-6">
+          <div className="flex items-start">
+            <Lightbulb className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3 mt-1" />
+            <div>
+              <h4 className="text-lg font-medium text-blue-900 dark:text-blue-100 mb-2">
+                Getting Started with HR Dashboard
+              </h4>
+              <div className="text-blue-800 dark:text-blue-200 space-y-2 text-sm">
+                <p><strong>1. Select a Job or Resume:</strong> Click on any job posting or resume in the selection panels above to begin matching.</p>
+                <p><strong>2. Adjust Match Settings:</strong> Use the similarity threshold slider to control match quality (50% recommended for HR).</p>
+                <p><strong>3. Review Results:</strong> View matching candidates or positions with similarity scores and business insights.</p>
+                <p><strong>4. Generate Embeddings:</strong> If coverage is low, use the embedding management tools to improve search quality.</p>
+              </div>
+              <div className="mt-4 flex items-center text-sm text-blue-700 dark:text-blue-300">
+                <ExternalLink className="h-4 w-4 mr-1" />
+                <span>Current embedding coverage: Jobs {embeddingCoverage.jobs.toFixed(1)}% | Resumes {embeddingCoverage.resumes.toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Resume Matches Results */}
       {resumeMatches && !isLoading && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Matching Jobs for: {resumeMatches.resume?.processedMetadata?.name || resumeMatches.resume?.filename}
+            Matching Jobs for: {resumeMatches.resume?.personalInfo ? `${resumeMatches.resume.personalInfo.firstName} ${resumeMatches.resume.personalInfo.lastName}` : resumeMatches.resume?.filename}
           </h3>
           
           {resumeMatches.matchingJobs.length > 0 ? (

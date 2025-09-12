@@ -14,11 +14,13 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
   const [newEmployeeName, setNewEmployeeName] = useState('');
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
+  const [isEmployeesCollapsed, setIsEmployeesCollapsed] = useState(true);
 
   // Convex queries and mutations
   const kfcEntries = useQuery(api.kfcData.getAllKfcEntries);
   const employees = useQuery(api.kfcData.getAllEmployees);
-  const databaseStatus = useQuery(api.kfcData.getDatabaseStatus);
+  const nominations = useQuery(api.nominations.list);
+  const pendingNominations = useQuery(api.nominations.listPending);
   
   const createEmployee = useMutation(api.kfcData.createEmployee);
   const deleteEmployee = useMutation(api.kfcData.deleteEmployee);
@@ -31,7 +33,6 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
     setError(null);
     try {
       // Convex queries automatically refresh, no manual refresh needed
-      console.log('✅ Data refreshed via Convex real-time queries');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh data');
     } finally {
@@ -48,7 +49,6 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
     try {
       await createEmployee({ name: name.trim() });
       setNewEmployeeName('');
-      console.log(`✅ Added employee: ${name}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add employee');
     } finally {
@@ -62,7 +62,6 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
     setError(null);
     try {
       await deleteEmployee({ name });
-      console.log(`✅ Removed employee: ${name}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove employee');
     } finally {
@@ -83,7 +82,6 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
       });
       setEditingEntry(null);
       setEditForm({});
-      console.log(`✅ Updated KFC entry: ${name}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update KFC entry');
     } finally {
@@ -101,7 +99,6 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
     setError(null);
     try {
       await deleteKfcEntry({ name });
-      console.log(`✅ Deleted KFC entry: ${name}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete KFC entry');
     } finally {
@@ -109,22 +106,6 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
     }
   };
 
-  // Debug database function (now uses Convex)
-  const debugDatabase = async () => {
-    console.log('🔍 DEBUG: Checking Convex database functionality...');
-    
-    try {
-      console.log('✅ Convex queries working correctly!');
-      console.log(`📊 KFC entries: ${kfcEntries?.length || 0}`);
-      console.log(`📊 Employees: ${employees?.length || 0}`);
-      console.log(`📊 Database status:`, databaseStatus);
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Convex database check failed:', error);
-      return false;
-    }
-  };
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
@@ -159,8 +140,16 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
     setEditForm({});
   };
 
+  // Check if an employee has pending nominations
+  const hasPendingNomination = (employeeName: string) => {
+    if (!pendingNominations) return false;
+    return pendingNominations.some(nomination => 
+      nomination.nominatedEmployee === employeeName
+    );
+  };
+
   // Loading state
-  if (kfcEntries === undefined || employees === undefined) {
+  if (kfcEntries === undefined || employees === undefined || nominations === undefined || pendingNominations === undefined) {
     return (
       <div className={`p-6 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
         <div className="flex items-center justify-center">
@@ -187,16 +176,6 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
           >
             {isLoading ? 'Refreshing...' : 'Refresh'}
           </button>
-          <button
-            onClick={debugDatabase}
-            className={`px-4 py-2 rounded-lg ${
-              theme === 'dark' 
-                ? 'bg-gray-600 hover:bg-gray-700 text-white' 
-                : 'bg-gray-500 hover:bg-gray-600 text-white'
-            }`}
-          >
-            Debug DB
-          </button>
         </div>
       </div>
 
@@ -206,20 +185,6 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
         </div>
       )}
 
-      {/* Database Status */}
-      {databaseStatus && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-semibold mb-2">Database Status</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="font-medium">KFC Entries:</span> {databaseStatus.kfcCount}
-            </div>
-            <div>
-              <span className="font-medium">Employees:</span> {databaseStatus.employeeCount}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Add Employee Form */}
       <div className="mb-6 p-4 border rounded-lg">
@@ -252,35 +217,45 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
 
       {/* Employees List */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-4">Employees ({employees?.length || 0})</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {employees?.map((employee) => (
-            <div
-              key={employee._id}
-              className={`p-4 border rounded-lg ${
-                theme === 'dark' 
-                  ? 'bg-gray-700 border-gray-600' 
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-medium">{employee.name}</span>
-                <button
-                  onClick={() => removeEmployee(employee.name)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ))}
+        <div 
+          className="flex items-center justify-between cursor-pointer mb-4"
+          onClick={() => setIsEmployeesCollapsed(!isEmployeesCollapsed)}
+        >
+          <h3 className="text-lg font-semibold">Employees ({employees?.length || 0})</h3>
+          <span className={`transform transition-transform duration-200 ${isEmployeesCollapsed ? 'rotate-0' : 'rotate-180'}`}>
+            ▼
+          </span>
         </div>
+        {!isEmployeesCollapsed && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {employees?.map((employee) => (
+              <div
+                key={employee._id}
+                className={`p-4 border rounded-lg ${
+                  theme === 'dark' 
+                    ? 'bg-gray-700 border-gray-600' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">{employee.name}</span>
+                  <button
+                    onClick={() => removeEmployee(employee.name)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* KFC Entries */}
       <div>
         <h3 className="text-lg font-semibold mb-4">KFC Points ({kfcEntries?.length || 0})</h3>
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {kfcEntries?.map((entry) => (
             <div
               key={entry._id}
@@ -345,7 +320,17 @@ const KfcPointsManager: React.FC<KfcPointsManagerProps> = () => {
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h4 className="font-semibold">{entry.name}</h4>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold">{entry.name}</h4>
+                        {hasPendingNomination(entry.name) && (
+                          <span 
+                            className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200"
+                            title="Has pending nomination"
+                          >
+                            ⭐ Pending
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-500">Score: {entry.score}</p>
                       {entry.march_status && (
                         <p className="text-sm text-gray-500">March Status: {entry.march_status}</p>

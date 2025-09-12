@@ -39,7 +39,10 @@ import type * as openai from "../openai.js";
 import type * as resumes from "../resumes.js";
 import type * as router from "../router.js";
 import type * as userRoles from "../userRoles.js";
+import type * as vectorEmbeddingQueries from "../vectorEmbeddingQueries.js";
+import type * as vectorEmbeddingService from "../vectorEmbeddingService.js";
 import type * as vectorSearch from "../vectorSearch.js";
+import type * as vectorSearchPrompts from "../vectorSearchPrompts.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -76,7 +79,10 @@ declare const fullApi: ApiFromModules<{
   resumes: typeof resumes;
   router: typeof router;
   userRoles: typeof userRoles;
+  vectorEmbeddingQueries: typeof vectorEmbeddingQueries;
+  vectorEmbeddingService: typeof vectorEmbeddingService;
   vectorSearch: typeof vectorSearch;
+  vectorSearchPrompts: typeof vectorSearchPrompts;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

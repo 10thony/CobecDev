@@ -3,7 +3,7 @@ import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { MongoClient } from "mongodb";
 import OpenAI from "openai";
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import * as mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 
@@ -245,12 +245,27 @@ export const importExcelData = action({
       const buffer = Buffer.from(args.fileData, 'base64');
       
       // Read Excel file
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      
+      // Get the first worksheet
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet) {
+        throw new Error('No worksheets found in Excel file');
+      }
       
       // Convert to JSON
-      const jobListings = XLSX.utils.sheet_to_json(worksheet);
+      const jobListings: any[] = [];
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return; // Skip header row
+        
+        const rowData: any = {};
+        row.eachCell((cell, colNumber) => {
+          const header = worksheet.getRow(1).getCell(colNumber).value?.toString() || `Column${colNumber}`;
+          rowData[header] = cell.value?.toString() || '';
+        });
+        jobListings.push(rowData);
+      });
       
       console.log(`Processing ${jobListings.length} job listings from Excel file`);
       
