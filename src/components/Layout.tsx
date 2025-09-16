@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
 import { DarkModeToggle } from "./DarkModeToggle";
-import { Palette, Database, Trophy, Target, ChevronLeft, ChevronRight } from "lucide-react";
+import { Palette, Database, Trophy, Target, ChevronLeft, ChevronRight, Home } from "lucide-react";
 import { useState } from "react";
 
 interface LayoutProps {
@@ -15,10 +15,17 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Hide sidebar on HR dashboard page
-  const isHRDashboard = location.pathname === '/hr-dashboard';
+  // Hide sidebar on HR dashboard pages (homepage and hr-dashboard route)
+  const isHRDashboard = location.pathname === '/' || location.pathname === '/hr-dashboard';
+  const isLeadsManagement = location.pathname === '/leads-management';
 
   const navigationItems = [
+    {
+      to: "/home",
+      icon: Home,
+      label: "Original Home",
+      path: "/home"
+    },
     {
       to: "/data-management",
       icon: Database,
@@ -32,6 +39,12 @@ export function Layout({ children }: LayoutProps) {
       path: "/kfc-management"
     },
     {
+      to: "/leads-management",
+      icon: Target,
+      label: "Leads Management",
+      path: "/leads-management"
+    },
+    {
       to: "/hr-dashboard",
       icon: Target,
       label: "HR Dashboard", 
@@ -42,8 +55,8 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar - Hidden on HR Dashboard */}
-      {!isHRDashboard && (
+      {/* Sidebar - Hidden on HR Dashboard and Leads Management */}
+      {!isHRDashboard && !isLeadsManagement && (
         <div className={`relative flex flex-col transition-all duration-300 ease-in-out ${
           isCollapsed ? 'w-16' : 'w-64'
         } bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700`}>
@@ -64,9 +77,9 @@ export function Layout({ children }: LayoutProps) {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <Link to="/" className="flex items-center space-x-3">
             {isCollapsed ? (
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">A</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">C</div>
             ) : (
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">AJAI</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">Cobecium</div>
             )}
           </Link>
         </div>

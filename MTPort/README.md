@@ -1,10 +1,10 @@
-# AJAI Teams Widget
+# Cobecium Teams Widget
 
 AI-powered job and resume matching for Microsoft Teams
 
 ## Overview
 
-The AJAI Teams Widget is a Microsoft Teams application that provides intelligent job and resume matching using AI vector search, data management capabilities, and KFC nomination management. This project migrates the existing AJAI application components to work seamlessly within Microsoft Teams.
+The Cobecium Teams Widget is a Microsoft Teams application that provides intelligent job and resume matching using AI vector search, data management capabilities, and KFC nomination management. This project migrates the existing Cobecium application components to work seamlessly within Microsoft Teams.
 
 ## Features
 
@@ -111,7 +111,7 @@ REACT_APP_AZURE_AI_KEY=your-ai-key
 npm install -g @microsoft/teamsfx-cli
 
 # Initialize Teams project
-teamsfx init --interactive false --app-name "AJAI Teams Widget" --capability tab
+teamsfx init --interactive false --app-name "Cobecium Teams Widget" --capability tab
 
 # Provision Azure resources
 teamsfx provision --env local

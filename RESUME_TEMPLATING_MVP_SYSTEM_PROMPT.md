@@ -1,5 +1,7 @@
 # Resume Templating MVP System Prompt
 
+
+
 ## Overview
 This system enables Cobec admins to create resume validation templates that can be applied to resumes in the database to check compliance with specific requirements (e.g., government contract formats, internal standards). The system supports both bulk validation and individual resume validation.
 

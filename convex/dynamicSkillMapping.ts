@@ -53,7 +53,7 @@ const SKILL_CATEGORIES = {
 export const extractSkillsWithAI = action({
   args: {
     text: v.string(),
-    context: v.union(v.literal("resume"), v.literal("job_posting")),
+    context: v.string(),
     useAI: v.optional(v.boolean()),
   },
   handler: async (ctx, { text, context, useAI = true }): Promise<{
@@ -82,7 +82,7 @@ export const extractSkillsWithAI = action({
       // AI-enhanced skill extraction if enabled
       if (useAI && process.env.GOOGLE_AI_API_KEY) {
         try {
-          const aiSkills = await extractSkillsWithGemini(text, context);
+          const aiSkills = await extractSkillsWithGemini(text, context as "resume" | "job_posting");
           extractedSkills = [...new Set([...extractedSkills, ...aiSkills])];
           aiEnhanced = true;
         } catch (error) {

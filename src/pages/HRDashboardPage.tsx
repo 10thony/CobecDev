@@ -6,6 +6,7 @@ import { HRDashboard } from '../components/HRDashboard';
 import { EmbeddingManagement } from '../components/EmbeddingManagement';
 import { EnhancedSearchInterface } from '../components/EnhancedSearchInterface';
 import { SearchExplanation } from '../components/SearchExplanation';
+import { LeadsManagement } from '../components/LeadsManagement';
 import KfcPointsManager from '../components/KfcPointsManager';
 import KfcNomination from '../components/KfcNomination';
 
@@ -516,11 +517,12 @@ import {
   ChevronRight,
   User as UserIcon,
   Briefcase,
-  RefreshCw
+  RefreshCw,
+  FileSearch
 } from 'lucide-react';
 
 export function HRDashboardPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'search' | 'embeddings' | 'data-management' | 'kfc-management'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'search' | 'embeddings' | 'data-management' | 'kfc-management' | 'leads-management'>('overview');
   const [kfcSubTab, setKfcSubTab] = useState<'points' | 'nominations'>('points');
   const [searchResults, setSearchResults] = useState<any>(null);
   const [selectedResult, setSelectedResult] = useState<any>(null);
@@ -562,6 +564,12 @@ export function HRDashboardPage() {
       name: 'Semantic Search',
       icon: Search,
       description: 'AI-powered search across jobs and resumes'
+    },
+    {
+      id: 'leads-management',
+      name: 'Leads Management',
+      icon: FileSearch,
+      description: 'Manage procurement opportunity leads'
     },
     {
       id: 'kfc-management',
@@ -758,6 +766,8 @@ export function HRDashboardPage() {
             {kfcSubTab === 'nominations' && <KfcNomination />}
           </div>
         );
+      case 'leads-management':
+        return <LeadsManagement />;
       case 'data-management':
         return <DataManagementContent />;
       case 'embeddings':
@@ -834,13 +844,16 @@ export function HRDashboardPage() {
                   <strong>2. Search Tab:</strong> Use AI-powered semantic search to find optimal matches
                 </p>
                 <p className="mb-2">
-                  <strong>3. KFC Management Tab:</strong> Manage KFC points and employee nominations with sub-tabs for Points Manager and Nominations
+                  <strong>3. Leads Management Tab:</strong> Manage procurement opportunity leads with full CRUD functionality
                 </p>
                 <p className="mb-2">
-                  <strong>4. Data Management Tab:</strong> Import, export, and manage job postings and resumes
+                  <strong>4. KFC Management Tab:</strong> Manage KFC points and employee nominations with sub-tabs for Points Manager and Nominations
                 </p>
                 <p className="mb-2">
-                  <strong>5. Embeddings Tab:</strong> Manage AI embeddings for system optimization (Admin only)
+                  <strong>5. Data Management Tab:</strong> Import, export, and manage job postings and resumes
+                </p>
+                <p className="mb-2">
+                  <strong>6. Embeddings Tab:</strong> Manage AI embeddings for system optimization (Admin only)
                 </p>
                 <p>
                   <strong>Tip:</strong> Use the 50% similarity threshold for optimal HR matching results

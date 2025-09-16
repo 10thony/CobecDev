@@ -261,7 +261,7 @@ export class AdaptiveCardBuilder {
     email: string;
   }): AdaptiveCard {
     return new AdaptiveCardBuilder()
-      .addTextBlock('Welcome to AJAI Teams Widget', {
+      .addTextBlock('Welcome to Cobecium Teams Widget', {
         size: 'Large',
         weight: 'Bolder',
         color: 'Accent'

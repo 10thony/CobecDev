@@ -104,7 +104,7 @@ export function TeamsIntegrationTest() {
   const [channelId, setChannelId] = useState('');
   const [userId, setUserId] = useState('');
   const [teamId, setTeamId] = useState('');
-  const [message, setMessage] = useState('Hello from AJAI Teams Widget!');
+  const [message, setMessage] = useState('Hello from Cobecium Teams Widget!');
 
   const addTestResult = (test: string, status: 'pending' | 'success' | 'error', message: string) => {
     const result: TestResult = {
@@ -163,7 +163,7 @@ export function TeamsIntegrationTest() {
       if (channelId) {
         const testCard = AdaptiveCardBuilder.createSuccessCard({
           title: 'Test Notification',
-          message: 'This is a test notification from AJAI Teams Widget',
+          message: 'This is a test notification from Cobecium Teams Widget',
           action: 'test',
         });
 

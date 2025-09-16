@@ -12,6 +12,7 @@ import { JobDetailsPage } from "./pages/JobDetailsPage";
 import { ResumeDetailsPage } from "./pages/ResumeDetailsPage";
 import { KfcManagementPage } from "./pages/KfcManagementPage";
 import { HRDashboardPage } from "./pages/HRDashboardPage";
+import { LeadsManagementPage } from "./pages/LeadsManagementPage";
 import TempChatPage from "./pages/TempChatPage";
 import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider } from "./lib/ThemeContext";
@@ -67,7 +68,8 @@ function AuthenticatedApp() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HRDashboardPage />} />
+        <Route path="/home" element={<HomePage />} />
         <Route path="/hr-dashboard" element={<HRDashboardPage />} />
         <Route path="/test-job" element={<div>Test Job Route Works!</div>} />
         <Route path="/job/:jobId" element={<JobDetailsPage />} />
@@ -75,6 +77,7 @@ function AuthenticatedApp() {
         <Route path="/theme-config" element={<ThemeConfigPage />} />
         <Route path="/data-management" element={<DataManagementPage />} />
         <Route path="/kfc-management" element={<KfcManagementPage />} />
+        <Route path="/leads-management" element={<LeadsManagementPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
@@ -86,7 +89,7 @@ function UnauthenticatedApp() {
     <div className="min-h-screen flex items-center justify-center p-8">
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">AJAI</h1>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Cobecium</h1>
           <p className="text-xl text-gray-600 dark:text-gray-300">Sign in to start chatting with AI</p>
         </div>
         <SignInForm />

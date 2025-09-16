@@ -1,7 +1,7 @@
 {
-  "name": "ajai-teams-widget",
+  "name": "cobecium-teams-widget",
   "version": "1.0.0",
-  "description": "AJAI Teams Widget - AI-powered job and resume matching for Microsoft Teams",
+  "description": "Cobecium Teams Widget - AI-powered job and resume matching for Microsoft Teams",
   "private": true,
   "scripts": {
     "dev": "teamsfx start --env local",
@@ -81,6 +81,6 @@
     "vector-search",
     "data-management"
   ],
-  "author": "AJAI Team",
+  "author": "Cobecium Team",
   "license": "MIT"
 } 

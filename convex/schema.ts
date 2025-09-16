@@ -283,6 +283,129 @@ const applicationTables = {
     .index("by_needs_regeneration", ["needsEmbeddingRegeneration"])
     .index("by_usage", ["usageCount"])
     .index("by_effectiveness", ["effectiveness"]),
+
+  // Texas procurement opportunities data
+  opportunities: defineTable({
+    opportunityType: v.string(), // "Public Sector", "Private Sector", etc.
+    opportunityTitle: v.string(), // Title of the opportunity
+    contractID: v.optional(v.string()), // Contract ID if available
+    issuingBody: v.object({
+      name: v.string(), // Name of the issuing organization
+      level: v.string(), // State, Regional, City, County, etc.
+    }),
+    location: v.object({
+      city: v.optional(v.string()), // City name
+      county: v.optional(v.string()), // County name
+      region: v.string(), // Geographic region (Dallas–Fort Worth, Houston, Austin, etc.)
+    }),
+    status: v.string(), // "Budgeted for FY2026", "In Planning Phase", "Open for Bidding", etc.
+    estimatedValueUSD: v.optional(v.number()), // Estimated value in USD
+    keyDates: v.object({
+      publishedDate: v.string(), // Date when opportunity was published
+      bidDeadline: v.optional(v.string()), // Bid deadline if available
+      projectedStartDate: v.optional(v.string()), // Projected start date
+    }),
+    source: v.object({
+      documentName: v.string(), // Name of the source document
+      url: v.string(), // URL to the source
+    }),
+    summary: v.string(), // Detailed summary of the opportunity
+    // Additional fields for enhanced functionality
+    category: v.optional(v.string()), // Opportunity category (Transportation, Aviation, Infrastructure, etc.)
+    subcategory: v.optional(v.string()), // More specific category (Highway, Airport, Digital Infrastructure, etc.)
+    isActive: v.optional(v.boolean()), // Whether the opportunity is currently active
+    lastChecked: v.optional(v.number()), // Timestamp of last data check
+    // Search and embedding fields for future semantic search
+    searchableText: v.optional(v.string()), // Aggregated searchable content
+    embedding: v.optional(v.array(v.number())), // Vector embedding for semantic search
+    embeddingModel: v.optional(v.string()), // Model used for embedding
+    embeddingGeneratedAt: v.optional(v.number()), // When embedding was generated
+    // Metadata
+    metadata: v.optional(v.object({
+      sourceFile: v.optional(v.string()),
+      importedAt: v.number(),
+      dataType: v.string(),
+      originalIndex: v.optional(v.number()),
+    })),
+    createdAt: v.number(), // When opportunity was created
+    updatedAt: v.number(), // When opportunity was last updated
+  }).index("by_opportunity_type", ["opportunityType"])
+    .index("by_issuing_level", ["issuingBody.level"])
+    .index("by_region", ["location.region"])
+    .index("by_status", ["status"])
+    .index("by_category", ["category"])
+    .index("by_active", ["isActive"])
+    .index("by_creation", ["createdAt"])
+    .index("by_metadata_import", ["metadata.importedAt"])
+    .index("by_embedding", ["embedding"])
+    .index("by_embedding_model", ["embeddingModel"])
+    .index("by_estimated_value", ["estimatedValueUSD"]),
+
+  // Texas leads data - matches texasLeadsTierOne.json format
+  leads: defineTable({
+    opportunityType: v.string(), // "Public Sector", "Private Subcontract", etc.
+    opportunityTitle: v.string(), // Title of the opportunity
+    contractID: v.optional(v.string()), // Contract ID if available
+    issuingBody: v.object({
+      name: v.string(), // Name of the issuing organization
+      level: v.string(), // State, Regional, City, County, etc.
+    }),
+    location: v.object({
+      city: v.optional(v.string()), // City name
+      county: v.optional(v.string()), // County name
+      region: v.string(), // Geographic region (Dallas–Fort Worth, Houston, Austin, etc.)
+    }),
+    status: v.string(), // "Active / Open for Task Orders", "Open for Bidding", etc.
+    estimatedValueUSD: v.optional(v.number()), // Estimated value in USD
+    keyDates: v.object({
+      publishedDate: v.optional(v.string()), // Date when opportunity was published
+      bidDeadline: v.optional(v.string()), // Bid deadline if available
+      projectedStartDate: v.optional(v.string()), // Projected start date
+    }),
+    source: v.object({
+      documentName: v.string(), // Name of the source document
+      url: v.string(), // URL to the source
+    }),
+    contacts: v.array(v.object({
+      name: v.optional(v.string()), // Contact person name (can be null)
+      title: v.string(), // Contact person title
+      email: v.optional(v.string()), // Contact email
+      phone: v.optional(v.string()), // Contact phone
+      url: v.optional(v.string()), // Contact URL
+    })),
+    summary: v.string(), // Detailed summary of the opportunity
+    verificationStatus: v.optional(v.string()), // Verification status (e.g., "Verified", "Pending – Requires Portal Login")
+    // Additional fields for enhanced functionality
+    category: v.optional(v.string()), // Opportunity category
+    subcategory: v.optional(v.string()), // More specific category
+    isActive: v.optional(v.boolean()), // Whether the opportunity is currently active
+    lastChecked: v.optional(v.number()), // Timestamp of last data check
+    // Search and embedding fields for future semantic search
+    searchableText: v.optional(v.string()), // Aggregated searchable content
+    embedding: v.optional(v.array(v.number())), // Vector embedding for semantic search
+    embeddingModel: v.optional(v.string()), // Model used for embedding
+    embeddingGeneratedAt: v.optional(v.number()), // When embedding was generated
+    // Metadata
+    metadata: v.optional(v.object({
+      sourceFile: v.optional(v.string()),
+      importedAt: v.number(),
+      dataType: v.string(),
+      originalIndex: v.optional(v.number()),
+    })),
+    createdAt: v.number(), // When lead was created
+    updatedAt: v.number(), // When lead was last updated
+  }).index("by_opportunity_type", ["opportunityType"])
+    .index("by_issuing_level", ["issuingBody.level"])
+    .index("by_region", ["location.region"])
+    .index("by_status", ["status"])
+    .index("by_category", ["category"])
+    .index("by_active", ["isActive"])
+    .index("by_verification_status", ["verificationStatus"])
+    .index("by_creation", ["createdAt"])
+    .index("by_metadata_import", ["metadata.importedAt"])
+    .index("by_embedding", ["embedding"])
+    .index("by_embedding_model", ["embeddingModel"])
+    .index("by_estimated_value", ["estimatedValueUSD"]),
 };
 
 export default defineSchema({

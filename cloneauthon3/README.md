@@ -1,4 +1,4 @@
-# AJAI Clone Implementation
+# Cobecium Clone Implementation
   
 This is a project built with [Convex](https://convex.dev) as its backend.
   

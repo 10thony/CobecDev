@@ -46,16 +46,10 @@ interface VectorSearchPrompt {
 export const generateVectorAwareEmbedding = action({
   args: {
     text: v.string(),
-    context: v.object({
-      type: v.union(v.literal("resume"), v.literal("job_posting"), v.literal("user_query")),
-      industry: v.optional(v.string()),
-      skills: v.optional(v.array(v.string())),
-      location: v.optional(v.string()),
-      experience_level: v.optional(v.string()),
-    }),
+    context: v.any(),
     usePromptEnhancement: v.optional(v.boolean()),
     useSkillEnhancement: v.optional(v.boolean()),
-    model: v.optional(v.literal("gemini-text-embedding-004")),
+    model: v.optional(v.string()),
   },
   handler: async (ctx, { 
     text, 
@@ -146,12 +140,12 @@ export const generateVectorAwareEmbedding = action({
  */
 export const generateBatchVectorEmbeddings = action({
   args: {
-    collection: v.union(v.literal("resumes"), v.literal("jobpostings")),
+    collection: v.string(),
     documentIds: v.optional(v.array(v.string())),
     batchSize: v.optional(v.number()),
     forceRegenerate: v.optional(v.boolean()),
   },
-  handler: async (ctx, { collection, documentIds, batchSize = 10, forceRegenerate = false }) => {
+  handler: async (ctx, { collection, documentIds, batchSize = 10, forceRegenerate = false }): Promise<any> => {
     try {
       const results = {
         total: 0,
@@ -239,15 +233,10 @@ export const generateBatchVectorEmbeddings = action({
 export const vectorAwareSemanticSearch = action({
   args: {
     query: v.string(),
-    targetCollection: v.union(v.literal("resumes"), v.literal("jobpostings"), v.literal("both")),
+    targetCollection: v.string(),
     limit: v.optional(v.number()),
     minSimilarity: v.optional(v.number()),
-    context: v.optional(v.object({
-      industry: v.optional(v.string()),
-      skills: v.optional(v.array(v.string())),
-      location: v.optional(v.string()),
-      experience_level: v.optional(v.string()),
-    })),
+    context: v.optional(v.any()),
   },
   handler: async (ctx, { query, targetCollection, limit = 20, minSimilarity = 0.5, context }): Promise<any> => {
     try {

@@ -1,0 +1,2202 @@
+{
+    "opportunities": [
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Dallas – Cloud ERP Implementation",
+        "contractID": "DAL-IT-2026-045",
+        "issuingBody": {
+          "name": "City of Dallas IT Department",
+          "level": "City"
+        },
+        "location": {
+          "city": "Dallas",
+          "county": "Dallas County",
+          "region": "Texas Triangle"
+        },
+        "status": "In Procurement",
+        "estimatedValueUSD": 45000000,
+        "keyDates": {
+          "publishedDate": "2025-02-15",
+          "bidDeadline": "2025-06-30",
+          "projectedStartDate": "2026-01-01"
+        },
+        "source": {
+          "documentName": "Dallas Bonfire Procurement Portal",
+          "url": "https://dallascityhall.bonfirehub.com/opportunities"
+        },
+        "summary": "Implementation of a cloud-based ERP to replace legacy finance, HR, and payroll systems.",
+        "contacts": [
+          {
+            "name": "Dallas Procurement Services",
+            "title": "Procurement Contact",
+            "url": "https://dallascityhall.com/departments/procurement"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Houston Metro IT Systems Upgrade",
+        "contractID": "HOU-METRO-2027-002",
+        "issuingBody": {
+          "name": "Metropolitan Transit Authority of Harris County",
+          "level": "Transit Authority"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris County",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted for FY2027",
+        "estimatedValueUSD": 30000000,
+        "keyDates": {
+          "publishedDate": "2024-11-01",
+          "bidDeadline": "2025-04-15",
+          "projectedStartDate": "2027-01-15"
+        },
+        "source": {
+          "documentName": "METRO Procurement",
+          "url": "https://ridemetro.org/pages/doingbusinesswithmetro"
+        },
+        "summary": "Comprehensive IT system upgrade including fare collection modernization and real-time passenger data systems.",
+        "contacts": [
+          {
+            "name": "METRO Procurement",
+            "title": "Vendor Outreach",
+            "url": "https://ridemetro.org/pages/doingbusinesswithmetro"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Austin Smart City Data Platform",
+        "contractID": "AUS-SMART-2026-014",
+        "issuingBody": {
+          "name": "City of Austin Innovation Office",
+          "level": "City"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis County",
+          "region": "Texas Triangle"
+        },
+        "status": "Planning Phase",
+        "estimatedValueUSD": 25000000,
+        "keyDates": {
+          "publishedDate": "2024-12-10",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-06-01"
+        },
+        "source": {
+          "documentName": "Austin Finance Online",
+          "url": "https://financeonline.austintexas.gov/afo/account_services/solicitation/solicitations.cfm"
+        },
+        "summary": "Creation of an integrated smart city platform aggregating IoT, mobility, and public safety data.",
+        "contacts": [
+          {
+            "name": "City of Austin Purchasing Office",
+            "title": "Procurement Contact",
+            "url": "https://www.austintexas.gov/department/purchasing"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "San Antonio Police Records Management System Replacement",
+        "contractID": "SA-IT-2026-019",
+        "issuingBody": {
+          "name": "San Antonio Police Department",
+          "level": "City"
+        },
+        "location": {
+          "city": "San Antonio",
+          "county": "Bexar County",
+          "region": "Texas Triangle"
+        },
+        "status": "Active RFP",
+        "estimatedValueUSD": 15000000,
+        "keyDates": {
+          "publishedDate": "2025-01-20",
+          "bidDeadline": "2025-05-30",
+          "projectedStartDate": "2026-02-01"
+        },
+        "source": {
+          "documentName": "San Antonio Supplier Portal",
+          "url": "https://supplierservices.sanantonio.gov/"
+        },
+        "summary": "Replacement of outdated records management system with a cloud-based RMS to improve data accessibility.",
+        "contacts": [
+          {
+            "name": "City of San Antonio Finance",
+            "title": "Procurement Division",
+            "url": "https://supplierservices.sanantonio.gov/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Texas Instruments – Richardson Campus Expansion IT Systems",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Texas Instruments",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Richardson",
+          "county": "Dallas County",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-09-01",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-09-15"
+        },
+        "source": {
+          "documentName": "Texas Instruments Supplier Portal",
+          "url": "https://supplier.ti.com/"
+        },
+        "summary": "TI is seeking IT subcontractors to implement secure network infrastructure for its Richardson fab expansion.",
+        "contacts": [
+          {
+            "name": null,
+            "title": "TI Supplier Portal",
+            "url": "https://supplier.ti.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Harris County Justice Systems IT Overhaul",
+        "contractID": "HC-JUSTICE-2027-003",
+        "issuingBody": {
+          "name": "Harris County Office of Justice Technology",
+          "level": "County"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris County",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted for FY2027",
+        "estimatedValueUSD": 18000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2027-03-01"
+        },
+        "source": {
+          "documentName": "Harris County Purchasing",
+          "url": "https://purchasing.harriscountytx.gov/"
+        },
+        "summary": "Replacement of legacy case management and court scheduling systems with modern cloud-based platform.",
+        "contacts": [
+          {
+            "name": "Purchasing Office",
+            "title": "Harris County Procurement",
+            "url": "https://purchasing.harriscountytx.gov/contact"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Fort Worth – IT Service Management Platform",
+        "contractID": "FW-ITSM-2026-012",
+        "issuingBody": {
+          "name": "City of Fort Worth IT Solutions Department",
+          "level": "City"
+        },
+        "location": {
+          "city": "Fort Worth",
+          "county": "Tarrant County",
+          "region": "Texas Triangle"
+        },
+        "status": "In Planning Phase",
+        "estimatedValueUSD": 12000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2026-11-01"
+        },
+        "source": {
+          "documentName": "Fort Worth Procurement",
+          "url": "https://fortworthtexas.gov/departments/finance/purchasing"
+        },
+        "summary": "Deployment of a modern ITSM platform for ticketing, incident management, and service automation.",
+        "contacts": [
+          {
+            "name": null,
+            "title": "Fort Worth IT Solutions",
+            "url": "https://fortworthtexas.gov/departments/it"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Fluor – San Antonio Data Center Project",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Fluor Corporation",
+          "level": "Private"
+        },
+        "location": {
+          "city": "San Antonio",
+          "county": "Bexar County",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-08-22",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-06-15"
+        },
+        "source": {
+          "documentName": "Fluor Subcontractor Portal",
+          "url": "https://supplier.fluor.com/"
+        },
+        "summary": "Fluor seeking IT subcontractors for Tier III data center construction and commissioning in San Antonio.",
+        "contacts": [
+          {
+            "name": null,
+            "title": "Fluor Supplier Registration",
+            "url": "https://supplier.fluor.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Plano – Smart City Sensor Network",
+        "contractID": "PLANO-SMART-2026-009",
+        "issuingBody": {
+          "name": "City of Plano Technology Services",
+          "level": "City"
+        },
+        "location": {
+          "city": "Plano",
+          "county": "Collin County",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted for FY2026",
+        "estimatedValueUSD": 9500000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2026-08-01"
+        },
+        "source": {
+          "documentName": "Plano Procurement",
+          "url": "https://planotx.org/bids.aspx"
+        },
+        "summary": "Implementation of citywide IoT sensor network for traffic, utilities, and environmental monitoring.",
+        "contacts": [
+          {
+            "name": "City Procurement",
+            "title": "Plano Procurement Office",
+            "url": "https://planotx.org/finance"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Williamson County – Broadband Expansion IT Support",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Williamson County IT Department",
+          "level": "County"
+        },
+        "location": {
+          "city": "Georgetown",
+          "county": "Williamson County",
+          "region": "Texas Triangle"
+        },
+        "status": "In Planning Phase",
+        "estimatedValueUSD": 6000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2027-02-01"
+        },
+        "source": {
+          "documentName": "Williamson County Purchasing",
+          "url": "https://www.wilcotx.gov/departments/purchasing/"
+        },
+        "summary": "IT and project management support for countywide broadband rollout under federal/state funding.",
+        "contacts": [
+          {
+            "name": null,
+            "title": "County Purchasing",
+            "url": "https://www.wilcotx.gov/departments/purchasing/contact"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Bechtel – Dallas Fiber Backbone Expansion",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Bechtel Corporation",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Dallas",
+          "county": "Dallas County",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-07-30",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-09-01"
+        },
+        "source": {
+          "documentName": "Bechtel Supplier Registration",
+          "url": "https://supplier.bechtel.com/"
+        },
+        "summary": "Bechtel looking for IT subcontractors for Dallas metro dark fiber backbone expansion project.",
+        "contacts": [
+          {
+            "name": null,
+            "title": "Bechtel Vendor Portal",
+            "url": "https://supplier.bechtel.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Arlington – Cloud-Based Public Safety CAD",
+        "contractID": "ARL-PS-2027-004",
+        "issuingBody": {
+          "name": "City of Arlington Police Department",
+          "level": "City"
+        },
+        "location": {
+          "city": "Arlington",
+          "county": "Tarrant County",
+          "region": "Texas Triangle"
+        },
+        "status": "In Planning Phase",
+        "estimatedValueUSD": 22000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2027-01-01"
+        },
+        "source": {
+          "documentName": "Arlington Procurement Portal",
+          "url": "https://arlingtontexas.bonfirehub.com/opportunities"
+        },
+        "summary": "Procurement of cloud-based computer-aided dispatch (CAD) system for public safety communications.",
+        "contacts": [
+          {
+            "name": null,
+            "title": "Arlington Procurement",
+            "url": "https://arlingtontx.gov/city_hall/departments/purchasing"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Houston – Cybersecurity Operations Center",
+        "contractID": "HOU-SEC-2026-011",
+        "issuingBody": {
+          "name": "City of Houston IT Services",
+          "level": "City"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Active RFP",
+        "estimatedValueUSD": 17000000,
+        "keyDates": {
+          "publishedDate": "2025-02-10",
+          "bidDeadline": "2025-07-15",
+          "projectedStartDate": "2026-02-01"
+        },
+        "source": {
+          "documentName": "City of Houston Strategic Procurement - Solicitations",
+          "url": "https://purchasing.houstontx.gov/"
+        },
+        "summary": "Creation of a centralized Security Operations Center (SOC) to monitor city IT systems; contract to include managed detection/response, SIEM, incident response, and staff augmentation.",
+        "contacts": [
+          {
+            "name": "City of Houston Strategic Procurement",
+            "title": "Procurement Office",
+            "email": "StrategicPurchasing@houstontx.gov",
+            "phone": "832-393-8700",
+            "url": "https://purchasing.houstontx.gov/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Dallas County – Digital Records & eDiscovery System",
+        "contractID": "DALCO-IT-2026-005",
+        "issuingBody": {
+          "name": "Dallas County IT",
+          "level": "County"
+        },
+        "location": {
+          "city": "Dallas",
+          "county": "Dallas",
+          "region": "Texas Triangle"
+        },
+        "status": "Planning Phase",
+        "estimatedValueUSD": 12000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2026-04-15"
+        },
+        "source": {
+          "documentName": "Dallas County Purchasing - Current Bids",
+          "url": "https://www.dallascounty.org/departments/purchasing/current-bids.php"
+        },
+        "summary": "Countywide eDiscovery, records digitization and searchable archive for courts and archives; likely to require DBAs, data migration, and eDiscovery tool integrators.",
+        "contacts": [
+          {
+            "name": "Dallas County Purchasing",
+            "title": "Purchasing Office",
+            "email": null,
+            "phone": "(214) 653-7038",
+            "url": "https://www.dallascounty.org/departments/purchasing/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Jacobs – Austin Digital Twin & Transit Data Platform (Project Connect)",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Jacobs Engineering",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-09-20",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-07-01"
+        },
+        "source": {
+          "documentName": "Jacobs Supplier Portal",
+          "url": "https://www.jacobs.com/suppliers"
+        },
+        "summary": "Jacobs prime on transit/digital twin efforts via Project Connect and associated programs; subcontractor needs include data engineering, GIS, DevOps, and integration services.",
+        "contacts": [
+          {
+            "name": "Jacobs Supplier Relations",
+            "title": "Supplier Registration",
+            "email": null,
+            "phone": null,
+            "url": "https://www.jacobs.com/suppliers"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Travis County – Cloud Document Management Migration",
+        "contractID": "TC-DOC-2026-008",
+        "issuingBody": {
+          "name": "Travis County IT Services",
+          "level": "County"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted FY2026",
+        "estimatedValueUSD": 9500000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2026-09-01"
+        },
+        "source": {
+          "documentName": "Travis County Purchasing",
+          "url": "https://www.traviscountytx.gov/purchasing"
+        },
+        "summary": "Migration of countywide document storage and workflow to a cloud-based DMS; opportunities for ECM integrators, DB migration, and PM services.",
+        "contacts": [
+          {
+            "name": "Travis County Purchasing",
+            "title": "Purchasing / Solicitation Office",
+            "email": null,
+            "phone": "(512) 854-9700",
+            "url": "https://www.traviscountytx.gov/purchasing/contact"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of San Antonio – DevOps Managed Services",
+        "contractID": "SA-DEVOPS-2027-003",
+        "issuingBody": {
+          "name": "City of San Antonio IT Department",
+          "level": "City"
+        },
+        "location": {
+          "city": "San Antonio",
+          "county": "Bexar",
+          "region": "Texas Triangle"
+        },
+        "status": "Active RFP",
+        "estimatedValueUSD": 10500000,
+        "keyDates": {
+          "publishedDate": "2025-03-01",
+          "bidDeadline": "2025-06-30",
+          "projectedStartDate": "2027-01-15"
+        },
+        "source": {
+          "documentName": "San Antonio Supplier Portal",
+          "url": "https://supplierservices.sanantonio.gov/"
+        },
+        "summary": "Managed DevOps services to support CI/CD, cloud operations and application lifecycle for city applications.",
+        "contacts": [
+          {
+            "name": "San Antonio Procurement Services",
+            "title": "Procurement Office",
+            "email": null,
+            "phone": null,
+            "url": "https://www.sanantonio.gov/OSA/Business-with-the-City"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Texas Department of Transportation – IT Program Portfolio Management Tool",
+        "contractID": "TXDOT-IT-2026-021",
+        "issuingBody": {
+          "name": "Texas Department of Transportation (TxDOT)",
+          "level": "State"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted FY2026",
+        "estimatedValueUSD": 28000000,
+        "keyDates": {
+          "publishedDate": "2024-12-05",
+          "bidDeadline": "2025-05-15",
+          "projectedStartDate": "2026-04-01"
+        },
+        "source": {
+          "documentName": "TxDOT PlansOnline / Procurement",
+          "url": "https://plansonline.dot.state.tx.us/"
+        },
+        "summary": "Enterprise program/portfolio tool to standardize IT project delivery across TxDOT districts; includes integrations, reporting and training.",
+        "contacts": [
+          {
+            "name": "TxDOT Procurement / PlansOnline",
+            "title": "Procurement Contact",
+            "email": null,
+            "phone": null,
+            "url": "https://plansonline.dot.state.tx.us/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Kiewit – Houston Data Center IT Subcontracting",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Kiewit Corporation",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-09-10",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-11-01"
+        },
+        "source": {
+          "documentName": "Kiewit Subcontractors",
+          "url": "https://www.kiewit.com/subcontractors"
+        },
+        "summary": "Kiewit prime looking for IT subcontractors for cloud, server, and network infrastructure in a Houston-area data center project.",
+        "contacts": [
+          {
+            "name": "Kiewit Subcontractor Relations",
+            "title": "Subcontractor Registration",
+            "email": null,
+            "phone": null,
+            "url": "https://www.kiewit.com/subcontractors"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "DFW Airport – Enterprise Database Modernization",
+        "contractID": "DFW-DB-2027-002",
+        "issuingBody": {
+          "name": "Dallas-Fort Worth International Airport Board",
+          "level": "Regional"
+        },
+        "location": {
+          "city": "DFW",
+          "county": null,
+          "region": "Texas Triangle"
+        },
+        "status": "In Planning Phase",
+        "estimatedValueUSD": 50000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2027-06-01"
+        },
+        "source": {
+          "documentName": "DFW Procurement & Contracts",
+          "url": "https://www.dfwairport.com/business/procurement/"
+        },
+        "summary": "Consolidation and modernization of enterprise databases across airport operations; opportunities for DBAs, data architects, and migration SMEs.",
+        "contacts": [
+          {
+            "name": "DFW Procurement",
+            "title": "Procurement Office",
+            "email": null,
+            "phone": null,
+            "url": "https://www.dfwairport.com/business/procurement/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "METRO (Houston) – Enterprise Video Management System (VMS)",
+        "contractID": "METRO-VMS-2025",
+        "issuingBody": {
+          "name": "Metropolitan Transit Authority of Harris County (METRO)",
+          "level": "Regional"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Published RFP",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2025-01-27",
+          "bidDeadline": "2025-02-26",
+          "projectedStartDate": "2026-01-01"
+        },
+        "source": {
+          "documentName": "METRO RFP (VMS) - Public PDF",
+          "url": "https://media.governmentnavigator.com/media/bid/1738102884_2025-01-28_Doc1396382938.pdf"
+        },
+        "summary": "RFP to consolidate and expand video management systems across METRO assets; storage architects and integrators needed.",
+        "contacts": [
+          {
+            "name": "Jalisa Blocker",
+            "title": "Senior Contract Administrator",
+            "email": "jalisa.blocker@ridemetro.org",
+            "phone": "713-652-8632",
+            "url": "https://www.ridemetro.org/about/business-to-business/procurement-opportunities"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Austin – Cybersecurity Operations Center",
+        "contractID": "AUS-CYBER-2026-015",
+        "issuingBody": {
+          "name": "City of Austin Communications & Technology Management",
+          "level": "City"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "In Planning Phase",
+        "estimatedValueUSD": 42000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2026-10-01"
+        },
+        "source": {
+          "documentName": "City of Austin - FinanceOnline Solicitations",
+          "url": "https://financeonline.austintexas.gov/afo/account_services/solicitation/solicitations.cfm"
+        },
+        "summary": "Citywide SOC to centralize security monitoring and threat response. Will require SIEM, MDR, SOC tooling, and personnel augmentation.",
+        "contacts": [
+          {
+            "name": "City of Austin CTM",
+            "title": "Communications & Technology Management",
+            "email": null,
+            "phone": null,
+            "url": "https://www.austintexas.gov/department/communications-and-technology-management"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "AECOM – TxDOT Digital Asset Management Platform Subcontract",
+        "contractID": null,
+        "issuingBody": {
+          "name": "AECOM",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-09-15",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-05-01"
+        },
+        "source": {
+          "documentName": "AECOM Supplier Portal",
+          "url": "https://aecom.com/suppliers/"
+        },
+        "summary": "Prime contractor opportunities for AECOM on TxDOT asset modernization; roles include GIS, DB management, and PMO support.",
+        "contacts": [
+          {
+            "name": "AECOM Supplier Relations",
+            "title": "Vendor Registration",
+            "email": null,
+            "phone": null,
+            "url": "https://aecom.com/suppliers/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Plano – Smart City Sensor Network",
+        "contractID": "PLANO-SMART-2026-009",
+        "issuingBody": {
+          "name": "City of Plano Technology Services",
+          "level": "City"
+        },
+        "location": {
+          "city": "Plano",
+          "county": "Collin",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted for FY2026",
+        "estimatedValueUSD": 9500000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2026-08-01"
+        },
+        "source": {
+          "documentName": "Plano Bids & Procurement",
+          "url": "https://www.planotx.org/221/Bids-RFPs"
+        },
+        "summary": "Citywide IoT sensor network for traffic, environmental and utilities monitoring; opportunities for network engineers and data ingestion teams.",
+        "contacts": [
+          {
+            "name": "City of Plano Purchasing",
+            "title": "Purchasing Office",
+            "email": null,
+            "phone": null,
+            "url": "https://www.planotx.org/finance"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Williamson County – Broadband Expansion IT Support",
+        "contractID": "WILCO-BB-2027-001",
+        "issuingBody": {
+          "name": "Williamson County IT",
+          "level": "County"
+        },
+        "location": {
+          "city": "Georgetown",
+          "county": "Williamson",
+          "region": "Texas Triangle"
+        },
+        "status": "In Planning Phase",
+        "estimatedValueUSD": 6000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2027-02-01"
+        },
+        "source": {
+          "documentName": "Williamson County Purchasing",
+          "url": "https://www.wilcotx.gov/departments/purchasing/"
+        },
+        "summary": "Project management and IT support for countywide broadband rollout funded via federal and state grants.",
+        "contacts": [
+          {
+            "name": "Williamson County Purchasing",
+            "title": "Purchasing / Vendor Services",
+            "email": null,
+            "phone": null,
+            "url": "https://www.wilcotx.gov/departments/purchasing/contact"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Bechtel – Dallas Fiber Backbone Expansion (subcontracting)",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Bechtel Corporation",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Dallas",
+          "county": "Dallas",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-07-30",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-09-01"
+        },
+        "source": {
+          "documentName": "Bechtel Supplier Registration",
+          "url": "https://supplier.bechtel.com/"
+        },
+        "summary": "Dark-fiber backbone expansion in Dallas metro — looking for fiber engineers, splicing crews, network integrators, and O&M subcontractors.",
+        "contacts": [
+          {
+            "name": "Bechtel Supplier Registration",
+            "title": "Supplier Relations",
+            "email": null,
+            "phone": null,
+            "url": "https://supplier.bechtel.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Fort Worth – IT Service Management (ITSM) & CMDB",
+        "contractID": "FW-ITSM-2026-012",
+        "issuingBody": {
+          "name": "City of Fort Worth IT Solutions",
+          "level": "City"
+        },
+        "location": {
+          "city": "Fort Worth",
+          "county": "Tarrant",
+          "region": "Texas Triangle"
+        },
+        "status": "In Planning Phase",
+        "estimatedValueUSD": 12000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2026-11-01"
+        },
+        "source": {
+          "documentName": "Fort Worth Purchasing",
+          "url": "https://www.fortworthtexas.gov/departments/finance/purchasing"
+        },
+        "summary": "ITSM platform and CMDB deployment to centralize incidents, changes, and asset management.",
+        "contacts": [
+          {
+            "name": "Fort Worth Purchasing",
+            "title": "Procurement Office",
+            "email": null,
+            "phone": null,
+            "url": "https://www.fortworthtexas.gov/departments/finance/purchasing"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Houston ISD – Districtwide Network Refresh (E-Rate)",
+        "contractID": "HISD-NW-2026-001",
+        "issuingBody": {
+          "name": "Houston Independent School District",
+          "level": "School District"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Planned / E-Rate Cycle",
+        "estimatedValueUSD": 9000000,
+        "keyDates": {
+          "publishedDate": "2025-08-01",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-07-01"
+        },
+        "source": {
+          "documentName": "HISD Purchasing & Contracts",
+          "url": "https://www.houstonisd.org/purchasing"
+        },
+        "summary": "Districtwide core/edge switch and wireless refresh funded in part by E-Rate; roles include network engineering and installers.",
+        "contacts": [
+          {
+            "name": "HISD Purchasing",
+            "title": "Purchasing Department",
+            "email": null,
+            "phone": null,
+            "url": "https://www.houstonisd.org/purchasing"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Austin ISD – Wireless & WAN Refresh (E-Rate)",
+        "contractID": "AISD-WAN-2026-002",
+        "issuingBody": {
+          "name": "Austin Independent School District",
+          "level": "School District"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Forecasted / E-Rate",
+        "estimatedValueUSD": 7000000,
+        "keyDates": {
+          "publishedDate": "2025-10-15",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-08-01"
+        },
+        "source": {
+          "documentName": "AISD Contracts & Procurement",
+          "url": "https://www.austinisd.org/cp/bids"
+        },
+        "summary": "Wireless AP refresh and WAN upgrades for campus connectivity; typical E-Rate procurement cycles.",
+        "contacts": [
+          {
+            "name": "AISD Procurement",
+            "title": "Contract & Procurement",
+            "email": null,
+            "phone": null,
+            "url": "https://www.austinisd.org/cp/bids"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "San Antonio – 311/CRM Modernization",
+        "contractID": "SA-311-2026-007",
+        "issuingBody": {
+          "name": "City of San Antonio – 311 Services",
+          "level": "City"
+        },
+        "location": {
+          "city": "San Antonio",
+          "county": "Bexar",
+          "region": "Texas Triangle"
+        },
+        "status": "Planned / Forecast",
+        "estimatedValueUSD": 8000000,
+        "keyDates": {
+          "publishedDate": "2025-07-15",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-05-01"
+        },
+        "source": {
+          "documentName": "San Antonio Procurement Forecast",
+          "url": "https://www.sanantonio.gov/OSA/Business-with-the-City"
+        },
+        "summary": "Replacement of the 311/CRM platform to improve citizen engagement and case management; integration and ongoing support opportunities.",
+        "contacts": [
+          {
+            "name": "City of San Antonio Procurement",
+            "title": "Procurement Division",
+            "email": null,
+            "phone": null,
+            "url": "https://www.sanantonio.gov/OSA/Business-with-the-City"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Fluor – San Antonio Data Center Project (IT subcontracting)",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Fluor Corporation",
+          "level": "Private"
+        },
+        "location": {
+          "city": "San Antonio",
+          "county": "Bexar",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-08-22",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-06-15"
+        },
+        "source": {
+          "documentName": "Fluor Supplier Portal",
+          "url": "https://supplier.fluor.com/"
+        },
+        "summary": "Prime contractor seeking IT subcontractors for Tier III data center build — cabling, racking, network, virtualization and commissioning support.",
+        "contacts": [
+          {
+            "name": "Fluor Supplier Registration",
+            "title": "Supplier Relations",
+            "email": null,
+            "phone": null,
+            "url": "https://supplier.fluor.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Port of Houston Authority – IT Infrastructure & OT Cybersecurity",
+        "contractID": "POH-IT-2026-013",
+        "issuingBody": {
+          "name": "Port of Houston Authority",
+          "level": "Regional"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Planned / Ongoing",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2025-03-01",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-01-01"
+        },
+        "source": {
+          "documentName": "Port Houston - Contracts and Procurement",
+          "url": "https://porthouston.com/financial/contracts-and-procurement/"
+        },
+        "summary": "Port IT modernization, OT/SCADA segmentation, and ICS cybersecurity work for port facilities.",
+        "contacts": [
+          {
+            "name": "Port Houston Procurement",
+            "title": "Strategic Sourcing",
+            "email": "procurement@porthouston.com",
+            "phone": "713-670-2460",
+            "url": "https://porthouston.com/about/our-port/contact-us/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "CapMetro (Austin) – CRM Replacement & Data Platform",
+        "contractID": "CAPMETRO-CRM-2026-004",
+        "issuingBody": {
+          "name": "Capital Metropolitan Transportation Authority",
+          "level": "Regional"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted / Planned",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2025-06-01",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-01-01"
+        },
+        "source": {
+          "documentName": "CapMetro - Purchasing & Procurement",
+          "url": "https://www.capmetro.org/purchasing"
+        },
+        "summary": "CRM replacement and data analytics platform for transit ridership and service operations; opportunities for system integrators and data engineers.",
+        "contacts": [
+          {
+            "name": "CapMetro Procurement",
+            "title": "Procurement Department",
+            "email": "procure-help@capmetro.org",
+            "phone": "512-389-7460",
+            "url": "https://www.capmetro.org/purchasing"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Dallas – Enterprise Cloud Storage Migration",
+        "contractID": "DAL-IT-2026-031",
+        "issuingBody": {
+          "name": "City of Dallas IT Services",
+          "level": "City"
+        },
+        "location": {
+          "city": "Dallas",
+          "county": "Dallas",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted FY2026",
+        "estimatedValueUSD": 14500000,
+        "keyDates": {
+          "publishedDate": "2024-11-01",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-06-15"
+        },
+        "source": {
+          "documentName": "Dallas Bonfire / Procurement Portal",
+          "url": "https://dallascityhall.bonfirehub.com/"
+        },
+        "summary": "Citywide cloud migration of storage and archival systems across municipal departments; opportunities for cloud architects, DBAs, and migration specialists.",
+        "contacts": [
+          {
+            "name": "Dallas Procurement Services",
+            "title": "Office of Procurement Services",
+            "email": "askprocurement@dallascityhall.com",
+            "phone": "(214) 670-3326",
+            "url": "https://dallascityhall.com/departments/procurement"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Harris County – Network Infrastructure Refresh",
+        "contractID": "HARRIS-NET-2026-020",
+        "issuingBody": {
+          "name": "Harris County IT",
+          "level": "County"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Active RFP",
+        "estimatedValueUSD": 18000000,
+        "keyDates": {
+          "publishedDate": "2025-02-12",
+          "bidDeadline": "2025-05-01",
+          "projectedStartDate": "2026-03-01"
+        },
+        "source": {
+          "documentName": "Harris County Purchasing Portal",
+          "url": "https://purchasing.harriscountytx.gov/"
+        },
+        "summary": "Upgrade of wired/wireless infrastructure across county facilities; needs network engineers, integrators, and ongoing maintenance teams.",
+        "contacts": [
+          {
+            "name": "Harris County Purchasing",
+            "title": "Procurement Office",
+            "email": null,
+            "phone": "713-274-4400",
+            "url": "https://purchasing.harriscountytx.gov/Contact-Us"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Fluor – Austin Smart Mobility Data Systems (subcontracting)",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Fluor Corporation",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-10-05",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-09-01"
+        },
+        "source": {
+          "documentName": "Fluor Supplier Portal",
+          "url": "https://supplier.fluor.com/"
+        },
+        "summary": "Prime contractor opportunities for mobility data ingestion, IoT backends, and cloud integration; vendor registration required for notices.",
+        "contacts": [
+          {
+            "name": "Fluor Supplier Relations",
+            "title": "Supplier Management",
+            "email": null,
+            "phone": null,
+            "url": "https://supplier.fluor.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Fort Worth – Enterprise Cybersecurity Upgrade",
+        "contractID": "FW-CYBER-2026-018",
+        "issuingBody": {
+          "name": "City of Fort Worth IT Solutions",
+          "level": "City"
+        },
+        "location": {
+          "city": "Fort Worth",
+          "county": "Tarrant",
+          "region": "Texas Triangle"
+        },
+        "status": "Planning Phase",
+        "estimatedValueUSD": 10000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2026-11-01"
+        },
+        "source": {
+          "documentName": "Fort Worth Purchasing / Bids",
+          "url": "https://www.fortworthtexas.gov/departments/finance/purchasing"
+        },
+        "summary": "Citywide cybersecurity enhancements including SOC tooling, endpoint protection, and managed services.",
+        "contacts": [
+          {
+            "name": "Fort Worth Purchasing",
+            "title": "Procurement Office",
+            "email": null,
+            "phone": null,
+            "url": "https://www.fortworthtexas.gov/departments/finance/purchasing"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Austin ISD – Student Information System Replacement",
+        "contractID": "AISD-IT-2026-044",
+        "issuingBody": {
+          "name": "Austin Independent School District",
+          "level": "School District"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Active RFP",
+        "estimatedValueUSD": 15000000,
+        "keyDates": {
+          "publishedDate": "2025-01-15",
+          "bidDeadline": "2025-06-01",
+          "projectedStartDate": "2026-08-15"
+        },
+        "source": {
+          "documentName": "AISD Procurement & Bids",
+          "url": "https://www.austinisd.org/cp/bids"
+        },
+        "summary": "Replacement of legacy SIS with cloud-hosted platform; opportunities for integrators, data migration specialists, and PMs.",
+        "contacts": [
+          {
+            "name": "AISD Procurement",
+            "title": "Contracts & Procurement",
+            "email": null,
+            "phone": null,
+            "url": "https://www.austinisd.org/cp/bids"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Houston – Smart Traffic Signal Management Platform",
+        "contractID": "HOU-ITS-2027-012",
+        "issuingBody": {
+          "name": "City of Houston Public Works - ITS",
+          "level": "City"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted FY2027",
+        "estimatedValueUSD": 30000000,
+        "keyDates": {
+          "publishedDate": "2024-12-20",
+          "bidDeadline": null,
+          "projectedStartDate": "2027-05-01"
+        },
+        "source": {
+          "documentName": "Houston Strategic Procurement",
+          "url": "https://purchasing.houstontx.gov/"
+        },
+        "summary": "Citywide traffic signal control system integrating AI and IoT sensors; requires network ops, data engineering, and systems integration.",
+        "contacts": [
+          {
+            "name": "Houston Strategic Procurement",
+            "title": "Procurement Office",
+            "email": "StrategicPurchasing@houstontx.gov",
+            "phone": "832-393-8700",
+            "url": "https://purchasing.houstontx.gov/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Jacobs – Data Integration & Digital Twin work (Project Connect & regional transit)",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Jacobs Engineering",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-09-20",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-07-01"
+        },
+        "source": {
+          "documentName": "Jacobs Supplier Portal",
+          "url": "https://supplier.jacobs.com/"
+        },
+        "summary": "Subcontracting opportunities for digital twin, GIS, and data platform tasks tied to transit infrastructure programs.",
+        "contacts": [
+          {
+            "name": "Jacobs Supplier Relations",
+            "title": "Supplier Registration",
+            "email": null,
+            "phone": null,
+            "url": "https://supplier.jacobs.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Travis County – Enterprise Backup & DR Solution",
+        "contractID": "TC-DR-2026-011",
+        "issuingBody": {
+          "name": "Travis County IT Services",
+          "level": "County"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Budgeted FY2026",
+        "estimatedValueUSD": 5500000,
+        "keyDates": {
+          "publishedDate": "2025-05-10",
+          "bidDeadline": "2025-08-01",
+          "projectedStartDate": "2026-02-01"
+        },
+        "source": {
+          "documentName": "Travis County Purchasing",
+          "url": "https://www.traviscountytx.gov/purchasing"
+        },
+        "summary": "Enterprise backup, replication, and disaster recovery platform for county services; opportunities for cloud/DR providers and system integrators.",
+        "contacts": [
+          {
+            "name": "Travis County Purchasing",
+            "title": "Purchasing Office",
+            "email": null,
+            "phone": "(512) 854-9700",
+            "url": "https://www.traviscountytx.gov/purchasing/contact"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of San Antonio – 311/CRM Modernization (Citizen Services)",
+        "contractID": "SA-311-2026-007",
+        "issuingBody": {
+          "name": "City of San Antonio – 311 Services",
+          "level": "City"
+        },
+        "location": {
+          "city": "San Antonio",
+          "county": "Bexar",
+          "region": "Texas Triangle"
+        },
+        "status": "Planned / Forecast",
+        "estimatedValueUSD": 8000000,
+        "keyDates": {
+          "publishedDate": "2025-07-15",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-05-01"
+        },
+        "source": {
+          "documentName": "San Antonio Procurement Forecast / CIP",
+          "url": "https://www.sanantonio.gov/OSA/Business-with-the-City"
+        },
+        "summary": "CRM and 311 platform replacement to modernize citizen engagement; integration, cloud hosting, and ongoing support opportunities.",
+        "contacts": [
+          {
+            "name": "City of San Antonio Procurement",
+            "title": "Procurement Division",
+            "email": null,
+            "phone": null,
+            "url": "https://www.sanantonio.gov/OSA/Business-with-the-City"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Dallas – Public Safety Records Management System (RMS)",
+        "contractID": "DAL-RMS-2027-010",
+        "issuingBody": {
+          "name": "City of Dallas Police Department",
+          "level": "City"
+        },
+        "location": {
+          "city": "Dallas",
+          "county": "Dallas",
+          "region": "Texas Triangle"
+        },
+        "status": "Planning",
+        "estimatedValueUSD": 25000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2027-06-01"
+        },
+        "source": {
+          "documentName": "Dallas Bonfire / Procurement Portal",
+          "url": "https://dallascityhall.bonfirehub.com/"
+        },
+        "summary": "Replacement of Dallas Police RMS with modern cloud-based solution; integration opportunities for CAD and case management.",
+        "contacts": [
+          {
+            "name": "Dallas Procurement Services",
+            "title": "Office of Procurement",
+            "email": "askprocurement@dallascityhall.com",
+            "phone": "(214) 670-3326",
+            "url": "https://dallascityhall.com/departments/procurement"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Houston – Open Data Analytics Platform",
+        "contractID": "HOU-OD-2026-013",
+        "issuingBody": {
+          "name": "City of Houston IT",
+          "level": "City"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Forecast FY2026",
+        "estimatedValueUSD": 15000000,
+        "keyDates": {
+          "publishedDate": "2025-09-01",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-12-01"
+        },
+        "source": {
+          "documentName": "Houston Strategic Procurement",
+          "url": "https://purchasing.houstontx.gov/"
+        },
+        "summary": "Procurement of open data integration and analytics system to serve multiple city agencies.",
+        "contacts": [
+          {
+            "name": "Houston Strategic Procurement",
+            "title": "Procurement Office",
+            "email": "StrategicPurchasing@houstontx.gov",
+            "phone": "832-393-8700",
+            "url": "https://purchasing.houstontx.gov/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Bechtel – San Antonio Smart Grid Subcontract",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Bechtel Corporation",
+          "level": "Private"
+        },
+        "location": {
+          "city": "San Antonio",
+          "county": "Bexar",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-10-15",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-11-01"
+        },
+        "source": {
+          "documentName": "Bechtel Supplier Portal",
+          "url": "https://supplier.bechtel.com/"
+        },
+        "summary": "Prime project for CPS Energy’s smart grid buildout; subcontracting for IT/OT systems integration.",
+        "contacts": [
+          {
+            "name": "Bechtel Supplier Registration",
+            "title": "Supplier Relations",
+            "email": null,
+            "phone": null,
+            "url": "https://supplier.bechtel.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "San Antonio ISD – Learning Management System Upgrade",
+        "contractID": "SAISD-LMS-2026-002",
+        "issuingBody": {
+          "name": "San Antonio Independent School District",
+          "level": "School District"
+        },
+        "location": {
+          "city": "San Antonio",
+          "county": "Bexar",
+          "region": "Texas Triangle"
+        },
+        "status": "RFP Expected 2025",
+        "estimatedValueUSD": 7000000,
+        "keyDates": {
+          "publishedDate": "2025-11-01",
+          "bidDeadline": "2026-03-01",
+          "projectedStartDate": "2026-09-01"
+        },
+        "source": {
+          "documentName": "SAISD Procurement",
+          "url": "https://www.saisd.net/page/purchasing-bids"
+        },
+        "summary": "Upgrade of LMS districtwide; seeking providers for content integration, migration, and IT support.",
+        "contacts": [
+          {
+            "name": "SAISD Procurement",
+            "title": "Contracts Office",
+            "email": null,
+            "phone": null,
+            "url": "https://www.saisd.net/page/purchasing-bids"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "TxDOT – Statewide Cloud-Based Asset Tracking",
+        "contractID": "TXDOT-ASSET-2027-004",
+        "issuingBody": {
+          "name": "Texas Department of Transportation",
+          "level": "State"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Forecast FY2027",
+        "estimatedValueUSD": 60000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2027-05-01"
+        },
+        "source": {
+          "documentName": "TxDOT Procurement Portal",
+          "url": "https://www.txdot.gov/business/contracts.html"
+        },
+        "summary": "Enterprise cloud-based asset management platform spanning TxDOT divisions; multiple subcontracting layers expected.",
+        "contacts": [
+          {
+            "name": "TxDOT Procurement Division",
+            "title": "Contracts & Procurement",
+            "email": null,
+            "phone": null,
+            "url": "https://www.txdot.gov/business/contracts.html"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Austin – Broadband Fiber Expansion",
+        "contractID": "AUS-FIBER-2027-003",
+        "issuingBody": {
+          "name": "City of Austin – Telecommunications",
+          "level": "City"
+        },
+        "location": {
+          "city": "Austin",
+          "county": "Travis",
+          "region": "Texas Triangle"
+        },
+        "status": "Planning",
+        "estimatedValueUSD": 28000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2027-02-15"
+        },
+        "source": {
+          "documentName": "Austin Finance Online",
+          "url": "https://financeonline.austintexas.gov/afo/account_services/solicitation/solicitations.cfm"
+        },
+        "summary": "City fiber network expansion; roles for construction IT integrators, NOC operators, and network engineers.",
+        "contacts": [
+          {
+            "name": "City of Austin Purchasing",
+            "title": "Finance & Purchasing",
+            "email": null,
+            "phone": null,
+            "url": "https://financeonline.austintexas.gov/afo/account_services/solicitation/solicitations.cfm"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of Fort Worth – Emergency Operations IT Upgrade",
+        "contractID": "FW-EOC-2026-014",
+        "issuingBody": {
+          "name": "City of Fort Worth Emergency Management",
+          "level": "City"
+        },
+        "location": {
+          "city": "Fort Worth",
+          "county": "Tarrant",
+          "region": "Texas Triangle"
+        },
+        "status": "Planning",
+        "estimatedValueUSD": 9000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2026-10-01"
+        },
+        "source": {
+          "documentName": "Fort Worth Purchasing",
+          "url": "https://www.fortworthtexas.gov/departments/finance/purchasing"
+        },
+        "summary": "New IT systems and cloud infrastructure to support Fort Worth’s emergency operations center.",
+        "contacts": [
+          {
+            "name": "Fort Worth Purchasing",
+            "title": "Procurement Office",
+            "email": null,
+            "phone": null,
+            "url": "https://www.fortworthtexas.gov/departments/finance/purchasing"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Fluor – Houston Smart Port Digitization Subcontract",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Fluor Corporation",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-08-22",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-12-01"
+        },
+        "source": {
+          "documentName": "Fluor Supplier Portal",
+          "url": "https://supplier.fluor.com/"
+        },
+        "summary": "Digitization and data platform subcontracting for Port of Houston modernization project.",
+        "contacts": [
+          {
+            "name": "Fluor Supplier Relations",
+            "title": "Supplier Management",
+            "email": null,
+            "phone": null,
+            "url": "https://supplier.fluor.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "City of San Antonio – Cloud ERP Replacement",
+        "contractID": "SA-ERP-2027-005",
+        "issuingBody": {
+          "name": "City of San Antonio Finance IT",
+          "level": "City"
+        },
+        "location": {
+          "city": "San Antonio",
+          "county": "Bexar",
+          "region": "Texas Triangle"
+        },
+        "status": "Forecast FY2027",
+        "estimatedValueUSD": 45000000,
+        "keyDates": {
+          "publishedDate": "2025-12-01",
+          "bidDeadline": null,
+          "projectedStartDate": "2027-09-01"
+        },
+        "source": {
+          "documentName": "San Antonio Procurement Forecast",
+          "url": "https://www.sanantonio.gov/OSA/Business-with-the-City"
+        },
+        "summary": "Replacement of city ERP system with a modern SaaS-based solution; needs system integrators and PMOs.",
+        "contacts": [
+          {
+            "name": "City of San Antonio Procurement",
+            "title": "Procurement Office",
+            "email": null,
+            "phone": null,
+            "url": "https://www.sanantonio.gov/OSA/Business-with-the-City"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Dallas County – Court Case Management System",
+        "contractID": "DALCO-COURT-2026-008",
+        "issuingBody": {
+          "name": "Dallas County IT",
+          "level": "County"
+        },
+        "location": {
+          "city": "Dallas",
+          "county": "Dallas",
+          "region": "Texas Triangle"
+        },
+        "status": "Planning",
+        "estimatedValueUSD": 12000000,
+        "keyDates": {
+          "publishedDate": "2025-06-01",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-11-01"
+        },
+        "source": {
+          "documentName": "Dallas County Purchasing",
+          "url": "https://www.dallascounty.org/departments/purchasing/"
+        },
+        "summary": "Countywide replacement of legacy case management with cloud-based solution; integration with justice systems required.",
+        "contacts": [
+          {
+            "name": "Dallas County Purchasing",
+            "title": "Purchasing Dept",
+            "email": null,
+            "phone": "214-653-7431",
+            "url": "https://www.dallascounty.org/departments/purchasing/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Public Sector",
+        "opportunityTitle": "Houston Airport System – Enterprise Cloud Migration",
+        "contractID": "HAS-CLOUD-2027-011",
+        "issuingBody": {
+          "name": "Houston Airport System IT",
+          "level": "Regional"
+        },
+        "location": {
+          "city": "Houston",
+          "county": "Harris",
+          "region": "Texas Triangle"
+        },
+        "status": "Forecast FY2027",
+        "estimatedValueUSD": 50000000,
+        "keyDates": {
+          "publishedDate": null,
+          "bidDeadline": null,
+          "projectedStartDate": "2027-08-01"
+        },
+        "source": {
+          "documentName": "Houston Strategic Procurement",
+          "url": "https://purchasing.houstontx.gov/"
+        },
+        "summary": "Airport IT system cloud migration including ERP, operations, and security subsystems.",
+        "contacts": [
+          {
+            "name": "Houston Strategic Procurement",
+            "title": "Procurement Office",
+            "email": "StrategicPurchasing@houstontx.gov",
+            "phone": "832-393-8700",
+            "url": "https://purchasing.houstontx.gov/"
+          }
+        ],
+        "verificationStatus": "Verified"
+      },
+      {
+        "opportunityType": "Private Subcontract",
+        "opportunityTitle": "Jacobs – Fort Worth Smart Water Infrastructure",
+        "contractID": null,
+        "issuingBody": {
+          "name": "Jacobs Engineering",
+          "level": "Private"
+        },
+        "location": {
+          "city": "Fort Worth",
+          "county": "Tarrant",
+          "region": "Texas Triangle"
+        },
+        "status": "Seeking Subcontractors",
+        "estimatedValueUSD": null,
+        "keyDates": {
+          "publishedDate": "2024-11-01",
+          "bidDeadline": null,
+          "projectedStartDate": "2026-12-01"
+        },
+        "source": {
+          "documentName": "Jacobs Supplier Portal",
+          "url": "https://supplier.jacobs.com/"
+        },
+        "summary": "Subcontract opportunities for IoT, data platforms, and network management on water infrastructure modernization.",
+        "contacts": [
+          {
+            "name": "Jacobs Supplier Relations",
+            "title": "Supplier Registration",
+            "email": null,
+            "phone": null,
+            "url": "https://supplier.jacobs.com/"
+          }
+        ],
+        "verificationStatus": "Pending – Requires Portal Login"
+      },
+          {
+            "opportunityType": "Public Sector",
+            "opportunityTitle": "City of Plano – AI-Powered Public Safety Analytics",
+            "contractID": "PLANO-AI-2027-002",
+            "issuingBody": {
+              "name": "City of Plano Police IT",
+              "level": "City"
+            },
+            "location": {
+              "city": "Plano",
+              "county": "Collin",
+              "region": "Texas Triangle"
+            },
+            "status": "Planning",
+            "estimatedValueUSD": 6500000,
+            "keyDates": {
+              "publishedDate": null,
+              "bidDeadline": null,
+              "projectedStartDate": "2027-03-01"
+            },
+            "source": {
+              "documentName": "Plano Procurement",
+              "url": "https://www.planotx.org/221/Bids-RFPs"
+            },
+            "summary": "AI-enabled public safety analytics platform to enhance law enforcement operations.",
+            "contacts": [
+              {
+                "name": "Plano Purchasing",
+                "title": "Purchasing Dept",
+                "email": null,
+                "phone": null,
+                "url": "https://www.planotx.org/221/Bids-RFPs"
+              }
+            ],
+            "verificationStatus": "Verified"
+          },
+          {
+            "opportunityType": "Public Sector",
+            "opportunityTitle": "Travis County – NextGen Public Safety Radio & IT Support",
+            "contractID": "TC-RADIO-2026-005",
+            "issuingBody": {
+              "name": "Travis County Emergency Communications",
+              "level": "County"
+            },
+            "location": {
+              "city": "Austin",
+              "county": "Travis",
+              "region": "Texas Triangle"
+            },
+            "status": "Forecast FY2026",
+            "estimatedValueUSD": 11000000,
+            "keyDates": {
+              "publishedDate": "2025-10-01",
+              "bidDeadline": null,
+              "projectedStartDate": "2026-09-01"
+            },
+            "source": {
+              "documentName": "Travis County Purchasing",
+              "url": "https://www.traviscountytx.gov/purchasing"
+            },
+            "summary": "Upgrade of countywide radio and IT systems for first responders.",
+            "contacts": [
+              {
+                "name": "Travis County Purchasing",
+                "title": "Purchasing Office",
+                "email": null,
+                "phone": "(512) 854-9700",
+                "url": "https://www.traviscountytx.gov/purchasing/contact"
+              }
+            ],
+            "verificationStatus": "Verified"
+          },
+          {
+            "opportunityType": "Public Sector",
+            "opportunityTitle": "City of Arlington – AI Traffic Management System",
+            "contractID": "ARL-ITS-2026-006",
+            "issuingBody": {
+              "name": "City of Arlington Transportation",
+              "level": "City"
+            },
+            "location": {
+              "city": "Arlington",
+              "county": "Tarrant",
+              "region": "Texas Triangle"
+            },
+            "status": "Planned",
+            "estimatedValueUSD": 20000000,
+            "keyDates": {
+              "publishedDate": "2025-12-15",
+              "bidDeadline": null,
+              "projectedStartDate": "2026-10-01"
+            },
+            "source": {
+              "documentName": "Arlington Bonfire Hub",
+              "url": "https://arlingtontexas.bonfirehub.com/opportunities"
+            },
+            "summary": "Procurement of AI-powered traffic management platform for citywide signal control.",
+            "contacts": [
+              {
+                "name": "Arlington Purchasing",
+                "title": "Procurement Office",
+                "email": null,
+                "phone": null,
+                "url": "https://www.arlingtontx.gov/city_hall/departments/purchasing"
+              }
+            ],
+            "verificationStatus": "Verified"
+          },
+          {
+            "opportunityType": "Public Sector",
+            "opportunityTitle": "Dallas County – Criminal Justice IT Integration",
+            "contractID": "DCJIT-2027-011",
+            "issuingBody": {
+              "name": "Dallas County IT Department",
+              "level": "County"
+            },
+            "location": {
+              "city": "Dallas",
+              "county": "Dallas County",
+              "region": "Texas Triangle"
+            },
+            "status": "Budgeted for FY2027",
+            "estimatedValueUSD": 11000000,
+            "keyDates": {
+              "publishedDate": null,
+              "bidDeadline": null,
+              "projectedStartDate": "2027-10-01"
+            },
+            "source": {
+              "documentName": "Dallas County Procurement",
+              "url": "https://www.dallascounty.org/departments/purchasing/"
+            },
+            "summary": "Project to unify courts, jail, and probation systems into a consolidated digital platform with shared databases.",
+            "contacts": [
+              {
+                "name": "Dallas County Purchasing Department",
+                "title": "Procurement Office",
+                "url": "https://www.dallascounty.org/departments/purchasing/"
+              }
+            ],
+            "verificationStatus": "Verified"
+          },
+          {
+            "opportunityType": "Private Subcontract",
+            "opportunityTitle": "IBM – Texas State Cloud Security Enhancement",
+            "contractID": null,
+            "issuingBody": {
+              "name": "IBM (Prime Contractor)",
+              "level": "Private"
+            },
+            "location": {
+              "city": "Austin",
+              "county": "Travis County",
+              "region": "Texas Triangle"
+            },
+            "status": "Seeking Subcontractors",
+            "estimatedValueUSD": null,
+            "keyDates": {
+              "publishedDate": "2024-12-05",
+              "bidDeadline": null,
+              "projectedStartDate": "2026-11-01"
+            },
+            "source": {
+              "documentName": "IBM Supplier Portal",
+              "url": "https://www.ibm.com/procurement/suppliers"
+            },
+            "summary": "IBM is seeking subcontractors for cloud cybersecurity monitoring and DevSecOps support for statewide government clients.",
+            "contacts": [
+              {
+                "name": null,
+                "title": "IBM Procurement",
+                "url": "https://www.ibm.com/procurement/suppliers"
+              }
+            ],
+            "verificationStatus": "Pending – Requires Portal Login"
+          },
+          {
+            "opportunityType": "Public Sector",
+            "opportunityTitle": "Travis County – Broadband Expansion Database & PMO",
+            "contractID": "TC-BBPM-2028-003",
+            "issuingBody": {
+              "name": "Travis County IT Services",
+              "level": "County"
+            },
+            "location": {
+              "city": "Austin",
+              "county": "Travis County",
+              "region": "Texas Triangle"
+            },
+            "status": "In Planning Phase",
+            "estimatedValueUSD": 13000000,
+            "keyDates": {
+              "publishedDate": null,
+              "bidDeadline": null,
+              "projectedStartDate": "2028-02-15"
+            },
+            "source": {
+              "documentName": "Travis County Procurement",
+              "url": "https://purchasing.co.travis.tx.us/bids_opportunities/"
+            },
+            "summary": "County IT department planning project management office (PMO) and database systems to oversee broadband infrastructure rollout.",
+            "contacts": [
+              {
+                "name": "Travis County Purchasing",
+                "title": "Procurement Office",
+                "url": "https://purchasing.co.travis.tx.us/"
+              }
+            ],
+            "verificationStatus": "Verified"
+          },
+          {
+            "opportunityType": "Public Sector",
+            "opportunityTitle": "City of San Antonio – Digital Twin Infrastructure Program",
+            "contractID": "SA-DT-2026-015",
+            "issuingBody": {
+              "name": "City of San Antonio ITSD",
+              "level": "City"
+            },
+            "location": {
+              "city": "San Antonio",
+              "county": "Bexar County",
+              "region": "Texas Triangle"
+            },
+            "status": "In Planning Phase",
+            "estimatedValueUSD": 60000000,
+            "keyDates": {
+              "publishedDate": null,
+              "bidDeadline": null,
+              "projectedStartDate": "2026-12-01"
+            },
+            "source": {
+              "documentName": "San Antonio Procurement",
+              "url": "https://supplierservices.sanantonio.gov/"
+            },
+            "summary": "Development of a citywide digital twin platform integrating IoT, GIS, and building information modeling (BIM).",
+            "contacts": [
+              {
+                "name": "ITSD Contract Services",
+                "title": "City IT Procurement",
+                "url": "https://www.sanantonio.gov/ITSD"
+              }
+            ],
+            "verificationStatus": "Verified"
+          },
+          {
+            "opportunityType": "Private Subcontract",
+            "opportunityTitle": "Accenture – State of Texas ERP Transformation",
+            "contractID": null,
+            "issuingBody": {
+              "name": "Accenture (Prime Contractor)",
+              "level": "Private"
+            },
+            "location": {
+              "city": "Austin",
+              "county": "Travis County",
+              "region": "Texas Triangle"
+            },
+            "status": "Seeking Subcontractors",
+            "estimatedValueUSD": null,
+            "keyDates": {
+              "publishedDate": "2025-01-18",
+              "bidDeadline": null,
+              "projectedStartDate": "2026-08-01"
+            },
+            "source": {
+              "documentName": "Accenture Subcontracting Portal",
+              "url": "https://www.accenture.com/us-en/about/company/supplier-portal"
+            },
+            "summary": "Accenture seeking subcontractors for software engineering, database migration, and testing for ERP overhaul across multiple state agencies.",
+            "contacts": [
+              {
+                "name": null,
+                "title": "Accenture Supplier Registration",
+                "url": "https://www.accenture.com/us-en/about/company/supplier-portal"
+              }
+            ],
+            "verificationStatus": "Pending – Requires Portal Login"
+          }
+        ]
+      }

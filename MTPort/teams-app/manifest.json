@@ -2,21 +2,21 @@
   "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.14/MicrosoftTeams.schema.json",
   "manifestVersion": "1.14",
   "version": "1.0.0",
-  "id": "ajai-teams-widget",
-  "packageName": "com.ajai.teams.widget",
+  "id": "cobecium-teams-widget",
+  "packageName": "com.cobecium.teams.widget",
   "developer": {
-    "name": "AJAI Team",
-    "websiteUrl": "https://ajai.com",
-    "privacyUrl": "https://ajai.com/privacy",
-    "termsOfUseUrl": "https://ajai.com/terms"
+    "name": "Cobecium Team",
+    "websiteUrl": "https://cobecium.com",
+    "privacyUrl": "https://cobecium.com/privacy",
+    "termsOfUseUrl": "https://cobecium.com/terms"
   },
   "name": {
-    "short": "AJAI Widget",
-    "full": "AJAI Teams Widget - Vector Search, Data Management, and KFC Management"
+    "short": "Cobecium Widget",
+    "full": "Cobecium Teams Widget - Vector Search, Data Management, and KFC Management"
   },
   "description": {
     "short": "AI-powered search and management tools for Teams",
-    "full": "AJAI Teams Widget provides advanced vector search capabilities, data management tools, and KFC nomination management, all integrated seamlessly within Microsoft Teams."
+    "full": "Cobecium Teams Widget provides advanced vector search capabilities, data management tools, and KFC nomination management, all integrated seamlessly within Microsoft Teams."
   },
   "icons": {
     "outline": "outline.png",
@@ -35,8 +35,8 @@
   ],
   "staticTabs": [
     {
-      "entityId": "ajai-main-tab",
-      "name": "AJAI",
+      "entityId": "cobecium-main-tab",
+      "name": "Cobecium",
       "contentUrl": "https://your-app-domain.com",
       "websiteUrl": "https://your-app-domain.com",
       "scopes": [

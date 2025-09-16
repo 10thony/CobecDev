@@ -3,20 +3,20 @@
   "manifestVersion": "1.14",
   "version": "1.0.0",
   "id": "{{TEAMS_APP_ID}}",
-  "packageName": "com.ajai.teams.widget",
+  "packageName": "com.cobecium.teams.widget",
   "developer": {
-    "name": "AJAI Development Team",
-    "websiteUrl": "https://ajai.com",
-    "privacyUrl": "https://ajai.com/privacy",
-    "termsOfUseUrl": "https://ajai.com/terms"
+    "name": "Cobecium Development Team",
+    "websiteUrl": "https://cobecium.com",
+    "privacyUrl": "https://cobecium.com/privacy",
+    "termsOfUseUrl": "https://cobecium.com/terms"
   },
   "name": {
-    "short": "AJAI Teams Widget",
-    "full": "AJAI Teams Widget - AI-powered job and resume matching"
+    "short": "Cobecium Teams Widget",
+    "full": "Cobecium Teams Widget - AI-powered job and resume matching"
   },
   "description": {
     "short": "AI-powered job and resume matching for Microsoft Teams",
-    "full": "AJAI Teams Widget provides intelligent job and resume matching using AI vector search, data management capabilities, and KFC nomination management within Microsoft Teams."
+    "full": "Cobecium Teams Widget provides intelligent job and resume matching using AI vector search, data management capabilities, and KFC nomination management within Microsoft Teams."
   },
   "icons": {
     "outline": "outline.png",

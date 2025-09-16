@@ -11,7 +11,7 @@ export const storeUserQuery = mutation({
     confidence: v.number(),
     timestamp: v.number(),
   },
-  handler: async (ctx, { query, promptsUsed, confidence, timestamp }) => {
+  handler: async (ctx, { query, promptsUsed, confidence, timestamp }): Promise<void> => {
     try {
       // Store user query for future prompt learning
       await ctx.db.insert("userQueries", {
@@ -32,7 +32,7 @@ export const storeUserQuery = mutation({
  */
 export const updateDocumentEmbedding = mutation({
   args: {
-    collectionName: v.union(v.literal("resumes"), v.literal("jobpostings")),
+    collectionName: v.string(),
     documentId: v.string(),
     embedding: v.array(v.number()),
     embeddingModel: v.string(),
@@ -41,7 +41,7 @@ export const updateDocumentEmbedding = mutation({
     confidence: v.number(),
     promptsUsed: v.array(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     try {
       // Find document by identifier
       let document;
@@ -83,16 +83,16 @@ export const getNovelUserQueries = query({
     minUsageCount: v.optional(v.number()),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, { minUsageCount = 3, limit = 50 }) => {
+  handler: async (ctx, { minUsageCount = 3, limit = 50 }): Promise<any[]> => {
     // Get user queries that appear frequently but aren't in static prompts
-    const queries = await ctx.db.query("userQueries")
+    const queries: any[] = await ctx.db.query("userQueries")
       .filter(q => q.eq(q.field("addedToPrompts"), false))
       .collect();
 
     // Group by similar queries and count usage
     const queryGroups = new Map<string, { queries: any[]; count: number }>();
     
-    queries.forEach(query => {
+    queries.forEach((query: any) => {
       const normalized = query.query.toLowerCase().trim();
       if (queryGroups.has(normalized)) {
         const group = queryGroups.get(normalized)!;
@@ -105,15 +105,15 @@ export const getNovelUserQueries = query({
 
     // Return frequently used novel queries
     return Array.from(queryGroups.entries())
-      .filter(([_, group]) => group.count >= minUsageCount)
-      .sort((a, b) => b[1].count - a[1].count)
+      .filter(([_, group]: [string, any]) => group.count >= minUsageCount)
+      .sort((a: [string, any], b: [string, any]) => b[1].count - a[1].count)
       .slice(0, limit)
-      .map(([query, group]) => ({
+      .map(([query, group]: [string, any]) => ({
         query,
         usageCount: group.count,
-        firstSeen: Math.min(...group.queries.map(q => q.timestamp)),
-        lastSeen: Math.max(...group.queries.map(q => q.timestamp)),
-        averageConfidence: group.queries.reduce((sum, q) => sum + q.confidence, 0) / group.queries.length
+        firstSeen: Math.min(...group.queries.map((q: any) => q.timestamp)),
+        lastSeen: Math.max(...group.queries.map((q: any) => q.timestamp)),
+        averageConfidence: group.queries.reduce((sum: number, q: any) => sum + q.confidence, 0) / group.queries.length
       }));
   },
 });

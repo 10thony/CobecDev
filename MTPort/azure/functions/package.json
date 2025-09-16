@@ -1,7 +1,7 @@
 {
-  "name": "ajai-teams-functions",
+  "name": "cobecium-teams-functions",
   "version": "1.0.0",
-  "description": "Azure Functions for AJAI Teams Widget",
+  "description": "Azure Functions for Cobecium Teams Widget",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",

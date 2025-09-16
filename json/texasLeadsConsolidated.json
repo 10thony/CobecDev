@@ -1,0 +1,1278 @@
+{
+  "opportunities": [
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "I-30 Canyon Reconstruction (I-35 East to I-45) — Dallas District",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Texas Department of Transportation - Dallas District",
+        "level": "State"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas County",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 426000000,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "TxDOT Projects - I-30 Canyon project page",
+        "url": "https://www.txdot.gov/texasclearlanes/projects.html"
+      },
+      "summary": "Major interstate reconstruction through central Dallas identified in TxDOT Dallas district project list. Large multi-year construction program; procurement expected via TxDOT lettings; prime contractors sought for heavy highway construction and associated civil works."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "I-30 East: Bass Pro to FM 2642 — Reconstruction & Widening",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Texas Department of Transportation - Dallas District",
+        "level": "State"
+      },
+      "location": {
+        "city": "Mesquite / Garland (DFW Metro)",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 692000000,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "TxDOT Projects - I-30 East project listing",
+        "url": "https://www.txdot.gov/texasclearlanes/projects.html"
+      },
+      "summary": "Large-scale widening and reconstruction included in TxDOT district project listings and STIP. Opportunity for road/highway construction primes and specialty subcontractors (bridge, drainage, traffic signals)."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Dallas General Purpose Capital Improvement Program — Street System & Drainage Projects (CIP Line Items)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Dallas — Office of Budget & Management Services",
+        "level": "City"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-09-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Dallas Capital Improvement Program (CIP) FY 2025-26 PDF",
+        "url": "https://dallascityhall.com/departments/budget/financialtransparency/AnnualBudget/14.%20Capital%20Improvement%20Program%20n.pdf"
+      },
+      "summary": "City-level CIP containing multiple street, drainage, and neighborhood infrastructure projects that roll into FY2026 and beyond — a priority source for municipal construction and utility subcontracting opportunities."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "TxDOT Projected Contracts List — FY2026 Anticipated A/E and Professional Services",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Texas Department of Transportation - Professional Services Division",
+        "level": "State"
+      },
+      "location": {
+        "city": null,
+        "county": null,
+        "region": "Statewide (TXDOT Dallas & state districts)"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-09-04",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "TxDOT Projected Contracts List FY2026 (Projected Contracts List PDF)",
+        "url": "https://www.txdot.gov/content/dam/docs/division/ppd/projected-contracts/projected-contracts-list-2026.pdf"
+      },
+      "summary": "TxDOT's anticipated FY2026 list of architectural, engineering and surveying professional services contracts — useful for identifying A/E prime procurements and upstream subcontracting opportunities for technical firms."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Houston Airport System — Terminal B Redevelopment (IAH) / Aviation CIP Line Item",
+      "contractID": "A-000764",
+      "issuingBody": {
+        "name": "City of Houston — Aviation Division",
+        "level": "City"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2024-11-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Houston Capital Project Profiles — Aviation (IAH Terminal B Redevelopment A-000764)",
+        "url": "https://www.houstontx.gov/cip/25cipproposed/Capital_Project.pdf"
+      },
+      "summary": "Terminal B redevelopment listed in Houston's aviation CIP. Major airport works typically require prime contractors for civil/architectural/MEP and specialty trade subcontractors (installations, glazing, wayfinding)."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Houston — TNC Lot Improvements at Hobby Airport (HOB)",
+      "contractID": "A-000705",
+      "issuingBody": {
+        "name": "City of Houston — Aviation Division",
+        "level": "City"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2024-11-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Houston Capital Project Profiles — Aviation (TNC Lot Improvements A-000705)",
+        "url": "https://www.houstontx.gov/cip/25cipproposed/Capital_Project.pdf"
+      },
+      "summary": "Improvements to Transportation Network Company (TNC) staging and lots at William P. Hobby Airport — project will need pavement, signage, lighting, and ITS/systems subcontracting."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Houston Public Works — Sanitary Sewer Preventive Maintenance, TV Inspection",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Houston — Public Works / Solid Waste & Infrastructure",
+        "level": "City"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Open for Bidding",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-05-13",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Houston Council Agenda & Public Works Contracting Services / 12-Month Advertisement Forecast",
+        "url": "https://www.publicworks.houstontx.gov/contracting-services"
+      },
+      "summary": "Ongoing sanitary sewer maintenance and CCTV inspection programs appear in Houston Public Works' capital projects forecast and advertised solicitations; opportunities for specialty utility maintenance and CCTV/inspection subcontractors."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "CAMPO (Austin) — Regional TIP Projects (2025–2028) — Roadway & Transit Items",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Capital Area Metropolitan Planning Organization (CAMPO)",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "CAMPO TIP web page / TIP documents",
+        "url": "https://www.campotexas.org/tip/"
+      },
+      "summary": "CAMPO TIP contains programmed roadway and transit projects scheduled across FY2025–2028; useful for identifying planned procurements for roadway, signalization, and transit infrastructure in the Austin metro region."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Austin — Municipal Broadband / Smart City Pilot (digital kiosks / ITS elements) — procurement pipeline",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Austin — Department of Innovation & Technology / Transportation",
+        "level": "City"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-06-01"
+      },
+      "source": {
+        "documentName": "City of Dallas memorandum referencing digital kiosk program (analogous municipal programs) and Austin solicitation portal",
+        "url": "https://financeonline.austintexas.gov/afo/account_services/solicitation/solicitations.cfm"
+      },
+      "summary": "Municipal digital infrastructure pilots (kiosks, ITS, sensor installations, fiber backhaul) are appearing in Austin procurement pipelines — opportunities for systems integrators, network contractors, and telecom subs."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Alamo Area MPO / City of San Antonio — FY2025–2028 Transportation Improvements (Road & Transit CIP elements)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Alamo Area Metropolitan Planning Organization (Alamo MPO) / City of San Antonio",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "San Antonio",
+        "county": "Bexar",
+        "region": "San Antonio"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-04-18",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Alamo MPO FY2025-2028 TIP PDF",
+        "url": "https://alamoareampo.org/YourMove/docs/2024/Review_18Apr24_FY2025_2028_TransportationImprovementProgram.pdf"
+      },
+      "summary": "TIP projects in San Antonio area include roadway rehabilitation and transit capital — relevant for highway/construction primes and equipment subs; projects are budgeted across FY2025–2028."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Dallas Digital Kiosk Program — City-Sponsored Pilot & Procurement",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Dallas — Office of Procurement / Innovation Initiatives",
+        "level": "City"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-06-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-07-01"
+      },
+      "source": {
+        "documentName": "City of Dallas memorandum and procurement notices (digital kiosk references)",
+        "url": "https://dallascityhall.com/government/citymanager/Documents/FY24-25%20Memos/Memorandum%20Packet.pdf"
+      },
+      "summary": "City memos reference a proposed digital kiosk program; procurement expected for hardware, installation, connectivity, and ongoing O&M — a target for digital infrastructure/subcontracting."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "TxDOT — Various Dallas County Construction Projects (District Construction Listings)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Texas Department of Transportation - Dallas District",
+        "level": "State"
+      },
+      "location": {
+        "city": "Various (Dallas County)",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "TxDOT Dallas County Projects PDF (district project list)",
+        "url": "https://www.txdot.gov/content/dam/docs/district/dal/projects-by-county/dallas-construction.pdf"
+      },
+      "summary": "District-level construction project list for Dallas County — includes multiple programmed projects across FY2025–2028; prime construction and specialty subcontract opportunities are listed or planned."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "DIR — Deliverables-Based IT Services (DBITS) Contract Vehicle / Task Orders",
+      "contractID": "DIR-CPO-TMP-553",
+      "issuingBody": {
+        "name": "Texas Department of Information Resources (DIR)",
+        "level": "State"
+      },
+      "location": {
+        "city": null,
+        "county": null,
+        "region": "Texas Triangle / Statewide"
+      },
+      "status": "Active / Open for Bidding (task orders ongoing)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": null,
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "DIR — Deliverables-Based IT Services (DBITS)",
+        "url": "https://dir.texas.gov/cooperative-contracts/deliverables-based-it-services-dbits"
+      },
+      "summary": "Master contract vehicle for application development, data migration, BI/analytics, cloud & systems integration. State agencies issue task orders; strong subcontracting potential for software dev, database, DevOps and project management."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "DIR — IT Staffing Services (ITSAC) / Statement of Work Solicitations (staff augmentation for PM, DevOps, SysAdmin, DBAs)",
+      "contractID": "DIR-ITSAC",
+      "issuingBody": {
+        "name": "Texas Department of Information Resources (DIR)",
+        "level": "State"
+      },
+      "location": {
+        "city": null,
+        "county": null,
+        "region": "Texas Triangle / Statewide"
+      },
+      "status": "Active / Ongoing",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": null,
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "DIR — IT Staffing Services (ITSAC)",
+        "url": "https://dir.texas.gov/cooperative-contracts/it-staffing-services"
+      },
+      "summary": "Staffing vehicle used by state and local agencies for program managers, PMOs, network/system admins, DBAs, helpdesk, devops engineers, cloud architects."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of San Antonio — Enterprise ERP Replacement / SAP S/4HANA + Ariba (Source-to-Pay)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of San Antonio — Finance / Procurement",
+        "level": "City"
+      },
+      "location": {
+        "city": "San Antonio",
+        "county": "Bexar",
+        "region": "San Antonio"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-06-01"
+      },
+      "source": {
+        "documentName": "City of San Antonio Procurement Forecast (ERP upgrades listed)",
+        "url": "https://www.sa.gov/files/assets/main/v/2/finance/documents/procurement/annual-procurement-forecast.xlsx"
+      },
+      "summary": "Large-scale ERP implementation and data migration (finance/procurement). Opportunities: systems integrators, data migration, testing, training, long-term managed support."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "CapMetro (Austin) — Data Center Modernization / Cloud Migration / CRM & Rider Engagement Platform",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Capital Metropolitan Transportation Authority (CapMetro)",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "Budgeted / Planned (FY2026)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-06-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "CapMetro FY2026 Proposed Budget — IT modernization items",
+        "url": "https://www.capmetro.org/docs/default-source/about-capital-metro-docs/financial-transparency-docs/fy2026-proposed-budget.pdf?sfvrsn=c9445b90_3"
+      },
+      "summary": "Cloud-first data center modernization, CRM/marketing cloud procurement and related integration work; scope includes cloud architects, migration engineers, API integration, analytics."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "CapMetro (Austin) — Proprietary Trapeze System Upgrades / Cloud Migration (Transit Scheduling / CAD/AVL modules)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Capital Metropolitan Transportation Authority (CapMetro)",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "Executed / Sole Source history but future modules planned",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2024-09-29",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "CapMetro board packet — Trapeze upgrades & cloud migration reference",
+        "url": "https://www.capmetro.org/docs/default-source/public-involvement-docs/board-meetings-docs/mar-2024-board-meeting-agenda-packet.pdf?sfvrsn=e2e683f1_1"
+      },
+      "summary": "Transit software vendor upgrades and cloud migration — potential for integrators, data migration subs, and support staff. Some modules have been sole-source; track for add-on procurements."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Houston METRO — Enterprise Video Management & Security Systems RFP (VMS expansion / integration)",
+      "contractID": "Doc1396382938",
+      "issuingBody": {
+        "name": "Metropolitan Transit Authority of Harris County (METRO)",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Open for Bidding (RFP published Jan 2025)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-01-27",
+        "bidDeadline": "2025-07-23",
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "METRO — Request for Proposals (Video Management Systems)",
+        "url": "https://media.governmentnavigator.com/media/bid/1738102884_2025-01-28_Doc1396382938.pdf"
+      },
+      "summary": "RFP to consolidate/expand video management systems across METRO assets. Opportunities for systems integrators, VMS platform specialists, network and storage architects, cybersecurity compliance scopes."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Houston METRO — ITS / Operations Technology Upgrades (Transit Automation, CAD/AVL data integration)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Metropolitan Transit Authority of Harris County (METRO)",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Planned / Budgeted",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-02-11",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "METRO procurement & plans (procurement opportunities page)",
+        "url": "https://www.ridemetro.org/about/business-to-business/procurement-opportunities"
+      },
+      "summary": "IT and operations upgrades tied to METRO modernization: CAD/AVL, real-time data feeds, fare system integrations, and backend analytics platforms; opportunities for software/system integrators."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Houston — Citywide Cybersecurity Program / Managed Detection & Response (CISO-led initiative in CIP)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Houston — Department of Information Technology",
+        "level": "City"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Budgeted / Planning (FY2026 CIP references security programs)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-??-??",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Houston CIP / IT & Security Program references",
+        "url": "https://www.houstontx.gov/cip/"
+      },
+      "summary": "City-level cybersecurity upgrades and MDR procurement to support municipal systems; vendors: MSSP, SOC-as-a-service, endpoint protection and incident response."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Dallas — ITS / Smart City Pilot (sensor networks, edge compute, connectivity management)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Dallas — ITS / Innovation Office",
+        "level": "City"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "In Planning Phase (pilot procured via memoranda)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-06-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-07-01"
+      },
+      "source": {
+        "documentName": "City of Dallas memo references digital kiosk / smart city pilots",
+        "url": "https://dallascityhall.com/government/citymanager/Documents/FY24-25%20Memos/Memorandum%20Packet.pdf"
+      },
+      "summary": "Pilot programs for digital kiosks and sensor deployments — opportunities for systems integrators, network provisioning, edge compute, mobile connectivity, and data aggregation platforms."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Dallas — Security Awareness & Identity Management Program (enterprise IAM / SSO upgrades)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Dallas — Information Technology Services (ITS)",
+        "level": "City"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Ongoing / Budgeted FY2025–2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-05-23",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Dallas FY24-25 Memos — ITS training & programs",
+        "url": "https://dallascityhall.com/government/citymanager/Documents/FY24-25%20Memos/May%2023%2C%202025%20Council%20Memos.pdf"
+      },
+      "summary": "City initiatives around cyber awareness and identity management; potential procurements for IAM platforms, SSO, MFA, identity governance, and training."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Dallas County — IT Modernization / Network & Cloud Migration (county systems)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Dallas County — Technology Services",
+        "level": "County"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "In Planning / Budgeted FY2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Dallas County budget & technology planning documents (procurement portal)",
+        "url": "https://www.dallascounty.org/departments/it/"
+      },
+      "summary": "County-wide modernization programs — cloud migration, network refresh, virtualization, backup/recovery, and enterprise applications. Good for managed service providers and systems integrators."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Travis County (Austin) — Enterprise Data Platform / GIS Modernization",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Travis County — IT Services / GIS",
+        "level": "County"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "Planned / Budgeted FY2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Travis County procurement / GIS modernization notes",
+        "url": "https://www.traviscountytx.gov/purchasing/solicitation"
+      },
+      "summary": "Upgrade of county GIS/data platforms and back-office analytics; opportunities for GIS integrators, cloud data engineers, ETL/data migration specialists, and DBAs."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Austin — Mobility Data / ITS / Parking & Payment Software (smart city integrations)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Austin — Transportation & Innovation",
+        "level": "City"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "Planned / In Budget (CAMPO TIP alignment)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-04-01"
+      },
+      "source": {
+        "documentName": "City of Austin procurement portal (solicitations)",
+        "url": "https://financeonline.austintexas.gov/afo/account_services/solicitation/solicitations.cfm"
+      },
+      "summary": "Procurements for back-end mobility data platforms, parking/payments integration, sensors, and APIs. Roles include API developers, DevOps, and cloud ops."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Austin ISD / Austin Community Colleges — Student Information System / ERP upgrades (SIS, LMS integrations)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Austin Independent School District / Austin Community College",
+        "level": "Regional / Educational"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "Forecasted / Planning (FY2026)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-06-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-07-01"
+      },
+      "source": {
+        "documentName": "AISD procurement plan & ACC IT plans",
+        "url": "https://www.austinisd.org/departments/its"
+      },
+      "summary": "Large K-12 and higher-ed tech upgrades — SIS, LMS, and integrations; subcontracting for data migration, integration, testing, and managed hosting."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "University of Texas System / UT Austin — Research Data Platform & HPC procurement",
+      "contractID": null,
+      "issuingBody": {
+        "name": "University of Texas at Austin / UT System",
+        "level": "Regional / Educational"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "Planned / Ongoing RFPs",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-05-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "UT Austin procurement & RFPs (HPC / research computing)",
+        "url": "https://procurement.utexas.edu/"
+      },
+      "summary": "High-performance computing and research data platform opportunities — hardware, cloud/HPC services, data management engineers, and DevOps for research workloads."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Harris County — Public Safety Records Mgmt & CAD System Replacement (data migration + integration)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Harris County — IT / Public Safety",
+        "level": "County"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "In Planning / Budgeted 2025–2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-04-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-03-01"
+      },
+      "source": {
+        "documentName": "Harris County procurement forecasts and public safety modernization references",
+        "url": "https://purchasing.harriscountytx.gov/Services/Online-Solicitation-Opportunities"
+      },
+      "summary": "Replacement / modernization of records and CAD systems — major data migration, integrations, testing, and long-term AMS/maintenance."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Harris County Flood Control District — SCADA & Remote Telemetry Upgrades (water/storm systems)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Harris County Flood Control District",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Budgeted / Planned",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-05-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-15"
+      },
+      "source": {
+        "documentName": "HCFCD procurement plan / CIP",
+        "url": "https://www.hcfcd.org/about/plan/"
+      },
+      "summary": "SCADA modernization and telemetry projects — opportunities for systems integrators, PLC/SCADA specialists, network engineers, and cybersecurity hardening for OT."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Port of Houston Authority — Port IT Infrastructure & Cybersecurity Program",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Port of Houston Authority",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Planned / Ongoing",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-03-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Port of Houston Authority IT projects (procurement portal)",
+        "url": "https://porthouston.com/business/procurement/"
+      },
+      "summary": "Network, data center, and cybersecurity upgrades to support port operations and ICS/OT segmentation — integrators and cyber services needed."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Dallas Area Rapid Transit (DART) — Fare System & Back-Office Payments Integration (API & data platform)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Dallas Area Rapid Transit (DART)",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Budgeted / Planned (FY2026)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-06-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-04-01"
+      },
+      "source": {
+        "documentName": "DART procurement and CIP references",
+        "url": "https://www.dart.org/about/procurement.asp"
+      },
+      "summary": "Modernization of fare systems and integrations to cloud-based back-end; opportunities for payment gateway integrators, API development, data processing."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Dallas County Schools / DISD — District-wide Network Refresh + WiFi 6E Rollout (K-12 connectivity)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Dallas Independent School District (DISD)",
+        "level": "Regional / Educational"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Planned / Budgeted 2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-06-01"
+      },
+      "source": {
+        "documentName": "DISD procurement / technology plans",
+        "url": "https://www.dallasisd.org/it"
+      },
+      "summary": "Large K-12 network & WiFi upgrades, cloud services, endpoint management — contractors for network deployment, configuration, and managed services."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Fort Worth — Enterprise Application Services (cloud hosting, API management, application maintenance)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Fort Worth — IT Services",
+        "level": "City"
+      },
+      "location": {
+        "city": "Fort Worth",
+        "county": "Tarrant",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Budgeted / Ongoing",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-08-05",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Fort Worth 2026 bond & IT planning references",
+        "url": "https://www.fortworthtexas.gov/departments/it"
+      },
+      "summary": "Application support and cloud operations contracts planned alongside bond program; opportunities for managed cloud providers and application maintenance teams."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of San Antonio — 311/CRM Platform Replacement / Citizen Engagement Platform",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of San Antonio — 311 / IT",
+        "level": "City"
+      },
+      "location": {
+        "city": "San Antonio",
+        "county": "Bexar",
+        "region": "San Antonio"
+      },
+      "status": "Planned (FY2026 Forecast)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-15",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-05-01"
+      },
+      "source": {
+        "documentName": "San Antonio procurement forecast & 311 modernization notes",
+        "url": "https://www.sanantonio.gov/311"
+      },
+      "summary": "Replacement and modernization of citizen service platform — vendors for CRM, integrations, data migration, analytics, and managed services."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "SAWS (San Antonio Water System) — SCADA & IT/OT Cybersecurity Hardening",
+      "contractID": null,
+      "issuingBody": {
+        "name": "San Antonio Water System (SAWS)",
+        "level": "Regional / Utility"
+      },
+      "location": {
+        "city": "San Antonio",
+        "county": "Bexar",
+        "region": "San Antonio"
+      },
+      "status": "Planned / Budgeted",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-04-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "SAWS CIP & project descriptions",
+        "url": "https://www.saws.org/Infrastructure/CIP/"
+      },
+      "summary": "OT/SCADA upgrades and segmentation for water/wastewater; requires OT cybersecurity, networking, systems engineering, and long-term maintenance."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Texas A&M University System — Campus Network Upgrade & Data Center Consolidation",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Texas A&M University System",
+        "level": "Regional / Educational"
+      },
+      "location": {
+        "city": "College Station / multiple",
+        "county": "Brazos",
+        "region": "Texas Triangle (regional)"
+      },
+      "status": "Planned / Ongoing",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-06-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "TAMU procurement and IT modernization pages",
+        "url": "https://procurement.tamu.edu/"
+      },
+      "summary": "Network refresh and data center consolidation across campuses; opportunities for network integrators, storage and virtualization engineers, and cloud migration partners."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Harris Health System — Electronic Health Records (EHR) Optimization & Analytics (Epic / Cerner modules / data warehouse)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Harris Health System",
+        "level": "Regional / Health"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Planned / Budgeted 2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-05-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-07-01"
+      },
+      "source": {
+        "documentName": "Harris Health procurement notices & IT plans",
+        "url": "https://www.harrishealth.org/about/Pages/Procurement.aspx"
+      },
+      "summary": "EHR optimization and data analytics — data engineers, integration specialists, and analytics SMEs needed."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Port of Corpus Christi — Portwide IT & Vessel Tracking Data Platform",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Port of Corpus Christi Authority",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Corpus Christi",
+        "county": "Nueces",
+        "region": "Texas Triangle (expanded reach)"
+      },
+      "status": "Planned / Ongoing",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Port of Corpus Christi procurement and IT initiatives",
+        "url": "https://www.portofcc.com/about/procurement/"
+      },
+      "summary": "Vessel tracking (AIS), data platform, and port operations IT modernization — developers, data engineers, and cloud ops required."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Texas Dept. of Transportation (TxDOT) — ITS / Traffic Management Systems Data Platform & Operations",
+      "contractID": null,
+      "issuingBody": {
+        "name": "TxDOT — State Operations / ITS",
+        "level": "State"
+      },
+      "location": {
+        "city": null,
+        "county": null,
+        "region": "Statewide / DFW, Houston, Austin, San Antonio"
+      },
+      "status": "Programmed in STIP / TIP (FY2026–2028)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "TxDOT STIP / ITS program documents",
+        "url": "https://www.txdot.gov/projects/planning/stip.html"
+      },
+      "summary": "State ITS program includes data aggregation platforms, traffic signal coordination systems, and maintenance of regional ATMS — software vendors and integrators sought."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Dallas County — Criminal Justice Records Data Warehouse & Analytics Platform",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Dallas County — Criminal Justice / IT",
+        "level": "County"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Planned / Procurement Forecasted",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-15",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-02-01"
+      },
+      "source": {
+        "documentName": "Dallas County IT procurement and criminal justice modernization references",
+        "url": "https://www.dallascounty.org/departments/it/"
+      },
+      "summary": "Data warehouse and analytics for criminal justice operations; opportunities for ETL developers, data warehouse architects, BI developers and DBAs."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Fort Worth — Police & Emergency Response CAD/RMS Consolidation / Cloud Hosting",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Fort Worth — Police / IT",
+        "level": "City"
+      },
+      "location": {
+        "city": "Fort Worth",
+        "county": "Tarrant",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Planned FY2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-04-01"
+      },
+      "source": {
+        "documentName": "Fort Worth IT plans and policing modernization notes",
+        "url": "https://www.fortworthtexas.gov/departments/police"
+      },
+      "summary": "CAD/RMS consolidation opportunities — cloud hosting, interfaces, data migration, and long-term managed services."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Houston Independent School District (HISD) — District Wide Cloud Migration & SIS Upgrades",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Houston ISD — Information Technology",
+        "level": "Regional / Educational"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Planned / Budgeted",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-06-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-07-01"
+      },
+      "source": {
+        "documentName": "HISD IT modernization plan / procurement",
+        "url": "https://www.houstonisd.org/it"
+      },
+      "summary": "Large K-12 SIS modernization, cloud migration projects — opportunities for SIS integrators, DBAs, network engineers and managed service providers."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Irving (DFW) — Municipal Broadband / Fiber Backhaul Project (network design & ops)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Irving — ITS / Public Works",
+        "level": "City"
+      },
+      "location": {
+        "city": "Irving",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Planning / Funding Applications Filed (FY2026 window)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-09-01"
+      },
+      "source": {
+        "documentName": "City of Irving broadband planning & RFP notices",
+        "url": "https://www.cityofirving.org/our-city/public-works"
+      },
+      "summary": "Design and operations contracts for municipal fiber/broadband backhaul and spurs — network design, provisioning, O&M and field staff opportunities."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Plano — Smart Intersections / ITS Signal Data Management Platform",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Plano — Transportation/ITS",
+        "level": "City"
+      },
+      "location": {
+        "city": "Plano",
+        "county": "Collin",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Planned (FY2026 TIP/CIP items)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-06-15",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-03-01"
+      },
+      "source": {
+        "documentName": "Plano CIP / ITS planning",
+        "url": "https://www.plano.gov/Departments/Transportation"
+      },
+      "summary": "Procurement of data systems to manage coordinated traffic signals and telemetry ingest; software integrators and DevOps for edge ingestion are needed."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Tarrant County — Enterprise Backup / Disaster Recovery as a Service (DRaaS) procurement",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Tarrant County — IT Services",
+        "level": "County"
+      },
+      "location": {
+        "city": "Fort Worth",
+        "county": "Tarrant",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Planned / Forecasted FY2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Tarrant County purchasing & IT modernization pages",
+        "url": "https://www.tarrantcountytx.gov/en/purchasing.html"
+      },
+      "summary": "DRaaS and backup modernization for county systems — cloud providers, integrators, and managed services eligible."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Garland — Cloud Telephony & Unified Communications Refresh (VoIP, Contact Center SaaS)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Garland — Information Technology",
+        "level": "City"
+      },
+      "location": {
+        "city": "Garland",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Planned / FY2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-03-01"
+      },
+      "source": {
+        "documentName": "City of Garland Technology Plan and procurement notices",
+        "url": "https://www.garlandtx.gov/departments/information-technology"
+      },
+      "summary": "Migration to cloud telephony/contact center solutions; integrators, telecom partners, and managed support services sought."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "University of Houston — Data Center Modernization & Cloud Native App Platform",
+      "contractID": null,
+      "issuingBody": {
+        "name": "University of Houston System",
+        "level": "Regional / Educational"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Planned / RFP forecasts 2026",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "UH procurement (IT initiatives)",
+        "url": "https://www.uh.edu/procurement/"
+      },
+      "summary": "Cloud-native platform adoption for research and admin workloads; opportunities for platform engineering, container orchestration, and migration specialists."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Dallas Public Library — Integrated Library System (ILS) / Cloud Migration and Data Conversion",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Dallas Public Library / City of Dallas",
+        "level": "City"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Planned (FY2026)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-07-15",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-06-01"
+      },
+      "source": {
+        "documentName": "City of Dallas procurement memos & library modernization notes",
+        "url": "https://dallaslibrary.org/about/records-and-reports"
+      },
+      "summary": "ILS replacement and cloud migration — data conversion, API integrations, user portal development, and hosting support."
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Houston Public Works — Asset Management System (ERP / EAM) Procurement (water/streets asset records & GIS integration)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Houston — Public Works",
+        "level": "City"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Planned / Budgeted (CIP references asset mgmt tooling)",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-06-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-02-01"
+      },
+      "source": {
+        "documentName": "Houston CIP — asset management and public works project profiles",
+        "url": "https://www.houstontx.gov/cip/"
+      },
+      "summary": "EAM/Asset management procurement tying GIS and work order systems — potential for integrators, database engineers, GIS specialists and long-term support contratos."
+    }
+  ]
+}

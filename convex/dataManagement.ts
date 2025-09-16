@@ -3,6 +3,29 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 
+// Helper function to efficiently count documents without loading them all
+async function getCollectionCount(ctx: any, collectionName: string): Promise<number> {
+  try {
+    // Try a very conservative approach - just get a few documents to estimate
+    const sample = await ctx.db.query(collectionName)
+      .order("desc")
+      .take(1);
+    
+    if (sample.length === 0) {
+      return 0; // Collection is empty
+    }
+    
+    // For now, return a safe estimate instead of exact count
+    // This prevents the byte limit errors while still providing useful info
+    console.log(`Collection ${collectionName} has at least 1 document`);
+    return -1; // Use -1 to indicate "many" or "unknown count"
+    
+  } catch (error) {
+    console.error(`Error counting ${collectionName}:`, error);
+    return 0;
+  }
+}
+
 // Get all job postings with pagination and search
 export const getAllJobPostings = query({
   args: {
@@ -15,10 +38,13 @@ export const getAllJobPostings = query({
       jobType: v.optional(v.string()),
     })),
   },
-  handler: async (ctx, { limit = 1000, offset = 0, search, filters }) => {
+  handler: async (ctx, { limit = 100, offset = 0, search, filters }) => {
     try {
-      // Use a higher limit to get more data, similar to HR dashboard
-      const allJobs = await ctx.db.query("jobpostings").collect();
+      // Use smaller batch size to avoid memory limits
+      const batchSize = Math.min(limit, 100);
+      const allJobs = await ctx.db.query("jobpostings")
+        .order("desc")
+        .take(batchSize);
       
       let jobs = allJobs;
       
@@ -185,10 +211,13 @@ export const getAllResumes = query({
       yearsOfExperience: v.optional(v.number()),
     })),
   },
-  handler: async (ctx, { limit = 1000, offset = 0, search, filters }) => {
+  handler: async (ctx, { limit = 100, offset = 0, search, filters }) => {
     try {
-      // Use collect() to get all data, similar to HR dashboard
-      const allResumes = await ctx.db.query("resumes").collect();
+      // Use smaller batch size to avoid memory limits
+      const batchSize = Math.min(limit, 100);
+      const allResumes = await ctx.db.query("resumes")
+        .order("desc")
+        .take(batchSize);
       
       let resumes = allResumes;
       
@@ -271,42 +300,50 @@ export const searchJobPostings = query({
     })),
   },
   handler: async (ctx, { query, limit = 20, filters }) => {
-    // Use pagination to avoid memory limits
-    const allJobs = await ctx.db.query("jobpostings").take(10000); // Reasonable limit
-    
-    let jobs = allJobs;
-    
-    // Apply text search
-    const queryLower = query.toLowerCase();
-    jobs = jobs.filter(job => 
-      job.jobTitle.toLowerCase().includes(queryLower) ||
-      job.jobSummary.toLowerCase().includes(queryLower) ||
-      job.requirements.toLowerCase().includes(queryLower) ||
-      job.duties.toLowerCase().includes(queryLower) ||
-      job.qualifications.toLowerCase().includes(queryLower)
-    );
-    
-    // Apply filters
-    if (filters) {
-      if (filters.location) {
-        jobs = jobs.filter(job => 
-          job.location.toLowerCase().includes(filters.location!.toLowerCase())
-        );
+    try {
+      // Use smaller batch size to avoid memory limits
+      const batchSize = Math.min(limit * 3, 100); // Get 3x the limit to account for filtering
+      const allJobs = await ctx.db.query("jobpostings")
+        .order("desc")
+        .take(batchSize);
+      
+      let jobs = allJobs;
+      
+      // Apply text search
+      const queryLower = query.toLowerCase();
+      jobs = jobs.filter(job => 
+        job.jobTitle.toLowerCase().includes(queryLower) ||
+        job.jobSummary.toLowerCase().includes(queryLower) ||
+        job.requirements.toLowerCase().includes(queryLower) ||
+        job.duties.toLowerCase().includes(queryLower) ||
+        job.qualifications.toLowerCase().includes(queryLower)
+      );
+      
+      // Apply filters
+      if (filters) {
+        if (filters.location) {
+          jobs = jobs.filter(job => 
+            job.location.toLowerCase().includes(filters.location!.toLowerCase())
+          );
+        }
+        if (filters.department) {
+          jobs = jobs.filter(job => 
+            job.department.toLowerCase().includes(filters.department!.toLowerCase())
+          );
+        }
+        if (filters.jobType) {
+          jobs = jobs.filter(job => 
+            job.jobType.toLowerCase().includes(filters.jobType!.toLowerCase())
+          );
+        }
       }
-      if (filters.department) {
-        jobs = jobs.filter(job => 
-          job.department.toLowerCase().includes(filters.department!.toLowerCase())
-        );
-      }
-      if (filters.jobType) {
-        jobs = jobs.filter(job => 
-          job.jobType.toLowerCase().includes(filters.jobType!.toLowerCase())
-        );
-      }
+      
+      // Limit results
+      return jobs.slice(0, limit);
+    } catch (error) {
+      console.error('Error in searchJobPostings:', error);
+      return [];
     }
-    
-    // Limit results
-    return jobs.slice(0, limit);
   },
 });
 
@@ -324,91 +361,104 @@ export const searchResumes = query({
     })),
   },
   handler: async (ctx, { query, limit = 20, filters }) => {
-    // Use pagination to avoid memory limits
-    const allResumes = await ctx.db.query("resumes").take(10000); // Reasonable limit
-    
-    let resumes = allResumes;
-    
-    // Apply text search
-    const queryLower = query.toLowerCase();
-    resumes = resumes.filter(resume => 
-      resume.personalInfo.firstName.toLowerCase().includes(queryLower) ||
-      resume.personalInfo.lastName.toLowerCase().includes(queryLower) ||
-      resume.professionalSummary.toLowerCase().includes(queryLower) ||
-      resume.skills.some(skill => skill.toLowerCase().includes(queryLower)) ||
-      resume.education.some(edu => edu.toLowerCase().includes(queryLower))
-    );
-    
-    // Apply filters
-    if (filters) {
-      if (filters.firstName) {
-        resumes = resumes.filter(resume => 
-          resume.personalInfo.firstName.toLowerCase().includes(filters.firstName!.toLowerCase())
-        );
+    try {
+      // Use smaller batch size to avoid memory limits
+      const batchSize = Math.min(limit * 3, 100); // Get 3x the limit to account for filtering
+      const allResumes = await ctx.db.query("resumes")
+        .order("desc")
+        .take(batchSize);
+      
+      let resumes = allResumes;
+      
+      // Apply text search
+      const queryLower = query.toLowerCase();
+      resumes = resumes.filter(resume => 
+        resume.personalInfo.firstName.toLowerCase().includes(queryLower) ||
+        resume.personalInfo.lastName.toLowerCase().includes(queryLower) ||
+        resume.professionalSummary.toLowerCase().includes(queryLower) ||
+        resume.skills.some(skill => skill.toLowerCase().includes(queryLower)) ||
+        resume.education.some(edu => edu.toLowerCase().includes(queryLower))
+      );
+      
+      // Apply filters
+      if (filters) {
+        if (filters.firstName) {
+          resumes = resumes.filter(resume => 
+            resume.personalInfo.firstName.toLowerCase().includes(filters.firstName!.toLowerCase())
+          );
+        }
+        if (filters.lastName) {
+          resumes = resumes.filter(resume => 
+            resume.personalInfo.lastName.toLowerCase().includes(filters.lastName!.toLowerCase())
+          );
+        }
+        if (filters.email) {
+          resumes = resumes.filter(resume => 
+            resume.personalInfo.email.toLowerCase().includes(filters.email!.toLowerCase())
+          );
+        }
+        if (filters.skills) {
+          resumes = resumes.filter(resume => 
+            resume.skills.some(skill => 
+              skill.toLowerCase().includes(filters.skills!.toLowerCase())
+            )
+          );
+        }
+        if (filters.yearsOfExperience !== undefined) {
+          resumes = resumes.filter(resume => 
+            resume.personalInfo.yearsOfExperience >= filters.yearsOfExperience!
+          );
+        }
       }
-      if (filters.lastName) {
-        resumes = resumes.filter(resume => 
-          resume.personalInfo.lastName.toLowerCase().includes(filters.lastName!.toLowerCase())
-        );
-      }
-      if (filters.email) {
-        resumes = resumes.filter(resume => 
-          resume.personalInfo.email.toLowerCase().includes(filters.email!.toLowerCase())
-        );
-      }
-      if (filters.skills) {
-        resumes = resumes.filter(resume => 
-          resume.skills.some(skill => 
-            skill.toLowerCase().includes(filters.skills!.toLowerCase())
-          )
-        );
-      }
-      if (filters.yearsOfExperience !== undefined) {
-        resumes = resumes.filter(resume => 
-          resume.personalInfo.yearsOfExperience >= filters.yearsOfExperience!
-        );
-      }
+      
+      // Limit results
+      return resumes.slice(0, limit);
+    } catch (error) {
+      console.error('Error in searchResumes:', error);
+      return [];
     }
-    
-    // Limit results
-    return resumes.slice(0, limit);
   },
 });
 
-// Get data summary statistics
+// Get data summary statistics with proper pagination
 export const getDataSummary = query({
   args: {
-    pageSize: v.optional(v.number()), // Default: 100
+    pageSize: v.optional(v.number()), // Default: 50
     page: v.optional(v.number()),     // Default: 0
   },
-  handler: async (ctx, { pageSize = 100, page = 0 }) => {
+  handler: async (ctx, { pageSize = 50, page = 0 }) => {
     try {
-      // Use lightweight queries with pagination to avoid memory limits
+      // Use lightweight queries with small batches to avoid memory limits
       const [jobs, resumes, employees, kfcPoints] = await Promise.all([
         ctx.db.query("jobpostings")
           .order("desc")
-          .take(pageSize),
+          .take(Math.min(pageSize, 100)), // Cap at 100 to avoid memory issues
         ctx.db.query("resumes")
           .order("desc") 
-          .take(pageSize),
+          .take(Math.min(pageSize, 100)), // Cap at 100 to avoid memory issues
         ctx.db.query("employees")
           .order("desc")
-          .take(pageSize),
+          .take(Math.min(pageSize, 100)), // Cap at 100 to avoid memory issues
         ctx.db.query("kfcpoints")
           .order("desc")
-          .take(pageSize),
+          .take(Math.min(pageSize, 100)), // Cap at 100 to avoid memory issues
       ]);
 
-      // Get total counts using separate lightweight queries
-      const [totalJobs, totalResumes, totalEmployees, totalKfcPoints] = await Promise.all([
-        ctx.db.query("jobpostings").collect().then(jobs => jobs.length),
-        ctx.db.query("resumes").collect().then(resumes => resumes.length),
-        ctx.db.query("employees").collect().then(employees => employees.length),
-        ctx.db.query("kfcpoints").collect().then(kfcPoints => kfcPoints.length),
-      ]);
+      // Skip counting to avoid memory issues - just use the data we already have
+      const totalJobs = jobs.length;
+      const totalResumes = resumes.length;
+      const totalEmployees = employees.length;
+      const totalKfcPoints = kfcPoints.length;
 
       return {
-        pagination: { page, pageSize, totalJobs, totalResumes, totalEmployees, totalKfcPoints },
+        pagination: { 
+          page, 
+          pageSize, 
+          totalJobs: `${totalJobs}+`, 
+          totalResumes: `${totalResumes}+`, 
+          totalEmployees: `${totalEmployees}+`, 
+          totalKfcPoints: `${totalKfcPoints}+` 
+        },
         recentJobs: jobs
           .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
           .slice(0, 5)
@@ -434,7 +484,7 @@ export const getDataSummary = query({
       console.error('Error in getDataSummary:', error);
       // Return lightweight fallback data
       return {
-        pagination: { page: 0, pageSize: 100, totalJobs: 0, totalResumes: 0, totalEmployees: 0, totalKfcPoints: 0 },
+        pagination: { page: 0, pageSize: 50, totalJobs: 0, totalResumes: 0, totalEmployees: 0, totalKfcPoints: 0 },
         recentJobs: [],
         recentResumes: [],
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -443,29 +493,30 @@ export const getDataSummary = query({
   },
 });
 
-// Lightweight data summary for fallback when main function fails
+// Ultra-lightweight data summary that avoids counting entirely
 export const getLightweightDataSummary = query({
   args: {},
   handler: async (ctx) => {
     try {
-      // Only get counts to avoid memory issues
-      const [totalJobs, totalResumes, totalEmployees, totalKfcPoints] = await Promise.all([
-        ctx.db.query("jobpostings").collect().then(jobs => jobs.length),
-        ctx.db.query("resumes").collect().then(resumes => resumes.length),
-        ctx.db.query("employees").collect().then(employees => employees.length),
-        ctx.db.query("kfcpoints").collect().then(kfcPoints => kfcPoints.length),
-      ]);
-      
+      // Don't try to count at all - just return safe defaults
       return {
-        pagination: { page: 0, pageSize: 100, totalJobs, totalResumes, totalEmployees, totalKfcPoints },
+        pagination: { 
+          page: 0, 
+          pageSize: 50, 
+          totalJobs: "Available", 
+          totalResumes: "Available", 
+          totalEmployees: "Available", 
+          totalKfcPoints: "Available" 
+        },
         recentJobs: [],
         recentResumes: [],
-        isLightweight: true
+        isLightweight: true,
+        note: "Counts disabled to prevent memory issues"
       };
     } catch (error) {
       console.error('Error in getLightweightDataSummary:', error);
       return {
-        pagination: { page: 0, pageSize: 100, totalJobs: 0, totalResumes: 0, totalEmployees: 0, totalKfcPoints: 0 },
+        pagination: { page: 0, pageSize: 50, totalJobs: "Error", totalResumes: "Error", totalEmployees: "Error", totalKfcPoints: "Error" },
         recentJobs: [],
         recentResumes: [],
         isLightweight: true,

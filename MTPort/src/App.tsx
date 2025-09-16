@@ -164,7 +164,7 @@ export function App() {
     return (
       <FluentProvider theme={currentTheme}>
         <div className={styles.root}>
-          <LoadingSpinner message="Initializing AJAI Teams Widget..." />
+          <LoadingSpinner message="Initializing Cobecium Teams Widget..." />
         </div>
       </FluentProvider>
     );
@@ -212,7 +212,7 @@ export function App() {
       <FluentProvider theme={currentTheme}>
         <div className={styles.root}>
           <div className={styles.authContainer}>
-            <Title3>Welcome to AJAI Teams Widget</Title3>
+            <Title3>Welcome to Cobecium Teams Widget</Title3>
             <Subtitle2>AI-powered job and resume matching for Microsoft Teams</Subtitle2>
             <MessageBar intent="info">
               Please sign in with your Microsoft account to continue.
@@ -235,7 +235,7 @@ export function App() {
           <div className={styles.header}>
             <div className={styles.headerContent}>
               <div className={styles.headerLeft}>
-                <Title3>AJAI Teams Widget</Title3>
+                <Title3>Cobecium Teams Widget</Title3>
                 <Subtitle2>AI-powered job and resume matching</Subtitle2>
               </div>
               <div className={styles.headerRight}>
