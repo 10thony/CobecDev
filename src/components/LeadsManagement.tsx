@@ -273,7 +273,7 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   }
 
   return (
-    <div className={`p-6 space-y-8 h-full flex flex-col min-h-0 ${className}`}>
+    <div className={`p-6 space-y-8 min-h-screen ${className}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div className="space-y-1">
@@ -357,9 +357,9 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-0 flex-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Leads List */}
-        <div className="lg:col-span-2 space-y-6 flex flex-col min-h-0">
+        <div className="lg:col-span-2 space-y-6">
           {/* Search and Filters */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -481,11 +481,18 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
           </div>
 
           {/* Leads List */}
-          <div className="space-y-4 flex-1 flex flex-col min-h-0">
-            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 px-1 flex-shrink-0">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 px-6 py-4 border-b border-gray-200 dark:border-gray-600">
               <span className="font-medium">Showing {filteredLeads.length} of {allLeads.length} leads</span>
             </div>
-            <div className="space-y-3 flex-1 overflow-y-auto pr-2 min-h-0">
+            <div 
+              className="overflow-y-auto"
+              style={{ 
+                height: selectedLead ? '60vh' : '80vh',
+                transition: 'height 0.3s ease-in-out'
+              }}
+            >
+              <div className="p-4 space-y-3">
               {filteredLeads.map((lead) => (
                 <div
                   key={lead._id}
@@ -571,14 +578,23 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Lead Details */}
-        <div className="lg:col-span-1 flex flex-col min-h-0">
+        <div className="lg:col-span-1">
           {selectedLead ? (
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 sticky top-6 flex-1 flex flex-col min-h-0">
+            <div 
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 sticky top-6"
+              style={{ 
+                height: selectedLead ? '60vh' : '0vh',
+                overflow: selectedLead ? 'hidden' : 'visible',
+                transition: 'height 0.3s ease-in-out, opacity 0.3s ease-in-out',
+                opacity: selectedLead ? 1 : 0
+              }}
+            >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Lead Details</h2>
                 <div className="flex gap-2">
@@ -599,7 +615,7 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 </div>
               </div>
 
-              <div className="space-y-6 flex-1 overflow-y-auto min-h-0">
+              <div className="space-y-6 overflow-y-auto" style={{ height: 'calc(60vh - 120px)' }}>
                 <div className="space-y-3">
                   <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{selectedLead.opportunityTitle}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{selectedLead.summary}</p>
@@ -709,7 +725,16 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
               </div>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center">
+            <div 
+              className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center sticky top-6"
+              style={{ 
+                height: '40vh',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
               <div className="text-gray-400 dark:text-gray-500 mb-6">
                 <Briefcase className="w-16 h-16 mx-auto" />
               </div>
