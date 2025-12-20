@@ -569,49 +569,40 @@ export function DataManagementPage() {
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-4">Data Management</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-mint-cream-600">
           Import and manage job postings, resumes, employees, and KFC points using Convex database
         </p>
       </div>
 
       {/* Status Message */}
       {message && (
-        <div className={`p-4 mb-6 rounded-lg ${
-          message.includes('Error') || message.includes('Failed') 
-            ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' 
-            : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-        }`}>
+        <div className={`p-4 mb-6 rounded-lg ${ message.includes('Error') || message.includes('Failed') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }`}>
           {message}
         </div>
       )}
 
       {/* Progressive Loading Progress */}
       {loadingPhase !== 'complete' && (
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+        <div className="mb-6 p-4 bg-blue-50 bg-yale-blue-500/20 rounded-lg border border-blue-200">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+            <h3 className="text-lg font-semibold text-powder-blue-600">
               Loading Data Progressively
             </h3>
             {isBackgroundLoading && (
               <div className="flex items-center space-x-2">
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span className="text-sm text-blue-600 dark:text-blue-400">Background Loading</span>
+                <span className="text-sm text-powder-blue-600">Background Loading</span>
               </div>
             )}
           </div>
           
-          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+          <div className="w-full bg-mint-cream-700 rounded-full h-2.5">
             <div 
-              className={`h-2.5 rounded-full transition-all duration-500 ${
-                loadingPhase === 'initial' ? 'w-1/4 bg-blue-600' :
-                loadingPhase === 'recent' ? 'w-1/2 bg-blue-600' :
-                loadingPhase === 'full' ? 'w-3/4 bg-blue-600' :
-                'w-full bg-green-600'
-              }`}
+              className={`h-2.5 rounded-full transition-all duration-500 ${ loadingPhase === 'initial' ? 'w-1/4' : loadingPhase === 'recent' ? 'w-1/2' : loadingPhase === 'full' ? 'w-3/4 bg-yale-blue-DEFAULT' : 'w-full bg-green-600' }`}
             ></div>
           </div>
           
-          <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+          <div className="mt-2 text-sm text-powder-blue-600">
             {loadingPhase === 'initial' && 'Loading data summary...'}
             {loadingPhase === 'recent' && 'Loading recent items...'}
             {loadingPhase === 'full' && 'Loading full dataset in background...'}
@@ -622,35 +613,35 @@ export function DataManagementPage() {
 
       {/* Data Summary */}
       {(dataSummary || lightweightDataSummary) && (
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+        <div className="mb-6 p-4 bg-blue-50 bg-yale-blue-500/20 rounded-lg border border-blue-200">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-2xl font-bold text-powder-blue-600">
                 {dataSummary?.pagination?.totalJobs || lightweightDataSummary?.pagination?.totalJobs || 0}
               </div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">Job Postings</div>
+              <div className="text-sm text-powder-blue-600">Job Postings</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-2xl font-bold text-powder-blue-600">
                 {dataSummary?.pagination?.totalResumes || lightweightDataSummary?.pagination?.totalResumes || 0}
               </div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">Resumes</div>
+              <div className="text-sm text-powder-blue-600">Resumes</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-2xl font-bold text-powder-blue-600">
                 {dataSummary?.pagination?.totalEmployees || lightweightDataSummary?.pagination?.totalEmployees || 0}
               </div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">Employees</div>
+              <div className="text-sm text-powder-blue-600">Employees</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-2xl font-bold text-powder-blue-600">
                 {dataSummary?.pagination?.totalKfcPoints || lightweightDataSummary?.pagination?.totalKfcPoints || 0}
               </div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">KFC Points</div>
+              <div className="text-sm text-powder-blue-600">KFC Points</div>
             </div>
           </div>
           {lightweightDataSummary?.isLightweight && (
-            <div className="mt-2 text-sm text-yellow-600 dark:text-yellow-400 text-center">
+            <div className="mt-2 text-sm text-yellow-600 text-center">
               Using lightweight data mode due to large dataset size
             </div>
           )}
@@ -662,7 +653,7 @@ export function DataManagementPage() {
         <button
           onClick={handleForceRefresh}
           disabled={loading}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center space-x-2 bg-yale-blue-DEFAULT text-white px-4 py-2 rounded-md hover:bg-yale-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh Data</span>
@@ -672,12 +663,12 @@ export function DataManagementPage() {
       {/* Import Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Excel Import */}
-        <div className="border rounded-lg p-6 dark:border-gray-700">
+        <div className="border rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <FileText className="mr-2" />
             Import Job Postings (Excel)
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm text-mint-cream-600 mb-4">
             Upload an Excel file containing job posting data
           </p>
           <label className="block">
@@ -686,18 +677,18 @@ export function DataManagementPage() {
               accept=".xlsx,.xls"
               onChange={handleExcelImport}
               disabled={loading}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-300"
+              className="block w-full text-sm text-mint-cream-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-mint-cream-DEFAULT hover:file:bg-yale-blue-500"
             />
           </label>
         </div>
 
         {/* JSON Import */}
-        <div className="border rounded-lg p-6 dark:border-gray-700">
+        <div className="border rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <Upload className="mr-2" />
             Import Resumes (JSON)
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm text-mint-cream-600 mb-4">
             Upload a JSON file containing resume data
           </p>
           <label className="block">
@@ -706,18 +697,18 @@ export function DataManagementPage() {
               accept=".json"
               onChange={handleJsonImport}
               disabled={loading}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 dark:file:bg-green-900 dark:file:text-green-300"
+              className="block w-full text-sm text-mint-cream-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
             />
           </label>
         </div>
 
         {/* Office Open XML and PDF Import */}
-        <div className="border rounded-lg p-6 dark:border-gray-700">
+        <div className="border rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <FileText className="mr-2" />
             Import Resumes (DOCX/PDF)
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm text-mint-cream-600 mb-4">
             Upload a .docx or .pdf file - AI will extract and structure the resume data
           </p>
           <label className="block">
@@ -726,7 +717,7 @@ export function DataManagementPage() {
               accept=".docx,.pdf"
               onChange={handleOfficeDocumentImport}
               disabled={loading}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-900 dark:file:text-purple-300"
+              className="block w-full text-sm text-mint-cream-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
             />
           </label>
         </div>
@@ -737,7 +728,7 @@ export function DataManagementPage() {
         <button
           onClick={handleForceRefresh}
           disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="flex items-center px-4 py-2 bg-yale-blue-DEFAULT text-white rounded-lg hover:bg-yale-blue-600 disabled:opacity-50"
         >
           <Database className="mr-2" />
           Refresh Data
@@ -765,7 +756,7 @@ export function DataManagementPage() {
       {/* Search Sections */}
       <div className="space-y-6 mb-8">
         {/* Job Search Section */}
-        <div className="border rounded-lg p-6 dark:border-gray-700">
+        <div className="border rounded-lg p-6">
           <button
             onClick={() => setJobSearchCollapsed(!jobSearchCollapsed)}
             className="flex items-center justify-between w-full text-left mb-4"
@@ -789,35 +780,35 @@ export function DataManagementPage() {
                   placeholder="Job Title"
                   value={searchCriteria.jobTitle || ''}
                   onChange={(e) => setSearchCriteria({ ...searchCriteria, jobTitle: e.target.value })}
-                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                  className="px-3 py-2 border rounded-lg bg-berkeley-blue-DEFAULT"
                 />
                 <input
                   type="text"
                   placeholder="Location"
                   value={searchCriteria.location || ''}
                   onChange={(e) => setSearchCriteria({ ...searchCriteria, location: e.target.value })}
-                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                  className="px-3 py-2 border rounded-lg bg-berkeley-blue-DEFAULT"
                 />
                 <input
                   type="text"
                   placeholder="Job Type"
                   value={searchCriteria.jobType || ''}
                   onChange={(e) => setSearchCriteria({ ...searchCriteria, jobType: e.target.value })}
-                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                  className="px-3 py-2 border rounded-lg bg-berkeley-blue-DEFAULT"
                 />
                 <input
                   type="text"
                   placeholder="Department"
                   value={searchCriteria.department || ''}
                   onChange={(e) => setSearchCriteria({ ...searchCriteria, department: e.target.value })}
-                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                  className="px-3 py-2 border rounded-lg bg-berkeley-blue-DEFAULT"
                 />
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleJobSearch}
                   disabled={loading}
-                  className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                  className="flex items-center px-4 py-2 bg-yale-blue-DEFAULT text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                 >
                   <Filter className="mr-2" />
                   Search Jobs
@@ -829,7 +820,7 @@ export function DataManagementPage() {
                     setMessage('Job search cleared');
                   }}
                   disabled={loading}
-                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-yale-blue-400 disabled:opacity-50"
                 >
                   <Trash2 className="mr-2" />
                   Clear Search
@@ -840,7 +831,7 @@ export function DataManagementPage() {
         </div>
 
         {/* Resume Search Section */}
-        <div className="border rounded-lg p-6 dark:border-gray-700">
+        <div className="border rounded-lg p-6">
           <button
             onClick={() => setResumeSearchCollapsed(!resumeSearchCollapsed)}
             className="flex items-center justify-between w-full text-left mb-4"
@@ -864,35 +855,35 @@ export function DataManagementPage() {
                   placeholder="First Name"
                   value={resumeSearchCriteria.firstName || ''}
                   onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, firstName: e.target.value })}
-                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                  className="px-3 py-2 border rounded-lg bg-berkeley-blue-DEFAULT"
                 />
                 <input
                   type="text"
                   placeholder="Last Name"
                   value={resumeSearchCriteria.lastName || ''}
                   onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, lastName: e.target.value })}
-                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                  className="px-3 py-2 border rounded-lg bg-berkeley-blue-DEFAULT"
                 />
                 <input
                   type="email"
                   placeholder="Email"
                   value={resumeSearchCriteria.email || ''}
                   onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, email: e.target.value })}
-                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                  className="px-3 py-2 border rounded-lg bg-berkeley-blue-DEFAULT"
                 />
                 <input
                   type="text"
                   placeholder="Skills"
                   value={resumeSearchCriteria.skills || ''}
                   onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, skills: e.target.value })}
-                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                  className="px-3 py-2 border rounded-lg bg-berkeley-blue-DEFAULT"
                 />
                 <input
                   type="number"
                   placeholder="Years of Experience"
                   value={resumeSearchCriteria.yearsOfExperience || ''}
                   onChange={(e) => setResumeSearchCriteria({ ...resumeSearchCriteria, yearsOfExperience: e.target.value })}
-                  className="px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-800"
+                  className="px-3 py-2 border rounded-lg bg-berkeley-blue-DEFAULT"
                 />
               </div>
               <div className="flex gap-2">
@@ -911,7 +902,7 @@ export function DataManagementPage() {
                     setMessage('Resume search cleared');
                   }}
                   disabled={loading}
-                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-yale-blue-400 disabled:opacity-50"
                 >
                   <Trash2 className="mr-2" />
                   Clear Search
@@ -924,21 +915,21 @@ export function DataManagementPage() {
 
       {/* Data Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="border rounded-lg p-6 dark:border-gray-700">
+        <div className="border rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-2">Job Postings</h3>
-          <p className="text-2xl font-bold text-blue-600">{jobPostings.length}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total job postings stored</p>
+          <p className="text-2xl font-bold text-powder-blue-600">{jobPostings.length}</p>
+          <p className="text-sm text-mint-cream-600">Total job postings stored</p>
         </div>
-        <div className="border rounded-lg p-6 dark:border-gray-700">
+        <div className="border rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-2">Resumes</h3>
-          <p className="text-2xl font-bold text-green-600">{resumes.length}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total resumes stored</p>
+          <p className="text-2xl font-bold text-mint-cream-600">{resumes.length}</p>
+          <p className="text-sm text-mint-cream-600">Total resumes stored</p>
         </div>
       </div>
 
       {/* Job Postings List */}
       {(jobPostings.length > 0 || filteredJobs.length > 0) && (
-        <div className="border rounded-lg p-6 dark:border-gray-700 mb-8">
+        <div className="border rounded-lg p-6 mb-8">
           <button
             onClick={() => setJobsSectionCollapsed(!jobsSectionCollapsed)}
             className="flex items-center justify-between w-full text-left mb-4"
@@ -947,7 +938,7 @@ export function DataManagementPage() {
               <Briefcase className="mr-2" />
               Job Postings ({filteredJobs.length > 0 ? filteredJobs.length : jobPostings.length})
               {filteredJobs.length > 0 && filteredJobs.length !== jobPostings.length && (
-                <span className="ml-2 text-sm text-gray-500">(filtered)</span>
+                <span className="ml-2 text-sm text-mint-cream-700">(filtered)</span>
               )}
             </h3>
             {jobsSectionCollapsed ? (
@@ -962,14 +953,14 @@ export function DataManagementPage() {
               {(filteredJobs.length > 0 ? filteredJobs : jobPostings).map((job, index) => (
                 <div 
                   key={job._id || index} 
-                  className="border rounded-lg p-4 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                  className="border rounded-lg p-4 hover:bg-mint-cream-900 cursor-pointer transition-colors"
                   onClick={() => handleJobClick(job)}
                 >
                   <h4 className="font-semibold text-lg">{job.jobTitle}</h4>
-                  <p className="text-gray-600 dark:text-gray-400">{job.location}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">{job.department}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">{job.salary}</p>
-                  <div className="mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                  <p className="text-mint-cream-600">{job.location}</p>
+                  <p className="text-sm text-mint-cream-700">{job.department}</p>
+                  <p className="text-sm text-mint-cream-700">{job.salary}</p>
+                  <div className="mt-2 text-sm text-powder-blue-600 font-medium">
                     Click to view full details →
                   </div>
                 </div>
@@ -981,7 +972,7 @@ export function DataManagementPage() {
 
       {/* Resumes List */}
       {(resumes.length > 0 || filteredResumes.length > 0) && (
-        <div className="border rounded-lg p-6 dark:border-gray-700">
+        <div className="border rounded-lg p-6">
           <button
             onClick={() => setResumesSectionCollapsed(!resumesSectionCollapsed)}
             className="flex items-center justify-between w-full text-left mb-4"
@@ -990,7 +981,7 @@ export function DataManagementPage() {
               <User className="mr-2" />
               Resumes ({filteredResumes.length > 0 ? filteredResumes.length : resumes.length})
               {filteredResumes.length > 0 && filteredResumes.length !== resumes.length && (
-                <span className="ml-2 text-sm text-gray-500">(filtered)</span>
+                <span className="ml-2 text-sm text-mint-cream-700">(filtered)</span>
               )}
             </h3>
             {resumesSectionCollapsed ? (
@@ -1005,26 +996,26 @@ export function DataManagementPage() {
               {(filteredResumes.length > 0 ? filteredResumes : resumes).map((resume, index) => (
                 <div 
                   key={resume._id || index} 
-                  className="border rounded-lg p-4 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                  className="border rounded-lg p-4 hover:bg-mint-cream-900 cursor-pointer transition-colors"
                   onClick={() => handleResumeClick(resume)}
                 >
                   <h4 className="font-semibold text-lg">
                     {resume.personalInfo?.firstName} {resume.personalInfo?.lastName}
                   </h4>
-                  <p className="text-gray-600 dark:text-gray-400">{resume.personalInfo?.email}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                  <p className="text-mint-cream-600">{resume.personalInfo?.email}</p>
+                  <p className="text-sm text-mint-cream-700">
                     {resume.personalInfo?.yearsOfExperience} years of experience
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">{resume.filename}</p>
+                  <p className="text-sm text-mint-cream-700">{resume.filename}</p>
                   {resume.skills && Array.isArray(resume.skills) && resume.skills.length > 0 && (
                     <div className="mt-2">
-                      <p className="text-sm text-gray-500 dark:text-gray-500">
+                      <p className="text-sm text-mint-cream-700">
                         Skills: {resume.skills.slice(0, 3).join(', ')}
                         {resume.skills.length > 3 && '...'}
                       </p>
                     </div>
                   )}
-                  <div className="mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                  <div className="mt-2 text-sm text-powder-blue-600 font-medium">
                     Click to view full details →
                   </div>
                 </div>

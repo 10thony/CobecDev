@@ -1,0 +1,272 @@
+[
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Texas DIR — Technology Solution Services (DIR‑CPO‑STS‑591) — statewide cooperative vehicle (large vendor pool; agency task orders expected)",
+      "contractID": "DIR-CPO-STS-591 (RFO)",
+      "issuingBody": {
+        "name": "Texas Department of Information Resources (DIR)",
+        "level": "State"
+      },
+      "location": {
+        "city": null,
+        "county": null,
+        "region": "Statewide (Texas)"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-02-18",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "DIR — Request For Offer: Technology Solution Services (DIR‑CPO‑STS‑591)",
+        "url": "https://dir.texas.gov/news/dir-has-released-request-offer-technology-solution-services-dir-cpo-sts-591"
+      },
+      "summary": "DIR released an RFO to establish a broad technology solution services vehicle (systems integrators, cloud, managed services). Tier‑1 agencies commonly procure via DIR task orders and cooperative purchases; multiple Tier‑1 projects (ERP, cloud, cybersecurity) planned for FY2026–2028 can flow through this vehicle. Status: DIR vehicle published; agency task orders expected — not an awarded single project.",
+      "adHoc": {
+        "note": "Monitor DIR contract awards / task orders for City/County engagements (great channel for subcontracting).",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Austin — CTM / Technology Services (FY2026 CTM capital programs incl. cloud, security and applications modernization)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Austin — Communications & Technology Management (CTM)",
+        "level": "City"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 9000000,
+      "keyDates": {
+        "publishedDate": "2025-06-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Austin — Proposed Budget FY2025-26 (CTM / Capital Delivery Services sections)",
+        "url": "https://www.austintexas.gov/sites/default/files/files/BOE/Budget/FY2025-2026_Proposed_Budget.pdf"
+      },
+      "summary": "City of Austin proposed budget includes multi‑year CTM capital programming for cloud migration, cybersecurity, and enterprise application modernization. These budgeted programs will generate RFPs/RFQs and DIR task orders in FY2026. No single awarded contract exists yet for the overarching program.",
+      "adHoc": {
+        "fundingSource": "City Capital / IT Reserve",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Harris County — Election Technology Center (Planning / new facility IT & security systems)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Harris County — Engineering / Facilities / Elections",
+        "level": "County"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 4200000,
+      "keyDates": {
+        "publishedDate": "2025-09-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-06-01"
+      },
+      "source": {
+        "documentName": "Harris County Engineering — Featured Projects (Election Technology Center listed)",
+        "url": "https://www.eng.hctx.net/Projects"
+      },
+      "summary": "Harris County Engineering shows 'Election Technology Center' as a featured project; scope includes facility build-out, secure IT infrastructure, server room/data center components, and cybersecurity controls. Project appears in county project listings and capital planning documents; procurement for IT/AV/Security systems anticipated in FY2026. No solicitations/awards found at source time.",
+      "adHoc": {
+        "note": "High potential for data center, secure communications, and systems integration subcontract work",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Port of Houston — Upcoming Design & Construction Projects report (IT/OT cybersecurity projects anticipated via BuySpeed schedule)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Port of Houston Authority — Procurement / Project & Construction Management",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 4000000,
+      "keyDates": {
+        "publishedDate": "2024-05-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-10-01"
+      },
+      "source": {
+        "documentName": "Port Houston — Upcoming Design & Construction Projects Report (PCM Upcoming Projects)",
+        "url": "https://porthouston.com/business/vendor-opportunities/current-future-projects/"
+      },
+      "summary": "Port Houston publishes an Upcoming Projects Report listing future projects including IT/OT/cybersecurity and infrastructure upgrades. These projects are typically solicited through BuySpeed; specific solicitations for SOC/OT security and communications upgrades are expected in FY2026. No single award located for these future items.",
+      "adHoc": {
+        "procurementPortal": "https://buyspeed.porthouston.com/bso/external/publicBids.sdo#new_tab",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Harris County Housing & Community Development — Grants & IT/Program Management for Community Revitalization (PY2026 grant-funded IT/benefits & case management systems)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Harris County Housing & Community Development (HCD)",
+        "level": "County"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 1200000,
+      "keyDates": {
+        "publishedDate": "2025-07-15",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-02-01"
+      },
+      "source": {
+        "documentName": "Harris County HCD — Bids and Public Notices (2025 listings)",
+        "url": "https://hcd.harriscountytx.gov/Bids-and-Public-Notices"
+      },
+      "summary": "HCD publishes public notices for HUD/Grant-funded activities that include program management, benefits/case management system procurements and IT support. PY2025–PY2026 notices show upcoming program allocations that will require IT/system procurement in FY2026. No active award found for districtwide solution at verification.",
+      "adHoc": {
+        "fundingSource": "HUD / Federal Grants",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Fort Worth — ITS / Smart City Pilot (traffic sensors, connected‑vehicle field devices; procurement planning)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Fort Worth — Transportation & Public Works / IT",
+        "level": "City"
+      },
+      "location": {
+        "city": "Fort Worth",
+        "county": "Tarrant",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 2200000,
+      "keyDates": {
+        "publishedDate": "2025-08-20",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-05-01"
+      },
+      "source": {
+        "documentName": "City of Fort Worth — Purchasing / Bids & Current Projects (ITS / Smart City references)",
+        "url": "https://www.fortworthtexas.gov/departments/finance/purchasing/bids-current"
+      },
+      "summary": "Fort Worth procurement listings and council IT planning reference ITS/smart city pilot projects (traffic sensors, signal management, connected‑vehicle roadside devices). RFI/RFQ activity expected prior to construction and systems integration procurements in FY2026. No award posted at verification.",
+      "adHoc": {
+        "projectPhase": "Pilot/RFI",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Houston — 311 / Citizen Services Platform Replacement (CRM / citizen engagement platform; FY2026 planned procurement)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Houston — Department of Innovation / Strategic Procurement",
+        "level": "City"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 2800000,
+      "keyDates": {
+        "publishedDate": "2025-06-30",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-03-01"
+      },
+      "source": {
+        "documentName": "City of Houston — FY2026 Budget (IT/CIP) and Procurement landing (311 modernization budget line)",
+        "url": "https://www.houstontx.gov/budget/"
+      },
+      "summary": "City FY2026 budget references funds for 311/citizen engagement and CRM modernization (platform replacement and omnichannel integration). Procurement/solicitation to be managed by Strategic Procurement; no RFP/award located at source time.",
+      "adHoc": {
+        "fundingSource": "City IT Capital",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Austin ISD — Network Refresh & Wi‑Fi Expansion (districtwide connectivity & classroom tech modernization, FY2026)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Austin Independent School District — Information Services / Procurement",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 4500000,
+      "keyDates": {
+        "publishedDate": "2025-05-20",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-07-01"
+      },
+      "source": {
+        "documentName": "Austin ISD — Procurement / District capital & IT planning references",
+        "url": "https://www.austinisd.org/finance/purchasing"
+      },
+      "summary": "AISD budget and procurement planning documents show funds for a districtwide network refresh and Wi‑Fi expansion in schools (edge equipment, controllers, cabling refresh). No active solicitation was posted at verification; likely to use cooperative purchasing or district RFP in FY2026.",
+      "adHoc": {
+        "cooperativePossible": true,
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Private Subcontract",
+      "opportunityTitle": "Deloitte / Accenture — systems integrator partnering opportunities for municipal ERP & transformation projects in Texas (ERP waves FY2026–2028)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Deloitte / Accenture — Public Sector Practices",
+        "level": "Private"
+      },
+      "location": {
+        "city": null,
+        "county": null,
+        "region": "Texas (Tier‑1 metros)"
+      },
+      "status": "Seeking Subcontractors",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-11-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Deloitte & Accenture — Public Sector / Government services (partner pages)",
+        "url": "https://www2.deloitte.com/ | https://www.accenture.com/"
+      },
+      "summary": "Large systems integrators (Deloitte, Accenture) are prime partners on major municipal ERP/cloud/cyber projects. As Tier‑1 agencies (Austin, San Antonio, Houston) prepare procurements for 2026–2028, primes will seek subcontractors for implementation, data migration, and managed services. Monitor prime vendor teaming notices and agency RFPs for subcontracting opportunities.",
+      "adHoc": {
+        "partnerPages": "https://www2.deloitte.com/ , https://www.accenture.com/",
+        "note": "Good fit for systems integrators, managed service providers, data migration specialists"
+      }
+    }
+  ]

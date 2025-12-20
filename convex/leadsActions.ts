@@ -436,6 +436,170 @@ function calculateAverageUpdateFrequency(leads: any[]): string {
   return mostCommon ? mostCommon[0] : "Unknown";
 }
 
+// Action for dynamic JSON import with schema evolution
+export const importJsonWithSchemaEvolution = action({
+  args: {
+    jsonData: v.array(v.any()),
+    sourceFile: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    importedCount: number;
+    leadIds: any[];
+    schemaChanges: string[];
+  }> => {
+    const schemaChanges: string[] = [];
+    
+    if (!args.jsonData || args.jsonData.length === 0) {
+      throw new Error("No data provided for import");
+    }
+
+    // Get expected schema fields from the first item in the current database
+    const existingLeads = await ctx.runQuery(api.leads.getAllLeads, {});
+    let expectedFields: Set<string> = new Set();
+    
+    if (existingLeads.length > 0) {
+      expectedFields = new Set(Object.keys(existingLeads[0]));
+    } else {
+      // Default schema fields if no existing leads
+      expectedFields = new Set([
+        'opportunityType', 'opportunityTitle', 'contractID', 'issuingBody',
+        'location', 'status', 'estimatedValueUSD', 'keyDates', 'source',
+        'contacts', 'summary', 'verificationStatus', 'category', 'subcategory'
+      ]);
+    }
+
+    // Analyze incoming data structure
+    const incomingFields = new Set<string>();
+    args.jsonData.forEach(item => {
+      Object.keys(item).forEach(key => incomingFields.add(key));
+    });
+
+    // Check for missing or new fields
+    const missingFields = Array.from(expectedFields).filter(field => !incomingFields.has(field));
+    const newFields = Array.from(incomingFields).filter(field => !expectedFields.has(field));
+
+    if (newFields.length > 0) {
+      schemaChanges.push(`New fields detected: ${newFields.join(', ')}`);
+    }
+
+    // Helper function to sanitize field names for use as object keys
+    const sanitizeFieldName = (name: string): string => {
+      if (!name || typeof name !== 'string') return name;
+      return name.replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
+    };
+
+    // Process and normalize the data
+    const processedLeads = args.jsonData.map((lead: any, index: number) => {
+      const cleanLead: any = {};
+
+      // Handle core required fields with defaults (sanitize text fields that might be used as keys)
+      cleanLead.opportunityType = lead.opportunityType || "Unknown";
+      cleanLead.opportunityTitle = lead.opportunityTitle || "Untitled Opportunity";
+      cleanLead.contractID = lead.contractID || undefined;
+      
+      // Handle nested objects with proper structure
+      cleanLead.issuingBody = {
+        name: lead.issuingBody?.name || "Unknown Organization",
+        level: lead.issuingBody?.level || "Unknown",
+      };
+      
+      cleanLead.location = {
+        city: lead.location?.city || undefined,
+        county: lead.location?.county || undefined,
+        region: lead.location?.region || "Unknown",
+      };
+      
+      cleanLead.status = lead.status || "Unknown";
+      cleanLead.estimatedValueUSD = lead.estimatedValueUSD || undefined;
+      
+      cleanLead.keyDates = {
+        publishedDate: lead.keyDates?.publishedDate || undefined,
+        bidDeadline: lead.keyDates?.bidDeadline || undefined,
+        projectedStartDate: lead.keyDates?.projectedStartDate || undefined,
+      };
+      
+      cleanLead.source = {
+        documentName: lead.source?.documentName || "Unknown Document",
+        url: lead.source?.url || "",
+      };
+      
+      // Handle contacts array
+      cleanLead.contacts = Array.isArray(lead.contacts) 
+        ? lead.contacts.map((contact: any) => ({
+            name: contact.name === null ? undefined : (contact.name || undefined),
+            title: contact.title || "Unknown Title",
+            email: contact.email === null ? undefined : (contact.email || undefined),
+            phone: contact.phone === null ? undefined : (contact.phone || undefined),
+            url: contact.url === null ? undefined : (contact.url || undefined),
+          }))
+        : [];
+      
+      cleanLead.summary = lead.summary || "No summary available";
+      cleanLead.verificationStatus = lead.verificationStatus || undefined;
+      cleanLead.category = lead.category || undefined;
+      cleanLead.subcategory = lead.subcategory || undefined;
+
+      // Handle any additional fields from the imported data
+      newFields.forEach(field => {
+        if (lead[field] !== undefined) {
+          cleanLead[field] = lead[field];
+        }
+      });
+
+      // Add missing fields with default values
+      missingFields.forEach(field => {
+        if (cleanLead[field] === undefined) {
+          switch (field) {
+            case 'isActive':
+              cleanLead[field] = true;
+              break;
+            case 'lastChecked':
+              cleanLead[field] = undefined;
+              break;
+            default:
+              cleanLead[field] = undefined;
+          }
+        }
+      });
+
+      // Handle adHoc field specially if it exists
+      if (lead.adHoc) {
+        cleanLead.adHoc = lead.adHoc;
+      }
+
+      // Create searchable text
+      const searchableText = [
+        cleanLead.opportunityTitle,
+        cleanLead.summary,
+        cleanLead.issuingBody.name,
+        cleanLead.location.region,
+        cleanLead.status,
+        cleanLead.opportunityType,
+        cleanLead.contractID || '',
+      ].join(" ").toLowerCase();
+      
+      cleanLead.searchableText = searchableText;
+      cleanLead.isActive = cleanLead.isActive !== undefined ? cleanLead.isActive : true;
+      
+      return cleanLead;
+    });
+    
+    // Use the bulk create mutation
+    const result = await ctx.runMutation(api.leads.bulkCreateLeads, {
+      leads: processedLeads,
+      sourceFile: args.sourceFile,
+    });
+    
+    return {
+      success: true,
+      importedCount: result.length,
+      leadIds: result,
+      schemaChanges,
+    };
+  },
+});
+
 // Helper function to get most common value for a field
 function getMostCommonValue(leads: any[], field: string): string {
   const values = leads.map(lead => lead[field]).filter(Boolean);

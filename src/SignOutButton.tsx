@@ -1,12 +1,26 @@
 "use client";
 import { SignOutButton as ClerkSignOutButton } from "@clerk/clerk-react";
+import { LogOut } from "lucide-react";
 
-export function SignOutButton() {
+interface SignOutButtonProps {
+  iconOnly?: boolean;
+}
+
+export function SignOutButton({ iconOnly = false }: SignOutButtonProps) {
   return (
     <ClerkSignOutButton>
-      <button className="px-4 py-2 rounded bg-white dark:bg-gray-800 text-secondary dark:text-gray-200 border border-gray-200 dark:border-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-secondary-hover dark:hover:text-white transition-colors shadow-sm hover:shadow">
-        Sign out
-      </button>
+      {iconOnly ? (
+        <button 
+          className="p-2 rounded-md text-tron-gray hover:text-tron-white hover:bg-tron-cyan/10 transition-colors"
+          aria-label="Sign out"
+        >
+          <LogOut size={24} />
+        </button>
+      ) : (
+        <button className="px-4 py-2 rounded bg-yale_blue-500 text-mint_cream-500 border border-powder_blue-400 font-semibold hover:bg-yale_blue-600 hover:text-mint_cream-600 transition-colors shadow-sm hover:shadow">
+          Sign out
+        </button>
+      )}
     </ClerkSignOutButton>
   );
 }

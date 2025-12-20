@@ -1,0 +1,360 @@
+[
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Dallas — Enterprise Records / Document Management Modernization (CIP FY2026 programming)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Dallas — Office of Budget & Procurement Services / City Secretary (Records)",
+        "level": "City"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 3500000,
+      "keyDates": {
+        "publishedDate": "2025-06-18",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Dallas — Financial Transparency / Current Budget (CIP & IT program lines)",
+        "url": "https://dallascityhall.com/departments/budget/financialtransparency/Pages/Current-Budget.aspx"
+      },
+      "summary": "City of Dallas FY2026 CIP/budget pages and City Secretary records pages show capital programming for enterprise records/document management modernization and digitization. No active solicitation or award listed on procurement portal at verification; procurement expected to be posted to the City's procurement/Bonfire portal when advertised.",
+      "adHoc": {
+        "inferredStartFlag": true,
+        "procurementPortal": "https://dallascityhall.bonfirehub.com/login"
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Dallas County — Court & Justice Records Management Modernization (FY2026 programming)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Dallas County — Court Administration / IT / Purchasing",
+        "level": "County"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 4200000,
+      "keyDates": {
+        "publishedDate": "2025-04-05",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-06-01"
+      },
+      "source": {
+        "documentName": "Dallas County — FY2026 Budget and Budget-in-brief resources (Office of Budget & Evaluation)",
+        "url": "https://www.dallascounty.org/departments/budget/fy2026_budget.php"
+      },
+      "summary": "Dallas County FY2026 budget documents and departmental planning show funds for modernizing court and justice records (eFile, case management integrations, digital storage). No active solicitation posted on the County Purchasing landing at time of check; procurement expected through Dallas County Purchasing.",
+      "adHoc": {
+        "inferredStartFlag": true,
+        "procurementPortal": "https://www.dallascounty.org/department/purchasing/"
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Austin — CTM Cloud Migration & Enterprise Back‑Office Modernization (ERP/Finance/HR; DIR vehicle usage anticipated FY2026)",
+      "contractID": "MA - 5000 - NC250000001CTM (cataloged MA reference)",
+      "issuingBody": {
+        "name": "City of Austin — Communications & Technology Management (CTM)",
+        "level": "City"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 12000000,
+      "keyDates": {
+        "publishedDate": "2025-12-15",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Austin — Finance Online / Contract Catalog (CTM master agreements & DIR vehicle references)",
+        "url": "https://financeonline.austintexas.gov/afo/contract_catalog/OCCShowCat.cfm?cat=050"
+      },
+      "summary": "City CTM and Finance planning / contract catalog list DIR-authority master agreements and CTM provisioning references used for FY2026 cloud/ERP/IT procurement. Opportunity: CTM-led solicitations for cloud migration and ERP modules expected; no single replacement RFP was posted on the catalog page at verification.",
+      "adHoc": {
+        "dirVehicle": true,
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Travis County — Countywide e‑Records & Imaging Consolidation (FY2026 certificates/CIP funding)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Travis County — Planning & Budget / Purchasing",
+        "level": "County"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 2800000,
+      "keyDates": {
+        "publishedDate": "2025-04-29",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-04-01"
+      },
+      "source": {
+        "documentName": "Travis County — Current Year Planning & Budget (Certificates of Obligation and budget references)",
+        "url": "https://www.traviscountytx.gov/planning-budget/current-year"
+      },
+      "summary": "Travis County FY2026 planning and certificate notices reference capital funds for countywide electronic records/imaging consolidation. No active solicitation or award located on Purchasing portal at verification; project is in the planning/budget stage.",
+      "adHoc": {
+        "noticeDocument": "https://www.traviscountytx.gov/news/2025/2769-notice-issue-certificates-of-obligation",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Harris County — Countywide Cybersecurity Modernization / Zero‑Trust Implementation (FY2026 CIP)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Harris County — Office of Information Technology / Purchasing",
+        "level": "County"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 9500000,
+      "keyDates": {
+        "publishedDate": "2025-05-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-07-01"
+      },
+      "source": {
+        "documentName": "Harris County Budget Book — Capital Project Descriptions (IT / Cybersecurity sections)",
+        "url": "https://budget.harriscountytx.gov/doc/Budget/budgetbook/Budget_Book_Part_III_Capital_Project_Descriptions.pdf"
+      },
+      "summary": "Harris County CIP documents program multi-year capital funding for cybersecurity modernization (Zero‑Trust architecture, SOC enhancements). No single awarded contract for the overall program found on the Purchasing portal at verification; procurement expected to be run through Harris County Purchasing.",
+      "adHoc": {
+        "procurementPortal": "https://purchasing.harriscountytx.gov/Pages/default.aspx",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Harris County Flood Control District — Smart Sensors & Asset Management Pilot (water-level sensors, telemetry, asset platform)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Harris County Flood Control District / Public Works",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Seeking Subcontractors",
+      "estimatedValueUSD": 1800000,
+      "keyDates": {
+        "publishedDate": "2025-09-10",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-03-01"
+      },
+      "source": {
+        "documentName": "Harris County Budget Book — Capital Project Descriptions (Flood Control sensor pilot) & Purchasing notices",
+        "url": "https://budget.harriscountytx.gov/doc/Budget/budgetbook/Budget_Book_Part_III_Capital_Project_Descriptions.pdf"
+      },
+      "summary": "Flood Control CIP and purchasing planning references a smart sensors pilot for water-level telemetry and asset management. Commissioners Court minutes and purchasing notices indicate procurement planning and vendor engagement; no award posted at check. Good fit for sensor integrators, telemetry vendors, and systems integrators.",
+      "adHoc": {
+        "projectPhase": "Pilot/Procurement"
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Port of Houston Authority — SOC Expansion & OT/IT Cybersecurity Improvements (FY2026 planning)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Port of Houston Authority — Information Security / Procurement",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 5200000,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-10-01"
+      },
+      "source": {
+        "documentName": "Port of Houston — Business Opportunities / Procurement (FY planning references)",
+        "url": "https://www.portofhouston.com/business/procurement/"
+      },
+      "summary": "Port FY2026 planning materials identify capital funding for SOC expansion and OT/IT cybersecurity upgrades to protect port operations. No active solicitation or awarded contract was present on the Port procurement page at time of verification.",
+      "adHoc": {
+        "fundingSource": "Port Capital / Federal Grants",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Houston — Enterprise Content Management (ECM) Replacement & Records Modernization (FY2026 CIP)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Houston — Strategic Procurement / Department of IT",
+        "level": "City"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 4200000,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Houston — FY2026 Budget (IT/CIP lines) and Strategic Procurement landing",
+        "url": "https://www.houstontx.gov/budget/"
+      },
+      "summary": "City FY2026 budget lines show ECM and records modernization funding for permitting, archives, and document workflows. No open RFP/award found on City procurement landing; procurement to be coordinated by Strategic Procurement Division when ready.",
+      "adHoc": {
+        "procurementPortal": "https://purchasing.houstontx.gov/",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Fort Worth — Municipal Broadband Feasibility / Fiber Backbone Expansion (RFI / feasibility stage, FY2027 projected construction)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Fort Worth — Office of Broadband Initiatives / IT",
+        "level": "City"
+      },
+      "location": {
+        "city": "Fort Worth",
+        "county": "Tarrant",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "In Planning Phase (RFI)",
+      "estimatedValueUSD": 18000000,
+      "keyDates": {
+        "publishedDate": "2025-10-05",
+        "bidDeadline": null,
+        "projectedStartDate": "2027-01-01"
+      },
+      "source": {
+        "documentName": "City of Fort Worth — Purchasing / Current Bids (bids & RFI notices) and council planning materials",
+        "url": "https://www.fortworthtexas.gov/departments/finance/purchasing/bids-current"
+      },
+      "summary": "City council and procurement materials reference a municipal broadband feasibility effort and an RFI/feasibility stage for a potential fiber backbone expansion. RFI/feasibility expected to precede later design and construction procurements; no awarded contract found.",
+      "adHoc": {
+        "projectPhase": "Feasibility / RFI",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Austin Independent School District — Student Information System (SIS) Modernization & Data Platform Integration (FY2026)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Austin Independent School District — Procurement / Information Services",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 6000000,
+      "keyDates": {
+        "publishedDate": "2025-02-12",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-08-01"
+      },
+      "source": {
+        "documentName": "Austin ISD — Procurement / Purchasing (district IT planning & procurement landing)",
+        "url": "https://www.austinisd.org/finance/purchasing"
+      },
+      "summary": "AISD planning and procurement landing show district intention to fund SIS integration and a consolidated data platform in FY2026. No active RFP was listed on AISD procurement at time of verification; procurement may use cooperative contracts (DIR) or district solicitation.",
+      "adHoc": {
+        "fundingSource": "District Capital / ESSER / Operating",
+        "inferredStartFlag": true
+      }
+    },
+    {
+      "opportunityType": "Private Subcontract",
+      "opportunityTitle": "Tyler Technologies — Potential subcontracting scope for municipal ERP (Munis) migrations in Texas (targeting 2026–2028 implementations)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Tyler Technologies — Public Sector Sales / Partner Opportunities",
+        "level": "Private"
+      },
+      "location": {
+        "city": null,
+        "county": null,
+        "region": "Texas (Tier‑1 metros)"
+      },
+      "status": "Seeking Subcontractors",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-11-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Tyler Technologies — News & Solutions (Tyler Munis / ERP references)",
+        "url": "https://www.tylertech.com/"
+      },
+      "summary": "Tyler is a dominant municipal ERP vendor (Munis) and frequently issues RFP responses and partners with systems integrators for local government ERP implementations. Given the wave of ERP/finance/HR projects programmed across Tier‑1 agencies, there will be subcontracting opportunities for implementation partners and data migration specialists. Monitor Tyler partner pages and local agency Tyler solicitations.",
+      "adHoc": {
+        "partnerPortal": "https://www.tylertech.com/partners",
+        "note": "Monitor press releases and agency ERP solicitations for subcontracting leads"
+      }
+    },
+    {
+      "opportunityType": "Private Subcontract",
+      "opportunityTitle": "Carahsoft / Cloud & SaaS Resellers — anticipated DIR/cooperative cloud procurements for Tier‑1 agencies (2026–2028)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Carahsoft — Public Sector Reseller / Contract Vehicles",
+        "level": "Private"
+      },
+      "location": {
+        "city": null,
+        "county": null,
+        "region": "Texas (Tier‑1 metros)"
+      },
+      "status": "Seeking Subcontractors",
+      "estimatedValueUSD": null,
+      "keyDates": {
+        "publishedDate": "2025-12-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "Carahsoft — News & Government Contracting Pages (carahsoft.com)",
+        "url": "https://www.carahsoft.com/"
+      },
+      "summary": "Carahsoft is a major reseller on DIR and federal cooperative contracting vehicles; upcoming municipal cloud/ERP migrations and cybersecurity procurements are likely to use reseller vehicles — opportunities for subcontracting systems integrators and professional services vendors exist. Monitor agency DIR-based solicitations and Carahsoft partner notices.",
+      "adHoc": {
+        "partnerPortal": "https://www.carahsoft.com/partners"
+      }
+    }
+  ]

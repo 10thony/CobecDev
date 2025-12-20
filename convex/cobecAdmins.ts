@@ -1,6 +1,7 @@
 import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUserId } from "./auth";
+import { api } from "./_generated/api";
 
 // Sync cobecadmins from MongoDB cluster to Convex (for initial setup)
 export const syncCobecAdminsFromMongoDB = mutation({
@@ -95,6 +96,20 @@ export const checkIfUserIsCobecAdmin = query({
       }
       
       console.log(`🔍 Checking if user ${userId} is in cobecadmins collection...`);
+      
+      // Check if there are any admins in the system
+      const adminRoles = await ctx.db
+        .query("userRoles")
+        .withIndex("by_role", (q) => q.eq("role", "admin"))
+        .collect();
+      
+      const cobecAdmins = await ctx.db.query("cobecadmins").collect();
+      
+      // If no admins exist, allow access (frontend will call ensureAdminExists mutation)
+      if (adminRoles.length === 0 && cobecAdmins.length === 0) {
+        console.log("No admins found. Allowing access to enable auto-promotion.");
+        return true; // Allow access so frontend can promote
+      }
       
       // First check Convex database
       const adminUser = await ctx.db
@@ -301,6 +316,53 @@ export const removeCobecAdmin = mutation({
   },
 });
 
+// Check if user is admin (for use in actions)
+// If no admins exist, allows access to enable auto-promotion
+export const checkIsAdmin = query({
+  args: {},
+  returns: v.boolean(),
+  handler: async (ctx) => {
+    try {
+      const userId = await getCurrentUserId(ctx);
+      
+      // Check if there are any admins in the system
+      const adminRoles = await ctx.db
+        .query("userRoles")
+        .withIndex("by_role", (q) => q.eq("role", "admin"))
+        .collect();
+      
+      const cobecAdmins = await ctx.db.query("cobecadmins").collect();
+      
+      // If no admins exist, allow access (frontend will call ensureAdminExists mutation)
+      if (adminRoles.length === 0 && cobecAdmins.length === 0) {
+        console.log("No admins found. Allowing access to enable auto-promotion.");
+        return true; // Allow access so frontend can promote
+      }
+      
+      // Check userRoles table
+      const userRole = await ctx.db
+        .query("userRoles")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .first();
+      
+      if (userRole?.role === "admin") {
+        return true;
+      }
+      
+      // Also check cobecadmins table
+      const cobecAdmin = await ctx.db
+        .query("cobecadmins")
+        .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", userId))
+        .first();
+      
+      return !!cobecAdmin;
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      return false;
+    }
+  },
+});
+
 // Get all users from Clerk Admin API (admin only)
 export const getClerkUsers = action({
   args: {},
@@ -315,20 +377,14 @@ export const getClerkUsers = action({
   ),
   handler: async (ctx) => {
     try {
-      // Check if current user is a cobec admin
-      const userId = await getCurrentUserId(ctx);
+      // Ensure admin exists first (auto-promote if none)
+      await ctx.runMutation(api.userRoles.ensureAdminExists, {});
       
-      // For actions, we'll use the known admin list for authorization
-      // since we don't have direct database access in actions
-      const knownAdmins = [
-        "user_2zK3951nbXRIwNsPwKYvVQAj0nu",
-        "user_2yeq7o5pXddjNeLFDpoz5tTwkWS", 
-        "user_2zH6JiYnykjdwTcTpl7sRU0pKtW",
-        "user_2yhAe3Cu7CnonTn4wyRUzZIqIaF"
-      ];
+      // Check if current user is admin using query
+      const isAdmin = await ctx.runQuery(api.cobecAdmins.checkIsAdmin, {});
       
-      if (!knownAdmins.includes(userId)) {
-        throw new Error("Unauthorized: Only cobec admins can fetch user list");
+      if (!isAdmin) {
+        throw new Error("Unauthorized: Only admins can fetch user list");
       }
 
       // Get Clerk secret key from environment

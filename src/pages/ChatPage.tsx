@@ -281,7 +281,7 @@ export function ChatPage() {
           <div className="w-12 h-12 border-4 border-blue-200 rounded-full"></div>
           <div className="w-12 h-12 border-4 border-blue-600 rounded-full animate-spin absolute top-0 left-0 border-t-transparent"></div>
         </div>
-        <p className="text-gray-600">Loading chat...</p>
+        <p className="text-mint-cream-600">Loading chat...</p>
       </div>
     );
   }
@@ -403,13 +403,13 @@ export function ChatPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen flex flex-col overflow-hidden bg-mint-cream-900 bg-oxford-blue-DEFAULT">
       {/* Chat Header */}
-      <div className="flex-none bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+      <div className="flex-none bg-berkeley-blue-DEFAULT border-b border-yale-blue-300 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{chat.title}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <h2 className="text-lg font-semibold text-mint-cream-DEFAULT">{chat.title}</h2>
+            <p className="text-sm text-mint-cream-700">
               Using {selectedModelId || "No model selected"}
             </p>
           </div>
@@ -421,7 +421,7 @@ export function ChatPage() {
                   const modelId = e.target.value;
                   setSelectedModelId(modelId);
                 }}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="px-3 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
               >
                 <option value="">Select a model</option>
                 {dynamicModels[selectedProvider].map((model) => (
@@ -439,7 +439,7 @@ export function ChatPage() {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-6">
           {localMessages.length === 0 && (
-            <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+            <div className="text-center text-mint-cream-700 py-12">
               <p>Start a conversation with the AI!</p>
             </div>
           )}
@@ -447,16 +447,10 @@ export function ChatPage() {
           {localMessages.map((message, index) => (
             <div
               key={'_id' in message ? message._id : `local-${index}`}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
+              className={`flex ${ message.role === "user" ? "justify-end" : "justify-start" }`}
             >
               <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  message.role === "user"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
-                }`}
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${ message.role === "user" ? "bg-yale-blue-DEFAULT text-white" : "bg-berkeley-blue-DEFAULT bg-berkeley-blue-DEFAULT border border-yale-blue-300 text-mint-cream-DEFAULT text-mint-cream-DEFAULT" }`}
               >
                 <p className="text-sm whitespace-pre-wrap">
                   {message.content ? (
@@ -465,9 +459,9 @@ export function ChatPage() {
                     <span className="inline-flex items-center space-x-1">
                       <span>AI is thinking</span>
                       <span className="flex space-x-1">
-                        <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                        <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                        <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                       </span>
                     </span>
                   ) : null)}
@@ -481,20 +475,18 @@ export function ChatPage() {
       </div>
 
       {/* Input Form with Settings */}
-      <div className="flex-none bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6">
+      <div className="flex-none bg-berkeley-blue-DEFAULT border-t border-yale-blue-300 p-6">
         <div className="max-w-3xl mx-auto">
           {/* Settings Panel */}
           <div 
             ref={settingsRef}
-            className={`transition-all duration-200 ease-in-out overflow-hidden ${
-              showSettings ? 'mb-4' : 'mb-0'
-            }`}
+            className={`transition-all duration-200 ease-in-out overflow-hidden ${ showSettings ? 'mb-4' : 'mb-0' }`}
             style={{ height: showSettings ? `${settingsHeight}px` : '0px' }}
           >
-            <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 h-full overflow-y-auto">
+            <div className="bg-mint-cream-900 border border-yale-blue-300 rounded-lg p-4 h-full overflow-y-auto">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-mint-cream-500 mb-1">
                     API Key
                   </label>
                   <input
@@ -502,11 +494,11 @@ export function ChatPage() {
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="Enter your API key..."
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-mint-cream-500 mb-1">
                     AI Provider
                   </label>
                   <select
@@ -516,7 +508,7 @@ export function ChatPage() {
                       setSelectedProvider(provider);
                       setSelectedModelId(null);
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
                   >
                     <option value="anthropic">Anthropic</option>
                     <option value="openai">OpenAI</option>
@@ -526,25 +518,25 @@ export function ChatPage() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="block text-sm font-medium text-mint-cream-500">
                       Available Models
                     </label>
                     <button
                       type="button"
                       onClick={handleRefreshModels}
                       disabled={isLoadingModels || !apiKey.trim()}
-                      className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                      className="p-1 text-mint-cream-700 hover:text-mint-cream-500 rounded-md hover:bg-mint-cream-800 transition-colors disabled:opacity-50"
                     >
                       <RefreshCw size={16} className={isLoadingModels ? "animate-spin" : ""} />
                     </button>
                   </div>
                   {isLoadingModels && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    <div className="text-sm text-mint-cream-700 mb-2">
                       Loading models...
                     </div>
                   )}
                   {modelError && (
-                    <div className="text-sm text-red-500 dark:text-red-400 mb-2">
+                    <div className="text-sm text-red-500 mb-2">
                       {modelError}
                     </div>
                   )}
@@ -552,7 +544,7 @@ export function ChatPage() {
                     <select
                       value={selectedModelId || ""}
                       onChange={(e) => setSelectedModelId(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
                     >
                       <option value="">Select a model</option>
                       {dynamicModels[selectedProvider].map((model) => (
@@ -563,7 +555,7 @@ export function ChatPage() {
                     </select>
                   )}
                   {dynamicModels[selectedProvider] && dynamicModels[selectedProvider].length === 0 && !isLoadingModels && !modelError && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-mint-cream-700">
                       {apiKey.trim() ? (
                         <div>
                           <p>No models available for your API key.</p>
@@ -580,17 +572,17 @@ export function ChatPage() {
                     </div>
                   )}
                   {selectedModelId && dynamicModels[selectedProvider]?.find(m => m.id === selectedModelId)?.description && (
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-sm text-mint-cream-700">
                       {dynamicModels[selectedProvider].find(m => m.id === selectedModelId)?.description}
                     </p>
                   )}
                 </div>
                 
                 {/* Vector Search Settings */}
-                <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                <div className="border-t border-yale-blue-300 pt-4">
                   <div className="flex items-center space-x-2 mb-3">
-                    <Search size={16} className="text-blue-600" />
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <Search size={16} className="text-powder-blue-600" />
+                    <label className="text-sm font-medium text-mint-cream-500">
                       Vector Search (Job/Resume Matching)
                     </label>
                   </div>
@@ -602,28 +594,28 @@ export function ChatPage() {
                         id="enableVectorSearch"
                         checked={enableVectorSearch}
                         onChange={(e) => setEnableVectorSearch(e.target.checked)}
-                        className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-yale-blue-400 text-powder-blue-600 focus:ring-blue-500"
                       />
-                      <label htmlFor="enableVectorSearch" className="text-sm text-gray-700 dark:text-gray-300">
+                      <label htmlFor="enableVectorSearch" className="text-sm text-mint-cream-500">
                         Enable AI-powered job and resume matching
                       </label>
                     </div>
                     
                     {enableVectorSearch && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-mint-cream-500 mb-1">
                           Search Type
                         </label>
                         <select
                           value={vectorSearchType}
                           onChange={(e) => setVectorSearchType(e.target.value as VectorSearchType)}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                          className="w-full px-3 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT text-sm"
                         >
                           <option value="both">Jobs & Resumes</option>
                           <option value="jobs">Jobs Only</option>
                           <option value="resumes">Resumes Only</option>
                         </select>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <p className="mt-1 text-xs text-mint-cream-700">
                           Automatically searches for relevant job postings and candidate resumes when you ask about careers, hiring, or employment.
                         </p>
                       </div>
@@ -634,19 +626,19 @@ export function ChatPage() {
             </div>
             {showSettings && (
               <div 
-                className="h-2 bg-gray-100 dark:bg-gray-600 cursor-ns-resize flex items-center justify-center"
+                className="h-2 bg-mint-cream-800 cursor-ns-resize flex items-center justify-center"
                 onMouseDown={handleResizeStart}
               >
-                <GripVertical className="w-4 h-4 text-gray-400" />
+                <GripVertical className="w-4 h-4 text-mint-cream-700" />
               </div>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="flex items-center space-x-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2">
+          <form onSubmit={handleSubmit} className="flex items-center space-x-4 bg-berkeley-blue-DEFAULT rounded-lg border border-yale-blue-300 p-2">
             <button
               type="button"
               onClick={() => setShowSettings(!showSettings)}
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 text-mint-cream-700 hover:text-mint-cream-500 rounded-md hover:bg-mint-cream-800 transition-colors"
             >
               {showSettings ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
             </button>
@@ -656,12 +648,12 @@ export function ChatPage() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
               disabled={isAIGenerating || !apiKey.trim() || !selectedModelId}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50"
+              className="flex-1 px-4 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={!input.trim() || isAIGenerating || isVectorSearching || !apiKey.trim() || !selectedModelId}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-yale-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isAIGenerating ? "AI is responding..." : isVectorSearching ? "Searching..." : "Send"}
             </button>

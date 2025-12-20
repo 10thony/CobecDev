@@ -126,7 +126,7 @@ const applicationTables = {
     // Complete searchable text for semantic search (aggregated, deduplicated content)
     completeSearchableText: v.optional(v.string()),
     // Embedding fields for semantic search on individual fields
-    embedding: v.optional(v.array(v.number())), // Gemini MRL 2048 embedding dimension
+    embedding: v.optional(v.array(v.float64())), // Gemini MRL 2048 embedding dimension
     embeddingModel: v.optional(v.string()), // Track which model generated embedding
     embeddingGeneratedAt: v.optional(v.number()), // Timestamp for embedding freshness
     createdAt: v.number(), // Track when entry was created
@@ -168,7 +168,7 @@ const applicationTables = {
     // Complete searchable text for semantic search (aggregated, deduplicated content)
     completeSearchableText: v.optional(v.string()),
     // Enhanced embedding fields for semantic search
-    embedding: v.optional(v.array(v.number())), // Gemini MRL 2048 embedding dimension
+    embedding: v.optional(v.array(v.float64())), // Gemini MRL 2048 embedding dimension
     embeddingModel: v.optional(v.string()), // Track which model generated embedding
     embeddingGeneratedAt: v.optional(v.number()), // Timestamp for embedding freshness
     // Additional fields for migration compatibility
@@ -194,9 +194,13 @@ const applicationTables = {
     .index("by_metadata_import", ["metadata.importedAt"])
     .index("by_metadata_source", ["metadata.sourceFile"])
     // Vector similarity search index (for future v.vector() migration)
-    .index("by_embedding", ["embedding"])
     .index("by_embedding_model", ["embeddingModel"])
-    .index("by_embedding_generated", ["embeddingGeneratedAt"]),
+    .index("by_embedding_generated", ["embeddingGeneratedAt"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["department", "location", "jobType"],
+    }),
 
   // Resumes - migrated from MongoDB with proper vector support
   resumes: defineTable({
@@ -227,8 +231,13 @@ const applicationTables = {
     extractedSkills: v.optional(v.array(v.string())),
     // Complete searchable text for semantic search (aggregated, deduplicated content)
     completeSearchableText: v.optional(v.string()),
+    // Bulk import fields for Local Resume Bulk Importer
+    fileStorageId: v.optional(v.id("_storage")), // The original .docx file in Convex storage
+    textContent: v.optional(v.string()), // The searchable raw text extracted from DOCX
+    importDate: v.optional(v.string()), // ISO string date when imported
+    checksum: v.optional(v.string()), // MD5 hash to prevent duplicate uploads
     // Enhanced embedding fields for semantic search
-    embedding: v.optional(v.array(v.number())), // Gemini MRL 2048 embedding dimension
+    embedding: v.optional(v.array(v.float64())), // Gemini MRL 2048 embedding dimension
     embeddingModel: v.optional(v.string()), // Track which model generated embedding
     embeddingGeneratedAt: v.optional(v.number()), // Timestamp for embedding freshness
     // Additional fields for migration compatibility
@@ -252,10 +261,19 @@ const applicationTables = {
     .index("by_creation", ["createdAt"])
     .index("by_metadata_import", ["metadata.importedAt"])
     .index("by_metadata_model", ["metadata.embeddingModel"])
+    .index("by_checksum", ["checksum"]) // For duplicate detection
     // Vector similarity search index (for future v.vector() migration)
-    .index("by_embedding", ["embedding"])
     .index("by_embedding_model", ["embeddingModel"])
-    .index("by_embedding_generated", ["embeddingGeneratedAt"]),
+    .index("by_embedding_generated", ["embeddingGeneratedAt"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["skills", "securityClearance"],
+    })
+    // Search index for textContent (bulk import search)
+    .searchIndex("by_content", {
+      searchField: "textContent",
+    }),
 
   // User queries for dynamic prompt learning
   userQueries: defineTable({
@@ -326,6 +344,8 @@ const applicationTables = {
       importedAt: v.number(),
       dataType: v.string(),
       originalIndex: v.optional(v.number()),
+      dynamicFields: v.optional(v.any()), // For storing information about dynamic fields
+      newColumns: v.optional(v.array(v.string())), // List of new columns added during import
     })),
     createdAt: v.number(), // When opportunity was created
     updatedAt: v.number(), // When opportunity was last updated
@@ -392,6 +412,8 @@ const applicationTables = {
       dataType: v.string(),
       originalIndex: v.optional(v.number()),
     })),
+    // Additional flexible field for imported data
+    adHoc: v.optional(v.any()), // For any additional data from imports
     createdAt: v.number(), // When lead was created
     updatedAt: v.number(), // When lead was last updated
   }).index("by_opportunity_type", ["opportunityType"])
@@ -406,6 +428,133 @@ const applicationTables = {
     .index("by_embedding", ["embedding"])
     .index("by_embedding_model", ["embeddingModel"])
     .index("by_estimated_value", ["estimatedValueUSD"]),
+
+  // Semantic Questions for better embeddings
+  semanticQuestions: defineTable({
+    question: v.string(), // The semantic question
+    category: v.string(), // "job_posting", "resume", "opportunity", "lead", "general"
+    subCategory: v.optional(v.string()), // More specific categorization (e.g., "technical_skills", "experience", "qualifications")
+    description: v.string(), // Description of what this question helps capture
+    weight: v.number(), // Importance weight (1-10) for embedding generation
+    isActive: v.boolean(), // Whether this question is currently being used
+    usageCount: v.number(), // How many times this question has been used
+    effectiveness: v.optional(v.number()), // Effectiveness score based on search results (0-1)
+    exampleAnswer: v.optional(v.string()), // Example of what a good answer looks like
+    tags: v.array(v.string()), // Tags for easier filtering and organization
+    createdBy: v.optional(v.string()), // User who created this question (Clerk ID)
+    createdAt: v.number(), // When question was created
+    updatedAt: v.number(), // When question was last updated
+  }).index("by_category", ["category"])
+    .index("by_subcategory", ["subCategory"])
+    .index("by_active", ["isActive"])
+    .index("by_weight", ["weight"])
+    .index("by_effectiveness", ["effectiveness"])
+    .index("by_creation", ["createdAt"])
+    .index("by_usage", ["usageCount"]),
+
+  // Favorites - track user favorites for resumes and job postings
+  favorites: defineTable({
+    userId: v.string(), // Clerk user ID
+    entityType: v.union(v.literal("resume"), v.literal("jobposting")), // Type of entity being favorited
+    entityId: v.string(), // ID of the entity (Convex ID as string)
+    createdAt: v.number(), // When favorite was created
+  }).index("by_user", ["userId"])
+    .index("by_entity", ["entityType", "entityId"])
+    .index("by_user_entity", ["userId", "entityType"])
+    .index("by_creation", ["createdAt"]),
+
+  // Government Links - links to government resources by state
+  govLinks: defineTable({
+    title: v.string(),
+    url: v.string(),
+    stateCode: v.string(), // ISO 3166-2 code: "CA", "NY", "TX"
+    stateName: v.string(), // Full name: "California", "New York"
+    category: v.string(), // "Health", "Education", "Transportation", etc.
+    description: v.optional(v.string()),
+    iconUrl: v.optional(v.string()),
+    priority: v.optional(v.number()), // For ordering within a state
+    isActive: v.boolean(),
+    lastVerified: v.optional(v.number()), // Timestamp of last link check
+  })
+    .index("by_state", ["stateCode"])
+    .index("by_category", ["category"])
+    .index("by_state_category", ["stateCode", "category"])
+    .index("by_active", ["isActive"]),
+
+  // Categories for government links
+  categories: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    icon: v.string(), // Emoji or icon class
+    color: v.string(), // Tailwind color class
+  }).index("by_slug", ["slug"]),
+
+  // Audit log for tracking changes to government links
+  auditLog: defineTable({
+    action: v.string(), // "create", "update", "delete"
+    linkId: v.optional(v.id("govLinks")),
+    userId: v.optional(v.string()),
+    timestamp: v.number(),
+    details: v.optional(v.string()),
+  }).index("by_timestamp", ["timestamp"]),
+
+  // Procurement Chat Sessions for AI-powered procurement link discovery
+  procurementChatSessions: defineTable({
+    userId: v.string(), // Clerk user ID
+    title: v.string(), // Auto-generated or user-provided title
+    isArchived: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    lastMessageAt: v.optional(v.number()),
+  }).index("by_user", ["userId"])
+    .index("by_user_archived", ["userId", "isArchived"])
+    .index("by_last_message", ["lastMessageAt"]),
+
+  // Procurement Chat Messages within sessions
+  procurementChatMessages: defineTable({
+    sessionId: v.id("procurementChatSessions"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    content: v.string(), // User prompt or AI summary
+    // Store the full response data for assistant messages
+    responseData: v.optional(v.object({
+      search_metadata: v.object({
+        target_regions: v.array(v.string()),
+        count_found: v.number(),
+        timestamp: v.optional(v.string()),
+      }),
+      procurement_links: v.array(v.object({
+        state: v.string(),
+        capital: v.string(),
+        official_website: v.string(),
+        procurement_link: v.string(),
+        entity_type: v.optional(v.string()),
+        link_type: v.optional(v.string()),
+        confidence_score: v.optional(v.number()),
+      })),
+    })),
+    isError: v.optional(v.boolean()), // Flag for error messages
+    createdAt: v.number(),
+  }).index("by_session", ["sessionId"])
+    .index("by_creation", ["createdAt"]),
+
+  // Procurement URLs - for ingesting and verifying procurement links before they become available for pins
+  procurementUrls: defineTable({
+    state: v.string(), // Full state name: "Alabama", "Alaska"
+    capital: v.string(), // Capital city name
+    officialWebsite: v.string(), // Official city website URL
+    procurementLink: v.string(), // Procurement/bidding page URL
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("denied")), // Verification status
+    verifiedBy: v.optional(v.string()), // Clerk user ID of who verified
+    verifiedAt: v.optional(v.number()), // Timestamp when verified
+    denialReason: v.optional(v.string()), // Optional reason for denial
+    importedAt: v.number(), // When this URL was imported
+    sourceFile: v.optional(v.string()), // Source JSON file name
+    requiresRegistration: v.optional(v.boolean()), // Whether registration is required to view bids
+  })
+    .index("by_state", ["state"])
+    .index("by_status", ["status"])
+    .index("by_state_status", ["state", "status"])
+    .index("by_imported", ["importedAt"]),
 };
 
 export default defineSchema({

@@ -30,16 +30,16 @@ function filterUniqueBy(arr: any[], keyFn: (item: any) => string | number | unde
 // Color utility for cross-matched results
 const getColorForIndex = (index: number) => {
   const colors = [
-    'bg-red-100 border-red-300 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200',
-    'bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-200',
-    'bg-green-100 border-green-300 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200',
-    'bg-yellow-100 border-yellow-300 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-200',
-    'bg-purple-100 border-purple-300 text-purple-800 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-200',
-    'bg-pink-100 border-pink-300 text-pink-800 dark:bg-pink-900/20 dark:border-pink-800 dark:text-pink-200',
-    'bg-indigo-100 border-indigo-300 text-indigo-800 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-200',
-    'bg-orange-100 border-orange-300 text-orange-800 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-200',
-    'bg-teal-100 border-teal-300 text-teal-800 dark:bg-teal-900/20 dark:border-teal-800 dark:text-teal-200',
-    'bg-cyan-100 border-cyan-300 text-cyan-800 dark:bg-cyan-900/20 dark:border-cyan-800 dark:text-cyan-200',
+    'bg-red-100 border-red-300 text-red-800   
+    'bg-yale-blue-500 border-blue-300 text-blue-800 bg-yale-blue-500/20  
+    'bg-green-100 border-green-300 text-green-800   
+    'bg-yellow-100 border-yellow-300 text-yellow-800   
+    'bg-purple-100 border-purple-300 text-purple-800   
+    'bg-pink-100 border-pink-300 text-pink-800   
+    'bg-indigo-100 border-indigo-300 text-indigo-800   
+    'bg-orange-100 border-orange-300 text-orange-800   
+    'bg-teal-100 border-teal-300 text-teal-800   
+    'bg-cyan-100 border-cyan-300 text-cyan-800   
   ];
   return colors[index % colors.length];
 };
@@ -382,23 +382,23 @@ export function VectorSearchPage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div className="min-h-screen bg-mint-cream-900 bg-oxford-blue-DEFAULT py-8">
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-mint-cream-DEFAULT mb-2">
             AI-Powered Job & Resume Matching
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-mint-cream-600">
             Search through job postings and resumes using semantic similarity
           </p>
         </div>
 
         {/* Search Form */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+        <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6 mb-8">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-mint-cream-500 mb-2">
                 Search Query
               </label>
               <div className="flex space-x-2">
@@ -407,12 +407,12 @@ export function VectorSearchPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="e.g., 'software engineer with Python experience'"
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="flex-1 px-4 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
                 />
                 <button
                   onClick={handleSearch}
                   disabled={!query.trim() || isSearching}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                  className="px-6 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-yale-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
                 >
                   <Search size={16} />
                   <span>{isSearching ? "Searching..." : "Search"}</span>
@@ -420,7 +420,7 @@ export function VectorSearchPage() {
                 {(results || error) && (
                   <button
                     onClick={handleClearResults}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors flex items-center space-x-2"
+                    className="px-4 py-2 bg-mint-cream-9000 text-white rounded-md hover:bg-gray-600 transition-colors flex items-center space-x-2"
                     title="Clear search results and stored data (Ctrl+Shift+C)"
                   >
                     <Trash2 size={16} />
@@ -429,7 +429,7 @@ export function VectorSearchPage() {
                 )}
                 <button
                   onClick={handleTestMapping}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-purple-700 transition-colors flex items-center space-x-2"
                   title="Test resume mapping function"
                 >
                   <span>Test Mapping</span>
@@ -439,13 +439,13 @@ export function VectorSearchPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-mint-cream-500 mb-2">
                   Search Type
                 </label>
                 <select
                   value={searchType}
                   onChange={(e) => setSearchType(e.target.value as "jobs" | "resumes" | "both")}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
                 >
                   <option value="both">Jobs & Resumes</option>
                   <option value="jobs">Jobs Only</option>
@@ -454,13 +454,13 @@ export function VectorSearchPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-mint-cream-500 mb-2">
                   Results Limit
                 </label>
                 <select
                   value={limit}
                   onChange={(e) => setLimit(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
                 >
                   <option value={3}>3 results</option>
                   <option value={5}>5 results</option>
@@ -477,9 +477,9 @@ export function VectorSearchPage() {
                   id="useCrossMatching"
                   checked={useCrossMatching}
                   onChange={(e) => setUseCrossMatching(e.target.checked)}
-                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  className="rounded border-yale-blue-400 text-powder-blue-600 focus:ring-purple-500"
                 />
-                <label htmlFor="useCrossMatching" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="useCrossMatching" className="text-sm font-medium text-mint-cream-500">
                   Use Cross-Matched Search (Only show jobs with matching resumes and vice versa)
                 </label>
               </div>
@@ -487,13 +487,13 @@ export function VectorSearchPage() {
               {useCrossMatching && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-mint-cream-500 mb-2">
                       Minimum Similarity Threshold
                     </label>
                     <select
                       value={minSimilarity}
                       onChange={(e) => setMinSimilarity(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-3 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
                     >
                       <option value={0.1}>10% (Very Loose)</option>
                       <option value={0.2}>20% (Loose)</option>
@@ -505,13 +505,13 @@ export function VectorSearchPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-mint-cream-500 mb-2">
                       Cross-Match Threshold
                     </label>
                     <select
                       value={crossMatchThreshold}
                       onChange={(e) => setCrossMatchThreshold(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-3 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
                     >
                       <option value={0.2}>20% (Very Loose)</option>
                       <option value={0.3}>30% (Loose)</option>
@@ -523,11 +523,11 @@ export function VectorSearchPage() {
                   </div>
 
                   {/* Cross-Match Search Info */}
-                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-md">
-                    <h4 className="text-sm font-medium text-purple-800 dark:text-purple-200 mb-2">
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-md">
+                    <h4 className="text-sm font-medium text-purple-800 mb-2">
                       Cross-Matched Search Features:
                     </h4>
-                    <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                    <ul className="text-sm text-purple-700 space-y-1">
                       <li>• <strong>Strict Matching:</strong> Only shows jobs with matching resumes and vice versa</li>
                       <li>• <strong>Color Coding:</strong> Related jobs and resumes are highlighted with the same color</li>
                       <li>• <strong>Quality Assurance:</strong> Ensures every result has a meaningful match</li>
@@ -544,22 +544,22 @@ export function VectorSearchPage() {
                   id="usePureVectorSearch"
                   checked={usePureVectorSearch}
                   onChange={(e) => setUsePureVectorSearch(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-yale-blue-400 text-powder-blue-600 focus:ring-blue-500"
                 />
-                <label htmlFor="usePureVectorSearch" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="usePureVectorSearch" className="text-sm font-medium text-mint-cream-500">
                   Use Pure Vector Search (Stricter Technical Filtering & Skill Matching)
                 </label>
               </div>
 
               {usePureVectorSearch && !useCrossMatching && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-mint-cream-500 mb-2">
                     Minimum Similarity Threshold
                   </label>
                   <select
                     value={minSimilarity}
                     onChange={(e) => setMinSimilarity(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-yale-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT"
                   >
                     <option value={0.1}>10% (Very Loose)</option>
                     <option value={0.2}>20% (Loose)</option>
@@ -573,11 +573,11 @@ export function VectorSearchPage() {
 
               {/* Pure Vector Search Info */}
               {usePureVectorSearch && !useCrossMatching && (
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-                  <h4 className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                  <h4 className="text-sm font-medium text-green-800 mb-2">
                     Pure Vector Search Features:
                   </h4>
-                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                  <ul className="text-sm text-green-700 space-y-1">
                     <li>• <strong>Semantic Understanding:</strong> Uses AI embeddings for true semantic search</li>
                     <li>• <strong>No Substring Matching:</strong> Won't match "ios" in "bios" or "pios"</li>
                     <li>• <strong>Context Awareness:</strong> Understands meaning, not just keywords</li>
@@ -592,8 +592,8 @@ export function VectorSearchPage() {
           </div>
           
           {/* Info about data persistence */}
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+          <div className="mt-4 p-3 bg-blue-50 bg-yale-blue-500/20 border border-blue-200 rounded-md">
+            <p className="text-sm text-mint-cream-DEFAULT">
               💾 Your search results are automatically saved and will persist when you navigate away. 
               Use the Clear button or press Ctrl+Shift+C to remove stored data.
             </p>
@@ -602,8 +602,8 @@ export function VectorSearchPage() {
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-8">
-            <p className="text-red-700 dark:text-red-400">{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <p className="text-red-700">{error}</p>
           </div>
         )}
 
@@ -613,24 +613,24 @@ export function VectorSearchPage() {
             {/* Results Header with Clear Button */}
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-2">
-                <Search size={20} className="text-gray-600 dark:text-gray-400" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <Search size={20} className="text-mint-cream-600" />
+                <h2 className="text-xl font-semibold text-mint-cream-DEFAULT">
                   Search Results
                 </h2>
                 {query && (
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className="text-sm text-mint-cream-700">
                     for "{query}"
                   </span>
                 )}
                 {isLoadedFromStorage && (
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                  <span className="text-xs bg-yale-blue-500 text-blue-800 px-2 py-1 rounded-full">
                     Loaded from cache
                   </span>
                 )}
               </div>
               <button
                 onClick={handleClearResults}
-                className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center space-x-1 text-sm"
+                className="px-3 py-1 bg-mint-cream-800 text-mint-cream-600 rounded-md hover:bg-mint-cream-700 transition-colors flex items-center space-x-1 text-sm"
                 title="Clear search results and stored data (Ctrl+Shift+C)"
               >
                 <Trash2 size={14} />
@@ -642,12 +642,12 @@ export function VectorSearchPage() {
             {uniqueJobs && uniqueJobs.length > 0 && (
               <div>
                 <div className="flex items-center space-x-2 mb-4">
-                  <Briefcase size={20} className="text-blue-600" />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <Briefcase size={20} className="text-powder-blue-600" />
+                  <h2 className="text-xl font-semibold text-mint-cream-DEFAULT">
                     Job Opportunities ({uniqueJobs.length})
                   </h2>
                   {useCrossMatching && results?.colorGroups && (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-sm text-mint-cream-700">
                       • {results.colorGroups.length} cross-matched groups
                     </span>
                   )}
@@ -661,13 +661,11 @@ export function VectorSearchPage() {
                     return (
                       <div 
                         key={job.UniqueJobPostingId}
-                        className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer group ${
-                          useCrossMatching ? getBorderColorForIndex(colorIndex) + ' border-l-4' : ''
-                        }`}
+                        className={`bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6 border border-yale-blue-300 hover:shadow-lg transition-shadow cursor-pointer group ${ useCrossMatching ? getBorderColorForIndex(colorIndex) + ' border-l-4' : '' }`}
                         onClick={() => handleJobClick(job)}
                       >
                         <div className="flex justify-between items-start mb-3">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          <h3 className="text-lg font-semibold text-mint-cream-DEFAULT group-hover:text-powder-blue-600 transition-colors">
                             {job.jobTitle}
                           </h3>
                           <div className="flex items-center space-x-2">
@@ -676,13 +674,13 @@ export function VectorSearchPage() {
                                 {matchCount} match{matchCount !== 1 ? 'es' : ''}
                               </span>
                             )}
-                            <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-sm font-medium">
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">
                               {formatSimilarity(job.similarity)}
                             </span>
-                            <ExternalLink size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+                            <ExternalLink size={16} className="text-mint-cream-700 group-hover:text-powder-blue-600 transition-colors" />
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-mint-cream-600 mb-3">
                           <div>
                             <strong>Location:</strong> {job.location}
                           </div>
@@ -697,11 +695,11 @@ export function VectorSearchPage() {
                           </div>
                         </div>
                         {job.jobSummary && (
-                          <p className="text-gray-700 dark:text-gray-300 text-sm">
+                          <p className="text-mint-cream-500 text-sm">
                             {job.jobSummary.substring(0, 200)}...
                           </p>
                         )}
-                        <div className="mt-3 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                        <div className="mt-3 text-sm text-powder-blue-600 font-medium">
                           Click to view full details →
                         </div>
                       </div>
@@ -715,12 +713,12 @@ export function VectorSearchPage() {
             {uniqueResumes && uniqueResumes.length > 0 && (
               <div>
                 <div className="flex items-center space-x-2 mb-4">
-                  <User size={20} className="text-green-600" />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <User size={20} className="text-mint-cream-600" />
+                  <h2 className="text-xl font-semibold text-mint-cream-DEFAULT">
                     Matching Candidates ({uniqueResumes.length})
                   </h2>
                   {useCrossMatching && results?.colorGroups && (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-sm text-mint-cream-700">
                       • {results.colorGroups.length} cross-matched groups
                     </span>
                   )}
@@ -734,13 +732,11 @@ export function VectorSearchPage() {
                     return (
                       <div 
                         key={resume.UniqueResumeId}
-                        className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer group ${
-                          useCrossMatching ? getBorderColorForIndex(colorIndex) + ' border-l-4' : ''
-                        }`}
+                        className={`bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6 border border-yale-blue-300 hover:shadow-lg transition-shadow cursor-pointer group ${ useCrossMatching ? getBorderColorForIndex(colorIndex) + ' border-l-4' : '' }`}
                         onClick={() => handleResumeClick(resume)}
                       >
                         <div className="flex justify-between items-start mb-3">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                          <h3 className="text-lg font-semibold text-mint-cream-DEFAULT group-hover:text-mint-cream-600 transition-colors">
                             {resume.processedMetadata?.name || "Unknown Candidate"}
                           </h3>
                           <div className="flex items-center space-x-2">
@@ -749,13 +745,13 @@ export function VectorSearchPage() {
                                 {matchCount} match{matchCount !== 1 ? 'es' : ''}
                               </span>
                             )}
-                            <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-sm font-medium">
+                            <span className="bg-yale-blue-500 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
                               {formatSimilarity(resume.similarity)}
                             </span>
-                            <ExternalLink size={16} className="text-gray-400 group-hover:text-green-600 transition-colors" />
+                            <ExternalLink size={16} className="text-mint-cream-700 group-hover:text-mint-cream-600 transition-colors" />
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-mint-cream-600 mb-3">
                           <div>
                             <strong>Email:</strong> {resume.processedMetadata?.email || "N/A"}
                           </div>
@@ -770,11 +766,11 @@ export function VectorSearchPage() {
                           </div>
                         </div>
                         {resume.professionalSummary && (
-                          <p className="text-gray-700 dark:text-gray-300 text-sm">
+                          <p className="text-mint-cream-500 text-sm">
                             {resume.professionalSummary.substring(0, 200)}...
                           </p>
                         )}
-                        <div className="mt-3 text-sm text-green-600 dark:text-green-400 font-medium">
+                        <div className="mt-3 text-sm text-mint-cream-600 font-medium">
                           Click to view full details →
                         </div>
                       </div>
@@ -787,11 +783,11 @@ export function VectorSearchPage() {
             {/* No Results */}
             {((!uniqueJobs || uniqueJobs.length === 0) && (!uniqueResumes || uniqueResumes.length === 0)) && (
               <div className="text-center py-12">
-                <Search size={48} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                <Search size={48} className="mx-auto text-mint-cream-700 mb-4" />
+                <h3 className="text-lg font-medium text-mint-cream-DEFAULT mb-2">
                   No matches found
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-mint-cream-600">
                   Try adjusting your search query or search type
                 </p>
               </div>

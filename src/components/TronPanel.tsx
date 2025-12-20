@@ -1,0 +1,73 @@
+import React from 'react';
+
+interface TronPanelProps {
+  children: React.ReactNode;
+  className?: string;
+  title?: string;
+  icon?: React.ReactNode;
+  glowColor?: 'cyan' | 'blue' | 'orange';
+  variant?: 'default' | 'elevated' | 'inset';
+  headerAction?: React.ReactNode;
+}
+
+export function TronPanel({
+  children,
+  className = '',
+  title,
+  icon,
+  glowColor = 'cyan',
+  variant = 'default',
+  headerAction
+}: TronPanelProps) {
+  const glowColors = {
+    cyan: 'rgba(0, 212, 255, 0.2)',
+    blue: 'rgba(0, 102, 255, 0.2)',
+    orange: 'rgba(255, 102, 0, 0.2)',
+  };
+
+  const variants = {
+    default: 'bg-tron-bg-panel',
+    elevated: 'bg-tron-bg-elevated',
+    inset: 'bg-tron-bg-deep',
+  };
+
+  const neonColors = {
+    cyan: '#00d4ff',
+    blue: '#0066ff',
+    orange: '#ff6600',
+  };
+
+  return (
+    <div 
+      className={`
+        relative overflow-hidden rounded-lg
+        border border-opacity-20
+        ${variants[variant]}
+        ${className}
+      `}
+      style={{ borderColor: glowColors[glowColor] }}
+    >
+      {/* Top Neon Line */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${neonColors[glowColor]}, transparent)`
+        }}
+      />
+      
+      {title && (
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-tron-cyan/10">
+          <div className="flex items-center gap-3">
+            {icon && <span className="text-tron-cyan tron-icon-glow">{icon}</span>}
+            <h3 className="text-lg font-semibold text-tron-white tron-glow-text">{title}</h3>
+          </div>
+          {headerAction && <div>{headerAction}</div>}
+        </div>
+      )}
+      
+      <div className="p-6">
+        {children}
+      </div>
+    </div>
+  );
+}

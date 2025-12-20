@@ -22,5 +22,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Ignored for the template, you probably want to remove it:
+# Lock files - only bun.lock should be tracked
 package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb

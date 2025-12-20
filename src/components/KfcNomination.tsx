@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../lib/ThemeContext';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { TronPanel } from './TronPanel';
+import { TronButton } from './TronButton';
 
 interface KfcNominationProps {
   // Props interface for future extensibility
@@ -150,31 +152,31 @@ const KfcNomination: React.FC<KfcNominationProps> = () => {
   // Loading state
   if (employees === undefined || nominations === undefined || pendingNominations === undefined) {
     return (
-      <div className={`p-6 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+      <TronPanel>
         <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span className="ml-2">Loading nomination data...</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tron-cyan"></div>
+          <span className="ml-2 text-tron-white">Loading nomination data...</span>
         </div>
-      </div>
+      </TronPanel>
     );
   }
 
   return (
-    <div className={`p-6 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">KFC Nominations</h2>
-        <div className="text-sm text-gray-500">
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-tron-white">KFC Nominations</h2>
+        <div className="text-sm text-tron-gray">
           {pendingNominations?.length || 0} pending nominations
         </div>
       </div>
 
       {/* Success Message */}
       {successMessage && (
-        <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex justify-between items-center">
+        <div className="mb-4 p-4 bg-neon-success/20 border border-neon-success text-neon-success rounded-lg flex justify-between items-center">
           <span>{successMessage}</span>
           <button
             onClick={clearSuccessMessage}
-            className="text-green-600 hover:text-green-800"
+            className="text-tron-gray hover:text-neon-success"
           >
             ×
           </button>
@@ -183,41 +185,32 @@ const KfcNomination: React.FC<KfcNominationProps> = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+        <div className="mb-4 p-4 bg-neon-error/20 border border-neon-error text-neon-error rounded-lg">
           {error}
         </div>
       )}
 
       {/* Create Nomination Form */}
-      <div className="mb-8 p-6 border rounded-lg">
-        <h3 className="text-lg font-semibold mb-4">Create New Nomination</h3>
+      <TronPanel title="Create New Nomination">
         <form onSubmit={handleSubmitNomination} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Nominator Name</label>
+              <label className="block text-sm font-medium mb-1 text-tron-gray">Nominator Name</label>
               <input
                 type="text"
                 value={nominatorName}
                 onChange={(e) => setNominatorName(e.target.value)}
                 placeholder="Your name"
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
+                className="tron-input w-full"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Nominated Employee</label>
+              <label className="block text-sm font-medium mb-1 text-tron-gray">Nominated Employee</label>
               <select
                 value={nominatedEmployee}
                 onChange={(e) => setNominatedEmployee(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
+                className="tron-select w-full"
                 required
               >
                 <option value="">Select an employee...</option>
@@ -231,15 +224,11 @@ const KfcNomination: React.FC<KfcNominationProps> = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1">Nomination Type</label>
+            <label className="block text-sm font-medium mb-1 text-tron-gray">Nomination Type</label>
             <select
               value={nominationType}
               onChange={(e) => setNominationType(e.target.value as 'Team' | 'Individual' | 'Growth')}
-              className={`w-full px-3 py-2 border rounded-lg ${
-                theme === 'dark' 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300 text-gray-900'
-              }`}
+              className="tron-select w-full"
             >
               <option value="Team">Team Effort ({getPointsForNominationType('Team')} points)</option>
               <option value="Individual">Individual Achievement ({getPointsForNominationType('Individual')} points)</option>
@@ -248,120 +237,107 @@ const KfcNomination: React.FC<KfcNominationProps> = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
+            <label className="block text-sm font-medium mb-1 text-tron-gray">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe why you are nominating this employee..."
               rows={4}
-              className={`w-full px-3 py-2 border rounded-lg ${
-                theme === 'dark' 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300 text-gray-900'
-              }`}
+              className="tron-input w-full"
               required
             />
           </div>
           
-          <button
+          <TronButton
             type="submit"
             disabled={isLoading}
-            className={`px-6 py-2 rounded-lg ${
-              theme === 'dark' 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            } disabled:opacity-50`}
+            variant="primary"
+            color="cyan"
+            loading={isLoading}
           >
             {isLoading ? 'Creating...' : 'Create Nomination'}
-          </button>
+          </TronButton>
         </form>
-      </div>
+      </TronPanel>
 
       {/* Pending Nominations */}
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-4">Pending Nominations ({pendingNominations?.length || 0})</h3>
+      <TronPanel title={`Pending Nominations (${pendingNominations?.length || 0})`}>
         <div className="space-y-4">
           {pendingNominations?.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-tron-gray">
               No pending nominations
             </div>
           ) : (
             pendingNominations?.map((nomination) => (
               <div
                 key={nomination._id}
-                className={`p-4 border rounded-lg ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}
+                className="p-4 border border-tron-cyan/20 rounded-lg bg-tron-bg-card"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h4 className="font-semibold">{nomination.nominatedEmployee}</h4>
-                    <p className="text-sm text-gray-500">
+                    <h4 className="font-semibold text-tron-white">{nomination.nominatedEmployee}</h4>
+                    <p className="text-sm text-tron-gray">
                       Nominated by {nomination.nominatedBy} • {nomination.nominationType} • {nomination.pointsAwarded} points
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
+                    <TronButton
                       onClick={() => handleApproveNomination(nomination._id)}
                       disabled={isLoading}
-                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                      variant="primary"
+                      color="cyan"
+                      size="sm"
                     >
                       Approve
-                    </button>
-                    <button
+                    </TronButton>
+                    <TronButton
                       onClick={() => handleDeclineNomination(nomination._id)}
                       disabled={isLoading}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                      variant="outline"
+                      color="orange"
+                      size="sm"
                     >
                       Decline
-                    </button>
-                    <button
+                    </TronButton>
+                    <TronButton
                       onClick={() => handleDeleteNomination(nomination._id)}
                       disabled={isLoading}
-                      className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+                      variant="ghost"
+                      color="orange"
+                      size="sm"
                     >
                       Delete
-                    </button>
+                    </TronButton>
                   </div>
                 </div>
-                <p className="text-sm">{nomination.description}</p>
+                <p className="text-sm text-tron-gray">{nomination.description}</p>
               </div>
             ))
           )}
         </div>
-      </div>
+      </TronPanel>
 
       {/* All Nominations */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">All Nominations ({nominations?.length || 0})</h3>
+      <TronPanel title={`All Nominations (${nominations?.length || 0})`}>
         <div className="space-y-4">
           {nominations?.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-tron-gray">
               No nominations found
             </div>
           ) : (
             nominations?.map((nomination) => (
               <div
                 key={nomination._id}
-                className={`p-4 border rounded-lg ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}
+                className="p-4 border border-tron-cyan/20 rounded-lg bg-tron-bg-card"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h4 className="font-semibold">{nomination.nominatedEmployee}</h4>
-                    <p className="text-sm text-gray-500">
+                    <h4 className="font-semibold text-tron-white">{nomination.nominatedEmployee}</h4>
+                    <p className="text-sm text-tron-gray">
                       Nominated by {nomination.nominatedBy} • {nomination.nominationType} • {nomination.pointsAwarded} points
                     </p>
-                    <p className="text-sm text-gray-500">
-                      Status: <span className={`font-medium ${
-                        nomination.status === 'approved' ? 'text-green-600' :
-                        nomination.status === 'declined' ? 'text-red-600' : 'text-yellow-600'
-                      }`}>
+                    <p className="text-sm text-tron-gray">
+                      Status: <span className={`font-medium ${nomination.status === 'approved' ? 'text-neon-success' : nomination.status === 'declined' ? 'text-neon-error' : 'text-neon-warning'}`}>
                         {nomination.status.charAt(0).toUpperCase() + nomination.status.slice(1)}
                       </span>
                       {nomination.approvedBy && ` by ${nomination.approvedBy}`}
@@ -369,29 +345,33 @@ const KfcNomination: React.FC<KfcNominationProps> = () => {
                   </div>
                   {nomination.status === 'pending' && (
                     <div className="flex gap-2">
-                      <button
+                      <TronButton
                         onClick={() => handleApproveNomination(nomination._id)}
                         disabled={isLoading}
-                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                        variant="primary"
+                        color="cyan"
+                        size="sm"
                       >
                         Approve
-                      </button>
-                      <button
+                      </TronButton>
+                      <TronButton
                         onClick={() => handleDeclineNomination(nomination._id)}
                         disabled={isLoading}
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                        variant="outline"
+                        color="orange"
+                        size="sm"
                       >
                         Decline
-                      </button>
+                      </TronButton>
                     </div>
                   )}
                 </div>
-                <p className="text-sm">{nomination.description}</p>
+                <p className="text-sm text-tron-gray">{nomination.description}</p>
               </div>
             ))
           )}
         </div>
-      </div>
+      </TronPanel>
     </div>
   );
 };

@@ -16,6 +16,13 @@ import * as openai from "./openai";
 import * as nodeActions from "./nodeActions";
 import * as vectorSearch from "./vectorSearch";
 import * as convexVectorSearch from "./convexVectorSearch";
+import * as semanticQuestions from "./semanticQuestions";
+import * as semanticEmbeddingService from "./semanticEmbeddingService";
+import * as semanticEmbeddingMutations from "./semanticEmbeddingMutations";
+import * as embeddingService from "./embeddingService";
+import * as favorites from "./favorites";
+import * as procurementChat from "./procurementChat";
+import * as procurementUrls from "./procurementUrls";
 
 // Export all functions as a single API object
 export default {
@@ -37,4 +44,11 @@ export default {
   nodeActions,
   vectorSearch,
   convexVectorSearch,
+  semanticQuestions,
+  semanticEmbeddingService,
+  semanticEmbeddingMutations,
+  embeddingService,
+  favorites,
+  procurementChat,
+  procurementUrls,
 };

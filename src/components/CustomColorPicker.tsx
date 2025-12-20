@@ -91,7 +91,7 @@ export function CustomColorPicker({
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label className="block text-sm font-medium text-mint-cream-500">
         {title}
       </label>
       
@@ -101,7 +101,7 @@ export function CustomColorPicker({
           <button
             type="button"
             onClick={() => setShowHexInput(!showHexInput)}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center space-x-1 transition-colors"
+            className="text-sm text-powder-blue-600 hover:text-mint-cream-DEFAULT flex items-center space-x-1 transition-colors"
           >
             <Palette className="w-4 h-4" />
             <span>Custom Color</span>
@@ -110,7 +110,7 @@ export function CustomColorPicker({
         </div>
         
         {showHexInput && (
-          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+          <div className="p-3 bg-mint-cream-900 bg-berkeley-blue-DEFAULT rounded-lg border border-yale-blue-300 space-y-3">
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <input
@@ -119,11 +119,7 @@ export function CustomColorPicker({
                   onChange={(e) => handleHexInputChange(e.target.value)}
                   onBlur={handleHexInputBlur}
                   placeholder="#000000"
-                  className={`w-24 px-3 py-2 text-sm border rounded-md transition-colors ${
-                    isValidHex 
-                      ? 'border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500' 
-                      : 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-                  } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                  className={`w-24 px-3 py-2 text-sm border rounded-md transition-colors ${ isValidHex ? 'border-yale-blue-400 focus:border-powder-blue-600 focus:ring-blue-500' : 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' } bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT`}
                 />
                 {!isValidHex && (
                   <div className="absolute -bottom-6 left-0 text-xs text-red-500">
@@ -134,7 +130,7 @@ export function CustomColorPicker({
               
               {/* Color Preview */}
               <div 
-                className="w-10 h-10 rounded-md border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 shadow-sm"
+                className="w-10 h-10 rounded-md border-2 border-yale-blue-400 flex-shrink-0 shadow-sm"
                 style={getPreviewStyle()}
               />
               
@@ -143,7 +139,7 @@ export function CustomColorPicker({
                 <button
                   type="button"
                   onClick={handleApplyHexColor}
-                  className="px-3 py-2 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                  className="px-3 py-2 text-xs bg-yale-blue-DEFAULT text-white rounded-md hover:bg-yale-blue-600 transition-colors font-medium"
                 >
                   Apply
                 </button>
@@ -167,14 +163,14 @@ export function CustomColorPicker({
               <button
                 type="button"
                 onClick={handleClearHexColor}
-                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                className="text-xs text-mint-cream-700 hover:text-mint-cream-500 transition-colors"
               >
                 Clear custom color
               </button>
             )}
             
             {/* Help Text */}
-            <div className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="text-xs text-mint-cream-700">
               Enter a hex color code (e.g., #FF5733) to create a custom color
             </div>
           </div>
@@ -185,7 +181,7 @@ export function CustomColorPicker({
       {savedColors.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-mint-cream-500">
               Saved Colors
             </span>
           </div>
@@ -197,7 +193,7 @@ export function CustomColorPicker({
                 onClick={() => handleSavedColorClick(savedColor)}
               >
                 <div
-                  className="w-full h-12 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+                  className="w-full h-12 rounded-lg border-2 border-yale-blue-300 hover:border-yale-blue-400 transition-all"
                   style={{ backgroundColor: savedColor.hexColor }}
                   title={savedColor.name}
                 />
@@ -227,13 +223,13 @@ export function CustomColorPicker({
       {/* Save Color Dialog */}
       {showSaveDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-80 max-w-sm">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          <div className="bg-berkeley-blue-DEFAULT rounded-lg p-6 w-80 max-w-sm">
+            <h3 className="text-lg font-medium text-mint-cream-DEFAULT mb-4">
               Save Custom Color
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-mint-cream-500 mb-2">
                   Color Name
                 </label>
                 <input
@@ -241,23 +237,23 @@ export function CustomColorPicker({
                   value={colorName}
                   onChange={(e) => setColorName(e.target.value)}
                   placeholder="Enter a name for this color"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-yale-blue-400 rounded-md bg-berkeley-blue-DEFAULT text-mint-cream-DEFAULT focus:border-powder-blue-600 focus:ring-1 focus:ring-blue-500"
                   autoFocus
                 />
               </div>
               <div className="flex items-center space-x-3">
                 <div
-                  className="w-8 h-8 rounded border border-gray-300 dark:border-gray-600"
+                  className="w-8 h-8 rounded border border-yale-blue-400"
                   style={{ backgroundColor: hexInput }}
                 />
-                <span className="text-sm text-gray-600 dark:text-gray-400">{hexInput}</span>
+                <span className="text-sm text-mint-cream-600">{hexInput}</span>
               </div>
               <div className="flex space-x-3">
                 <button
                   type="button"
                   onClick={handleSaveColor}
                   disabled={!colorName.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 px-4 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-yale-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Save
                 </button>
@@ -267,7 +263,7 @@ export function CustomColorPicker({
                     setShowSaveDialog(false);
                     setColorName('');
                   }}
-                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                  className="flex-1 px-4 py-2 bg-gray-300 text-mint-cream-500 rounded-md hover:bg-gray-400 transition-colors"
                 >
                   Cancel
                 </button>

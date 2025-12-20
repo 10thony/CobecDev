@@ -40,25 +40,21 @@ export function HomePage() {
   return (
     <div className="min-h-full flex flex-col items-center justify-start py-8">
       <div className="max-w-2xl mx-auto text-center">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        <h1 className="text-4xl font-bold text-mint_cream-500 mb-4">
           Welcome to Cobecium
         </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+        <p className="text-xl text-powder_blue-700 mb-8">
           Chat with AI models in real-time
         </p>
 
         {loggedInUser && (
           <div className="mb-8">
-            <p className="text-lg text-gray-700 dark:text-gray-200">
+            <p className="text-lg text-mint-cream-500">
               Hello, {loggedInUser.email}!
             </p>
             {isCobecAdmin !== undefined && isCobecAdmin !== null && (
               <div className="mt-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  isCobecAdmin 
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                }`}>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ isCobecAdmin ? 'bg-yale_blue-500 text-mint_cream-500' : 'bg-berkeley_blue-400 text-mint_cream-500' }`}>
                   {isCobecAdmin ? 'Cobec Admin' : 'Standard User'}
                 </span>
               </div>
@@ -67,9 +63,9 @@ export function HomePage() {
         )}
 
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Your Chats</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+          <div className="bg-berkeley_blue-500 p-6 rounded-lg shadow-sm border border-powder_blue-400">
+            <h3 className="text-lg font-semibold mb-2 text-mint_cream-500">Your Chats</h3>
+            <p className="text-powder_blue-700 mb-4">
               {chats.length} active conversation{chats.length !== 1 ? "s" : ""}
             </p>
             {chats.length > 0 && (
@@ -78,16 +74,16 @@ export function HomePage() {
                   <Link
                     key={chat._id}
                     to={`/chat/${chat._id}`}
-                    className="block p-2 bg-gray-50 dark:bg-gray-700 rounded text-left hover:bg-gray-100 dark:hover:bg-gray-600"
+                    className="block p-2 bg-oxford_blue-400 rounded text-left hover:bg-yale_blue-400"
                   >
-                    <div className="font-medium text-sm text-gray-900 dark:text-white">{chat.title}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="font-medium text-sm text-mint_cream-500">{chat.title}</div>
+                    <div className="text-xs text-powder_blue-700">
                       {chat.modelId}
                     </div>
                   </Link>
                 ))}
                 {chats.length > 3 && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-powder_blue-700">
                     +{chats.length - 3} more chats
                   </p>
                 )}
@@ -95,25 +91,25 @@ export function HomePage() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">AI Models</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+          <div className="bg-berkeley_blue-500 p-6 rounded-lg shadow-sm border border-powder_blue-400">
+            <h3 className="text-lg font-semibold mb-2 text-mint_cream-500">AI Models</h3>
+            <p className="text-powder_blue-700 mb-4">
               {aiModels.length} model{aiModels.length !== 1 ? "s" : ""} available
             </p>
             <div className="space-y-2">
               {aiModels.map((model) => (
                 <div
                   key={model._id}
-                  className="p-2 bg-gray-50 dark:bg-gray-700 rounded text-left"
+                  className="p-2 bg-oxford_blue-400 rounded text-left"
                 >
-                  <div className="font-medium text-sm text-gray-900 dark:text-white">{model.name}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="font-medium text-sm text-mint_cream-500">{model.name}</div>
+                  <div className="text-xs text-powder_blue-700">
                     {model.provider} • {model.modelId}
                   </div>
                 </div>
               ))}
               {aiModels.length === 0 && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-mint-cream-700">
                   No models configured yet
                 </p>
               )}
@@ -122,15 +118,15 @@ export function HomePage() {
         </div>
 
         {aiModels.length === 0 && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-yellow-800 dark:text-yellow-200 mb-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-yellow-800 mb-4">
               No AI models are configured yet.
             </p>
             {userRole !== "admin" && (
               <button
                 onClick={handleSetupApp}
                 disabled={isSeeding}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-500 disabled:opacity-50"
+                className="bg-yale_blue-500 text-mint_cream-500 px-4 py-2 rounded-md hover:bg-yale_blue-600 disabled:opacity-50"
               >
                 {isSeeding ? "Setting up..." : "Setup App (Make me admin & add models)"}
               </button>

@@ -2,8 +2,7 @@ import { useQuery } from "convex/react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
-import { DarkModeToggle } from "./DarkModeToggle";
-import { Palette, Database, Trophy, Target, ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { Target, ChevronLeft, ChevronRight, Map , Shield} from "lucide-react";
 import { useState } from "react";
 
 interface LayoutProps {
@@ -12,74 +11,69 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
+  const isCobecAdmin = useQuery(api.cobecAdmins.checkIfUserIsCobecAdmin);
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Hide sidebar on HR dashboard pages (homepage and hr-dashboard route)
-  const isHRDashboard = location.pathname === '/' || location.pathname === '/hr-dashboard';
+  // Hide sidebar only on leads management page
   const isLeadsManagement = location.pathname === '/leads-management';
+  
+  // Check if user is admin (either system admin or cobec admin)
+  const isAdmin = userRole === "admin" || isCobecAdmin === true;
 
   const navigationItems = [
-    {
-      to: "/home",
-      icon: Home,
-      label: "Original Home",
-      path: "/home"
-    },
-    {
-      to: "/data-management",
-      icon: Database,
-      label: "Data Management",
-      path: "/data-management"
-    },
-    {
-      to: "/kfc-management", 
-      icon: Trophy,
-      label: "KFC Management",
-      path: "/kfc-management"
-    },
-    {
-      to: "/leads-management",
-      icon: Target,
-      label: "Leads Management",
-      path: "/leads-management"
-    },
     {
       to: "/hr-dashboard",
       icon: Target,
       label: "HR Dashboard", 
       path: "/hr-dashboard"
+    },
+    {
+      to: "/government-links",
+      icon: Map,
+      label: "Government Links",
+      path: "/government-links"
     }
   ];
 
+  // Add admin panel if user is admin
+  if (isAdmin) {
+    navigationItems.push({
+      to: "/admin-panel",
+      icon: Shield,
+      label: "Admin Panel",
+      path: "/admin-panel"
+    });
+  }
+
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar - Hidden on HR Dashboard and Leads Management */}
-      {!isHRDashboard && !isLeadsManagement && (
+    <div className="flex h-screen bg-tron-bg-deep">
+      {/* Sidebar - Hidden only on Leads Management */}
+      {!isLeadsManagement && (
         <div className={`relative flex flex-col transition-all duration-300 ease-in-out ${
           isCollapsed ? 'w-16' : 'w-64'
-        } bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700`}>
+        } bg-tron-bg-panel border-r border-tron-cyan/20`}>
         
         {/* Collapse Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-4 z-10 bg-white dark:bg-gray-800 rounded-full p-1 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+          className="absolute -right-3 top-4 z-10 bg-tron-bg-panel rounded-full p-1 border border-tron-cyan/20 hover:bg-tron-cyan/10"
         >
           {isCollapsed ? (
-            <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+            <ChevronRight className="w-4 h-4 text-tron-white" />
           ) : (
-            <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+            <ChevronLeft className="w-4 h-4 text-tron-white" />
           )}
         </button>
 
         {/* Logo */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-tron-cyan/20">
           <Link to="/" className="flex items-center space-x-3">
             {isCollapsed ? (
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">C</div>
+              <div className="text-2xl font-bold text-tron-white">C</div>
             ) : (
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">Cobecium</div>
+              <div className="text-2xl font-bold text-tron-white">Cobecium</div>
             )}
           </Link>
         </div>
@@ -95,13 +89,14 @@ export function Layout({ children }: LayoutProps) {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700"
+                      ? "bg-tron-cyan/20 text-tron-white"
+                      : "text-tron-gray hover:text-tron-white hover:bg-tron-cyan/10"
                   }`}
+                  title={isCollapsed ? item.label : undefined}
                 >
-                  <Icon size={18} />
+                  <Icon size={isCollapsed ? 24 : 18} className="flex-shrink-0" />
                   {!isCollapsed && <span>{item.label}</span>}
                 </Link>
               );
@@ -110,28 +105,10 @@ export function Layout({ children }: LayoutProps) {
         </nav>
 
         {/* Bottom Controls */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-          <Link
-            to="/theme-config"
-            className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              location.pathname === "/theme-config"
-                ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700"
-            }`}
-            aria-label="Theme Configuration"
-          >
-            <Palette size={18} />
-            {!isCollapsed && <span>Theme Config</span>}
-          </Link>
-          
-          <div className="flex items-center space-x-3 px-3 py-2">
-            <DarkModeToggle />
-            {!isCollapsed && <span className="text-sm text-gray-600 dark:text-gray-300">Dark Mode</span>}
-          </div>
-          
-          <div className="flex items-center space-x-3 px-3 py-2">
-            <SignOutButton />
-            {!isCollapsed && <span className="text-sm text-gray-600 dark:text-gray-300">Sign Out</span>}
+        <div className="p-4 border-t border-tron-cyan/20">
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-3 py-2 rounded-md text-sm font-medium transition-colors text-tron-gray hover:text-tron-white hover:bg-tron-cyan/10`} title={isCollapsed ? "Sign Out" : undefined}>
+            <SignOutButton iconOnly={true} />
+            {!isCollapsed && <span>Sign Out</span>}
           </div>
         </div>
         </div>
@@ -139,7 +116,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col">
-        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 overflow-auto bg-tron-bg-deep">
           {children}
         </main>
       </div>

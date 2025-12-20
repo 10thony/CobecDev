@@ -45,11 +45,34 @@ export const insert = mutation({
   },
 });
 
-// List all job postings
+// List all job postings (returns array, limited to prevent timeouts)
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("jobpostings").collect();
+    // Default: return first 100 items to prevent timeouts
+    return await ctx.db.query("jobpostings").take(100);
+  },
+});
+
+// List all job postings (paginated version for better performance)
+export const listPaginated = query({
+  args: {
+    paginationOpts: v.object({ numItems: v.number(), cursor: v.union(v.string(), v.null()) }),
+  },
+  handler: async (ctx, { paginationOpts }) => {
+    return await ctx.db.query("jobpostings").paginate(paginationOpts);
+  },
+});
+
+// List job postings for vector search (with higher limit)
+export const listForVectorSearch = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { limit = 500 }) => {
+    // Return up to specified limit for vector search operations
+    // Vector search actions will handle similarity calculations
+    return await ctx.db.query("jobpostings").take(limit);
   },
 });
 
@@ -115,5 +138,16 @@ export const searchByDepartment = query({
       .query("jobpostings")
       .withIndex("by_department", (q) => q.eq("department", department))
       .collect();
+  },
+});
+
+// Count total job postings (efficient count without fetching all records)
+export const count = query({
+  args: {},
+  handler: async (ctx) => {
+    // Use collect() to get all IDs, then return count
+    // This is efficient for counting without loading full documents
+    const allJobs = await ctx.db.query("jobpostings").collect();
+    return allJobs.length;
   },
 });

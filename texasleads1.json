@@ -1,0 +1,314 @@
+[
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Carahsoft / OffSec — Texas DIR channel rollouts (cyber workforce / training) — subcontracting via reseller ecosystem",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Carahsoft (prime reseller on Texas DIR contracts)",
+      "level": "Private"
+    },
+    "location": {
+      "city": "Statewide (Texas)",
+      "county": null,
+      "region": "Texas Triangle / Statewide"
+    },
+    "status": "Seeking Subcontractors",
+    "estimatedValueUSD": 500000,
+    "keyDates": {
+      "publishedDate": "2025-03-26",
+      "bidDeadline": null,
+      "projectedStartDate": "2026-01-01"
+    },
+    "source": {
+      "documentName": "OffSec Awarded Texas Department of Information Resources Contract Through Carahsoft (news)",
+      "url": "https://www.carahsoft.com/news/offsec-awarded-texas-department-of-information-resources-contract-through-carahsoft-2025"
+    },
+    "summary": "OffSec was added to Carahsoft's Texas DIR contract lineup (enabling sales to Texas state & local agencies). Carahsoft operates an extensive reseller/partner channel and routinely engages regional systems integrators and services partners to deliver training, implementation and managed services to Texas public sector customers. Potential subcontract roles include regional training delivery, onboarding, integration services and managed SOC training packages for county/city IT departments. DIR contract vehicles referenced: DIR-CPO-5683 and others listed on Carahsoft DIR page.",
+    "adHoc": {
+      "resellerContractPortal": "https://www.carahsoft.com/buy/slg-contracts/txdir",
+      "likelySubRoles": [
+        "regional training delivery",
+        "customer onboarding",
+        "professional services for SOC enablement"
+      ],
+      "inferredStartFlag": true
+    }
+  },
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Carahsoft / BEINCOURT — Courtroom AV / hybrid hearings rollouts for Texas counties (reseller/subcontractor opportunities)",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Carahsoft / BEINCOURT (prime reseller via Texas DIR)",
+      "level": "Private"
+    },
+    "location": {
+      "city": "San Antonio / Bexar County and statewide",
+      "county": "Bexar (example) / statewide",
+      "region": "San Antonio / Texas Triangle"
+    },
+    "status": "Seeking Subcontractors",
+    "estimatedValueUSD": 250000,
+    "keyDates": {
+      "publishedDate": "2025-05-22",
+      "bidDeadline": null,
+      "projectedStartDate": "2026-06-01"
+    },
+    "source": {
+      "documentName": "BEINCOURT Awarded Texas Department of Information Resources Contract Through Carahsoft (news)",
+      "url": "https://www.carahsoft.com/news/beincourt-awarded-texas-department-of-information-resources-contract-through-carahsoft-2025"
+    },
+    "summary": "BEINCOURT named as a reseller on Carahsoft's Texas DIR contracting roster enabling courtroom AV / hybrid hearing deployments across Texas public entities. Carahsoft frequently sources local integrators and AV subcontractors for rollout and installation work; counties and courts buy via DIR reseller vehicles. Potential subcontracting opportunities include local AV installers, systems integrators, cabling/fiber work, systems integration and procurement support for municipal courts.",
+    "adHoc": {
+      "resellerContract": "Texas DIR via Carahsoft",
+      "likelySubRoles": [
+        "local AV installation",
+        "systems integrator",
+        "network/cabling subcontractor"
+      ],
+      "inferredStartFlag": true
+    }
+  },
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Deloitte GPS — subcontracting opportunities for ERP/Cloud/IT modernization projects (DIR prime contracts / state & local SLED pipeline)",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Deloitte — Government & Public Services (GPS) Vendor Connect",
+      "level": "Private"
+    },
+    "location": {
+      "city": "Austin / Dallas / Houston (prime engagements across Texas)",
+      "county": null,
+      "region": "Texas Triangle / Statewide"
+    },
+    "status": "Seeking Subcontractors",
+    "estimatedValueUSD": 5000000,
+    "keyDates": {
+      "publishedDate": "2025-01-21",
+      "bidDeadline": null,
+      "projectedStartDate": "2026-01-01"
+    },
+    "source": {
+      "documentName": "Deloitte GPS Vendor Connect (vendor registration portal & vendor guide)",
+      "url": "https://vendorconnect.gps.deloitte.com/"
+    },
+    "summary": "Deloitte GPS maintains a Vendor Connect portal to pre-qualify vendors and prospective subcontractors for major SLED ERP, cloud migration and IT modernization engagements. Deloitte holds DIR prime contracts (DIR references for Deloitte) and pursues large ERP/ERP-related programs; subcontractors may be engaged for integration, testing, data migration, niche modules, and local delivery. Registration and PVQ completion required to be considered. This is a pathway to subcontracting on public-sector ERP projects programmed in 2026–2028.",
+    "adHoc": {
+      "vendorRegistrationGuide": "https://cdn.gps.deloitte.com/p/VendorConnect/GPS_Vendor_Portal_Vendor_Registration_User_Guide.pdf",
+      "DIR_contract_reference": "Deloitte listed on DIR vendor pages (multiple DIR contracts)",
+      "action": "Register in Deloitte GPS Vendor Connect and complete PVQ"
+    }
+  },
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Tyler Technologies — subcontracting opportunities for court & records systems (SLED / counties) via DIR contract channels",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Tyler Technologies (prime vendor on DIR and state/local contracts)",
+      "level": "Private"
+    },
+    "location": {
+      "city": "Dallas / Travis / Bexar / Harris (county-level deployments)",
+      "county": null,
+      "region": "Texas Triangle"
+    },
+    "status": "Seeking Subcontractors",
+    "estimatedValueUSD": 1200000,
+    "keyDates": {
+      "publishedDate": "2025-01-01",
+      "bidDeadline": null,
+      "projectedStartDate": "2026-06-01"
+    },
+    "source": {
+      "documentName": "Tyler Technologies vendor listing on Texas DIR (vendor / contracts)",
+      "url": "https://dir.texas.gov/contracts/vendors/tyler-technologies-inc"
+    },
+    "summary": "Tyler is a major supplier of case management, court and records systems to counties and municipalities. Through DIR contract relationships and direct county procurements, Tyler engages many local systems integrator and services partners for implementations. Opportunities include data migration subcontracting, local training, integration with e-file and document management systems, and hosting/mgmt services for county justice modernization programs.",
+    "adHoc": {
+      "DIR_listing": "https://dir.texas.gov/contracts/vendors/tyler-technologies-inc",
+      "likelySubRoles": [
+        "data migration",
+        "integration with ECM / eFile",
+        "local training & go-live support"
+      ]
+    }
+  },
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Carahsoft — reseller channel opportunities for port & critical‑infrastructure cyber tooling (SOC, OT security) for Port of Houston and other authorities",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Carahsoft (prime / channel aggregator)",
+      "level": "Private"
+    },
+    "location": {
+      "city": "Houston",
+      "county": "Harris",
+      "region": "Houston"
+    },
+    "status": "Seeking Subcontractors",
+    "estimatedValueUSD": 1000000,
+    "keyDates": {
+      "publishedDate": "2025-03-26",
+      "bidDeadline": null,
+      "projectedStartDate": "2026-10-01"
+    },
+    "source": {
+      "documentName": "Carahsoft Texas DIR contract page (Carahsoft DIR vehicle listing & news)",
+      "url": "https://www.carahsoft.com/buy/slg-contracts/txdir"
+    },
+    "summary": "Carahsoft provides channel access to many security vendors through DIR vehicles. Port authorities and regional agencies often procure via DIR/resellers for SOC expansion and OT security. Carahsoft partners and resellers frequently solicit local MSSP and integrator subcontractors for deployments in 2026–2028.",
+    "adHoc": {
+      "usefulLink": "https://www.carahsoft.com/buy/slg-contracts/txdir",
+      "notes": "Good channel for cybersecurity subcontracting opportunities tied to FY2026 Port/County cyber programs"
+    }
+  },
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Accenture / Google Cloud — subcontracting opportunities for cloud migration & AI-enabled modernization (state/local ERP & analytics projects)",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Accenture (prime systems integrator)",
+      "level": "Private"
+    },
+    "location": {
+      "city": "Austin / Houston / Dallas",
+      "county": null,
+      "region": "Texas Triangle"
+    },
+    "status": "Seeking Subcontractors",
+    "estimatedValueUSD": 3000000,
+    "keyDates": {
+      "publishedDate": "2025-04-09",
+      "bidDeadline": null,
+      "projectedStartDate": "2026-01-01"
+    },
+    "source": {
+      "documentName": "Accenture newsroom: Accenture helps organizations adopt and scale latest technologies from Google Cloud (2025)",
+      "url": "https://newsroom.accenture.com/news/2025/accenture-helps-organizations-adopt-and-scale-the-latest-technologies-from-google-cloud-to-drive-continuous-reinvention"
+    },
+    "summary": "Accenture is actively expanding cloud, ERP, and AI service offerings; state & local public-sector cloud/ERP modernization programs often engage Accenture as prime and source local/system integrator subcontractors. Potential subcontracting includes data migration specialists, niche AI/data engineering partners, and local implementation teams for Texas public-sector customers.",
+    "adHoc": {
+      "suggestedAction": "Register as Accenture sub/vendor and monitor SLED RFIs/RFPs for teaming opportunities"
+    }
+  },
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Regional Systems Integrators / MSSPs — subcontracting for Harris County cybersecurity / zero‑trust program (SLCGP-aligned work)",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Regional systems integrators (primes unknown; MSSP marketplace)",
+      "level": "Private"
+    },
+    "location": {
+      "city": "Houston",
+      "county": "Harris",
+      "region": "Houston"
+    },
+    "status": "Seeking Subcontractors",
+    "estimatedValueUSD": 1200000,
+    "keyDates": {
+      "publishedDate": "2025-05-01",
+      "bidDeadline": null,
+      "projectedStartDate": "2026-07-01"
+    },
+    "source": {
+      "documentName": "Harris County FY2026 Proposed Budget (IT modernization lines) & Carahsoft/DIR reseller info (channel availability)",
+      "url": "https://budget.harriscountytx.gov/doc/Budget/budgetbook/FY2026/FY26_V5_Proposed_Budget_Volume_I_20250910.pdf"
+    },
+    "summary": "Harris County cybersecurity modernization funding (SLCGP / county capital) will attract primes (large MSSPs / integrators) who in turn will seek local subcontractors for implementation (identity mgmt, network segmentation, OT/IT convergence). Target primes include Carahsoft channel vendors, Accenture, Deloitte and regional MSSPs.",
+    "adHoc": {
+      "fundingSource": "Harris County Capital / SLCGP grant potential",
+      "recommendedNextStep": "Identify primes responding to Harris County RFPs and register as subcontractor"
+    }
+  },
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Systems integrators / AV installers — Fort Worth municipal broadband & fiber feasibility pilot (RFI phase subcontracting)",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Regional integrators / telecom primes (private)",
+      "level": "Private"
+    },
+    "location": {
+      "city": "Fort Worth",
+      "county": "Tarrant",
+      "region": "Dallas–Fort Worth"
+    },
+    "status": "In Planning Phase (Seeking Subcontractors for next phases)",
+    "estimatedValueUSD": 3000000,
+    "keyDates": {
+      "publishedDate": "2025-10-05",
+      "bidDeadline": null,
+      "projectedStartDate": "2027-01-01"
+    },
+    "source": {
+      "documentName": "City of Fort Worth purchasing notices & connectivity program references (RFI/feasibility)",
+      "url": "https://www.fortworthtexas.gov/departments/finance/purchasing/bids-current"
+    },
+    "summary": "Fort Worth RFI / feasibility activity for municipal broadband will lead primes (fiber network vendors and telco integrators) to post subcontracting opportunities for local construction, splicing, fiber installation, pole access, and network operations. Registering with regional primes (and on Fort Worth vendor lists) is recommended.",
+    "adHoc": {
+      "projectPhase": "Feasibility/RFI",
+      "action": "Monitor city RFI responses and contact likely primes for teaming"
+    }
+  },
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Regional VARs / resellers — AISD Student Information System integration & data platform subcontract work",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Regional VARs / Education technology primes",
+      "level": "Private"
+    },
+    "location": {
+      "city": "Austin",
+      "county": "Travis",
+      "region": "Austin"
+    },
+    "status": "In Planning Phase (seeking implementation partners)",
+    "estimatedValueUSD": 800000,
+    "keyDates": {
+      "publishedDate": "2025-02-12",
+      "bidDeadline": null,
+      "projectedStartDate": "2026-08-01"
+    },
+    "source": {
+      "documentName": "AISD FY2026 planning references / vendor portal references",
+      "url": "https://financeonline.austintexas.gov/afo/contract_catalog/"
+    },
+    "summary": "AISD plans to integrate SIS with back-office platforms and build a data platform in FY2026. Education-focused systems integrators, data engineering VARs and regional consultancies commonly serve as subcontractors to larger education technology primes (or respond to district RFQs directly). Opportunities include data migration, API integration, analytics implementation and managed services.",
+    "adHoc": {
+      "recommendedAction": "Engage with AISD procurement and education-focused primes (Tyler, CentralSquare, EdTech integrators)"
+    }
+  },
+  {
+    "opportunityType": "Private Subcontract",
+    "opportunityTitle": "Prime integrator subcontracting for Dallas County justice / court records modernization (eFile / case mgmt integrations)",
+    "contractID": null,
+    "issuingBody": {
+      "name": "Regional primes / system integrators (private)",
+      "level": "Private"
+    },
+    "location": {
+      "city": "Dallas",
+      "county": "Dallas",
+      "region": "Dallas–Fort Worth"
+    },
+    "status": "Seeking Subcontractors",
+    "estimatedValueUSD": 900000,
+    "keyDates": {
+      "publishedDate": "2025-06-18",
+      "bidDeadline": null,
+      "projectedStartDate": "2026-06-01"
+    },
+    "source": {
+      "documentName": "Dallas County Purchasing / FY2026 budget allocations (court admin planning)",
+      "url": "https://www.dallascounty.org/department/purchasing/"
+    },
+    "summary": "Dallas County's planned modernization of court records and eFile/case management will likely be executed by a prime systems integrator (or a vendor like Tyler) who will source subcontractors for data migration, document conversion, integration to ECM and hosted services. Good opportunity to register as a local subcontractor and pursue teaming agreements.",
+    "adHoc": {
+      "recommendedAction": "Monitor county RFPs and contact likely primes (Tyler, Carahsoft partners, local SI firms)"
+    }
+  }
+]

@@ -121,44 +121,7 @@ export const deleteLead = mutation({
 // Bulk create leads from JSON data
 export const bulkCreateLeads = mutation({
   args: {
-    leads: v.array(v.object({
-      opportunityType: v.string(),
-      opportunityTitle: v.string(),
-      contractID: v.optional(v.string()),
-      issuingBody: v.object({
-        name: v.string(),
-        level: v.string(),
-      }),
-      location: v.object({
-        city: v.optional(v.string()),
-        county: v.optional(v.string()),
-        region: v.string(),
-      }),
-      status: v.string(),
-      estimatedValueUSD: v.optional(v.number()),
-      keyDates: v.object({
-        publishedDate: v.optional(v.string()),
-        bidDeadline: v.optional(v.string()),
-        projectedStartDate: v.optional(v.string()),
-      }),
-      source: v.object({
-        documentName: v.string(),
-        url: v.string(),
-      }),
-      contacts: v.array(v.object({
-        name: v.optional(v.string()),
-        title: v.string(),
-        email: v.optional(v.string()),
-        phone: v.optional(v.string()),
-        url: v.optional(v.string()),
-      })),
-      summary: v.string(),
-      verificationStatus: v.optional(v.string()),
-      category: v.optional(v.string()),
-      subcategory: v.optional(v.string()),
-      searchableText: v.optional(v.string()),
-      isActive: v.optional(v.boolean()),
-    })),
+    leads: v.array(v.any()), // Use v.any() to allow dynamic fields
     sourceFile: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -166,10 +129,50 @@ export const bulkCreateLeads = mutation({
     const results = [];
     
     for (const lead of args.leads) {
-      const leadId = await ctx.db.insert("leads", {
-        ...lead,
-        isActive: true,
+      // Ensure required fields are present with defaults
+      const processedLead = {
+        opportunityType: lead.opportunityType || "Unknown",
+        opportunityTitle: lead.opportunityTitle || "Untitled Opportunity",
+        contractID: lead.contractID || undefined,
+        issuingBody: {
+          name: lead.issuingBody?.name || "Unknown Organization",
+          level: lead.issuingBody?.level || "Unknown",
+        },
+        location: {
+          city: lead.location?.city || undefined,
+          county: lead.location?.county || undefined,
+          region: lead.location?.region || "Unknown",
+        },
+        status: lead.status || "Unknown",
+        estimatedValueUSD: lead.estimatedValueUSD || undefined,
+        keyDates: {
+          publishedDate: lead.keyDates?.publishedDate || undefined,
+          bidDeadline: lead.keyDates?.bidDeadline || undefined,
+          projectedStartDate: lead.keyDates?.projectedStartDate || undefined,
+        },
+        source: {
+          documentName: lead.source?.documentName || "Unknown Document",
+          url: lead.source?.url || "",
+        },
+        contacts: Array.isArray(lead.contacts) ? lead.contacts : [],
+        summary: lead.summary || "No summary available",
+        verificationStatus: lead.verificationStatus || undefined,
+        category: lead.category || undefined,
+        subcategory: lead.subcategory || undefined,
+        searchableText: lead.searchableText || "",
+        isActive: lead.isActive !== undefined ? lead.isActive : true,
         lastChecked: now,
+        // Include adHoc field if present
+        adHoc: lead.adHoc || undefined,
+        // Include any other dynamic fields
+        ...Object.fromEntries(
+          Object.entries(lead).filter(([key]) => 
+            !['opportunityType', 'opportunityTitle', 'contractID', 'issuingBody', 
+              'location', 'status', 'estimatedValueUSD', 'keyDates', 'source', 
+              'contacts', 'summary', 'verificationStatus', 'category', 'subcategory', 
+              'searchableText', 'isActive', 'adHoc'].includes(key)
+          )
+        ),
         createdAt: now,
         updatedAt: now,
         metadata: {
@@ -177,7 +180,9 @@ export const bulkCreateLeads = mutation({
           importedAt: now,
           dataType: "bulk_import",
         },
-      });
+      };
+
+      const leadId = await ctx.db.insert("leads", processedLead);
       results.push(leadId);
     }
     
@@ -406,42 +411,69 @@ export const getLeadsStats = query({
       byVerificationStatus: {} as Record<string, number>,
     };
     
+    // Helper function to sanitize field names for use as object keys
+    const sanitizeFieldName = (name: string): string => {
+      return name.replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
+    };
+
+    // Store original names for display purposes
+    const originalNames: Record<string, string> = {};
+
     // Count by issuing body level
     allLeads.forEach(lead => {
-      stats.byLevel[lead.issuingBody.level] = (stats.byLevel[lead.issuingBody.level] || 0) + 1;
+      const originalLevel = lead.issuingBody.level;
+      const sanitizedLevel = sanitizeFieldName(originalLevel);
+      originalNames[sanitizedLevel] = originalLevel;
+      stats.byLevel[sanitizedLevel] = (stats.byLevel[sanitizedLevel] || 0) + 1;
     });
     
     // Count by category
     allLeads.forEach(lead => {
       if (lead.category) {
-        stats.byCategory[lead.category] = (stats.byCategory[lead.category] || 0) + 1;
+        const originalCategory = lead.category;
+        const sanitizedCategory = sanitizeFieldName(originalCategory);
+        originalNames[sanitizedCategory] = originalCategory;
+        stats.byCategory[sanitizedCategory] = (stats.byCategory[sanitizedCategory] || 0) + 1;
       }
     });
     
     // Count by region
     allLeads.forEach(lead => {
-      stats.byRegion[lead.location.region] = (stats.byRegion[lead.location.region] || 0) + 1;
+      const originalRegion = lead.location.region;
+      const sanitizedRegion = sanitizeFieldName(originalRegion);
+      originalNames[sanitizedRegion] = originalRegion;
+      stats.byRegion[sanitizedRegion] = (stats.byRegion[sanitizedRegion] || 0) + 1;
     });
     
     // Count by opportunity type
     allLeads.forEach(lead => {
-      stats.byOpportunityType[lead.opportunityType] = (stats.byOpportunityType[lead.opportunityType] || 0) + 1;
+      const originalType = lead.opportunityType;
+      const sanitizedType = sanitizeFieldName(originalType);
+      originalNames[sanitizedType] = originalType;
+      stats.byOpportunityType[sanitizedType] = (stats.byOpportunityType[sanitizedType] || 0) + 1;
     });
     
     // Count by status
     allLeads.forEach(lead => {
-      stats.byStatus[lead.status] = (stats.byStatus[lead.status] || 0) + 1;
+      const originalStatus = lead.status;
+      const sanitizedStatus = sanitizeFieldName(originalStatus);
+      originalNames[sanitizedStatus] = originalStatus;
+      stats.byStatus[sanitizedStatus] = (stats.byStatus[sanitizedStatus] || 0) + 1;
     });
     
     // Count by verification status
     allLeads.forEach(lead => {
       if (lead.verificationStatus) {
-        // Sanitize the verification status to avoid special characters in object keys
-        const sanitizedStatus = lead.verificationStatus.replace(/[^a-zA-Z0-9\s]/g, '').trim();
-        stats.byVerificationStatus[sanitizedStatus] = (stats.byVerificationStatus[sanitizedStatus] || 0) + 1;
+        const originalVerificationStatus = lead.verificationStatus;
+        const sanitizedVerificationStatus = sanitizeFieldName(originalVerificationStatus);
+        originalNames[sanitizedVerificationStatus] = originalVerificationStatus;
+        stats.byVerificationStatus[sanitizedVerificationStatus] = (stats.byVerificationStatus[sanitizedVerificationStatus] || 0) + 1;
       }
     });
     
-    return stats;
+    return {
+      ...stats,
+      originalNames, // Include mapping of sanitized names to original names for display
+    };
   },
 });

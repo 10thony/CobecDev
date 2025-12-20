@@ -17,13 +17,13 @@ export const generateEnhancedEmbedding = action({
     text: v.string(),
     context: v.union(v.literal("resume"), v.literal("job_posting"), v.literal("user_query")),
     useSkillEnhancement: v.optional(v.boolean()),
-    model: v.optional(v.literal("gemini-mrl-2048")),
+    model: v.optional(v.literal("text-embedding-3-large")),
   },
   handler: async (ctx, { 
     text, 
     context, 
     useSkillEnhancement = true, 
-    model = "gemini-mrl-2048" 
+    model = "text-embedding-3-large" 
   }): Promise<{
     embedding: number[];
     model: string;
@@ -744,7 +744,7 @@ export const semanticSearch = action({
         text: query,
         context: collectionName === "resumes" ? "resume" : "job_posting",
         useSkillEnhancement: true,
-        model: "gemini-mrl-2048"
+        model: "text-embedding-3-large"
       });
       
       // Get documents with embeddings

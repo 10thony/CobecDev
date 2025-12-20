@@ -76,12 +76,12 @@ interface ThemeContextType {
 
 const defaultCustomColors: CustomThemeColors = {
   sidebar: {
-    background: 'bg-white dark:bg-gray-800',
-    border: 'border-gray-200 dark:border-gray-700',
-    text: 'text-gray-700 dark:text-gray-300',
-    textSecondary: 'text-gray-500 dark:text-gray-400',
-    hover: 'hover:bg-gray-100 dark:hover:bg-gray-700',
-    active: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300',
+    background: 'bg-berkeley-blue-DEFAULT bg-berkeley-blue-DEFAULT',
+    border: 'border-powder_blue-300',
+    text: 'text-mint-cream-500',
+    textSecondary: 'text-mint-cream-700',
+    hover: 'hover:bg-mint-cream-800',
+    active: 'bg-yale-blue-500 bg-yale-blue-500 text-yale_blue-600 text-mint-cream-DEFAULT',
   },
 };
 
@@ -187,7 +187,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         // For active state, we need to preserve the text color part
         const currentActive = customColors.sidebar.active;
         const textColorMatch = currentActive.match(/text-[^\s]+/);
-        const textColor = textColorMatch ? textColorMatch[0] : 'text-blue-700 dark:text-blue-300';
+        const textColor = textColorMatch ? textColorMatch[0] : 'text-mint-cream-DEFAULT text-mint-cream-DEFAULT';
         
         const newActiveClass = `${hexToTailwindClass(hexColor, 'active')} ${textColor}`;
         

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { TronPanel } from './TronPanel';
+import { TronButton } from './TronButton';
+import { TronStatCard } from './TronStatCard';
 import { 
   Database, 
   RefreshCw, 
@@ -120,9 +123,11 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
   const jobPostings = useQuery(api.jobPostings.list);
   const resumes = useQuery(api.resumes.list);
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
+  const semanticStats = useQuery(api.semanticEmbeddingQueries.getSemanticEmbeddingStats);
+  const questionsStats = useQuery(api.semanticQuestions.getStats);
 
   // Actions
-  const generateBatchEmbeddings = useAction(api.vectorEmbeddingService.generateBatchVectorEmbeddings);
+  const batchRegenerateEmbeddings = useAction(api.semanticEmbeddingService.batchRegenerateEmbeddings);
   const getNovelQueries = useQuery(api.vectorEmbeddingQueries.getNovelUserQueries, {});
 
   // Calculate embedding statistics
@@ -168,46 +173,51 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
     }
   }, [jobPostings, resumes]);
 
-  // Handle embedding generation
+  // Handle embedding generation with semantic questions
   const handleGenerateEmbeddings = async () => {
     if (!userRole || userRole !== 'admin') {
       alert('Only administrators can generate embeddings');
       return;
     }
 
+    if (!questionsStats || questionsStats.active === 0) {
+      alert('No active semantic questions found. Please seed questions first.');
+      return;
+    }
+
     setProcessingStatus({
       isProcessing: true,
-      currentOperation: 'Generating vector-aware embeddings...',
+      currentOperation: 'Generating semantic-enhanced embeddings...',
       progress: 0,
       totalItems: 0,
       processedItems: 0
     });
 
     try {
-      const collections = selectedTable === 'both' ? ['jobs', 'resumes'] : [selectedTable];
+      const collections = selectedTable === 'both' ? ['jobpostings', 'resumes'] : 
+                         [selectedTable === 'jobs' ? 'jobpostings' : 'resumes'];
       let totalProcessed = 0;
       let totalErrors = 0;
 
-      for (const collectionType of collections) {
-        const collection = collectionType === 'jobs' ? 'jobpostings' : 'resumes';
-        
+      for (const collection of collections) {
         setProcessingStatus(prev => ({
           ...prev,
-          currentOperation: `Generating ${collection} embeddings with vector prompts...`,
+          currentOperation: `Regenerating ${collection} with ${questionsStats.active} semantic questions...`,
         }));
 
-        const result = await generateBatchEmbeddings({
-          collection,
+        const result = await batchRegenerateEmbeddings({
+          collection: collection as 'jobpostings' | 'resumes',
           batchSize: config.batchSize,
-          forceRegenerate: false
+          delayMs: 2000 // 2 second delay between batches
         });
 
-        totalProcessed += result.successful;
-        totalErrors += result.failed;
+        totalProcessed += result.successful || 0;
+        totalErrors += result.failed || 0;
 
         setProcessingStatus(prev => ({
           ...prev,
           processedItems: totalProcessed,
+          totalItems: result.total || 0,
           progress: ((totalProcessed + totalErrors) / (result.total || 1)) * 100
         }));
       }
@@ -216,18 +226,15 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
         ...prev,
         isProcessing: false,
         progress: 100,
-        currentOperation: `Completed: ${totalProcessed} updated, ${totalErrors} errors`
+        currentOperation: `✓ Completed: ${totalProcessed} embeddings regenerated with semantic Q&A pairs`
       }));
 
-      // Data will automatically refresh via Convex reactive queries
-      // No need for manual page reload
-
     } catch (error) {
-      console.error('Failed to generate vector-aware embeddings:', error);
+      console.error('Failed to generate semantic embeddings:', error);
       setProcessingStatus(prev => ({
         ...prev,
         isProcessing: false,
-        currentOperation: 'Error occurred during processing'
+        currentOperation: '✗ Error: ' + (error instanceof Error ? error.message : 'Unknown error')
       }));
       alert('Failed to generate embeddings. Check console for details.');
     }
@@ -240,117 +247,96 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
   // Check if user is admin
   if (userRole !== 'admin') {
     return (
-      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 ${className}`}>
+      <TronPanel className={className} title="Access Restricted" icon={<AlertTriangle className="h-5 w-5" />}>
         <div className="text-center py-8">
-          <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          <AlertTriangle className="h-12 w-12 text-neon-warning mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-tron-white mb-2">
             Access Restricted
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-tron-gray">
             Only administrators can access embedding management features.
           </p>
         </div>
-      </div>
+      </TronPanel>
     );
   }
 
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Embedding Management
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Manage AI embeddings for semantic search optimization
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Database className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-          </div>
-        </div>
+      <TronPanel title="Embedding Management" icon={<Database className="h-6 w-6" />}>
+        <p className="text-tron-gray mb-6">
+          Manage AI embeddings for semantic search optimization
+        </p>
 
         {/* Statistics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center">
-              <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
-              <div>
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Job Coverage</p>
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                  {stats.coveragePercentage.jobs.toFixed(1)}%
-                </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">
-                  {stats.jobsWithEmbeddings}/{stats.totalJobs} jobs
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-            <div className="flex items-center">
-              <BarChart3 className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" />
-              <div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">Resume Coverage</p>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                  {stats.coveragePercentage.resumes.toFixed(1)}%
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  {stats.resumesWithEmbeddings}/{stats.totalResumes} resumes
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
-            <div className="flex items-center">
-              <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-2" />
-              <div>
-                <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">Jobs Pending</p>
-                <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
-                  {stats.jobsNeedingEmbeddings}
-                </p>
-                <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                  Need embeddings
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-            <div className="flex items-center">
-              <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400 mr-2" />
-              <div>
-                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Resumes Pending</p>
-                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                  {stats.resumesNeedingEmbeddings}
-                </p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">
-                  Need embeddings
-                </p>
-              </div>
-            </div>
-          </div>
+          <TronStatCard
+            title="Job Coverage"
+            value={semanticStats?.jobPostings?.coverage || stats.coveragePercentage.jobs.toFixed(1) + '%'}
+            subtitle={`${semanticStats?.jobPostings?.withEmbeddings || stats.jobsWithEmbeddings}/${semanticStats?.jobPostings?.total || stats.totalJobs} jobs`}
+            icon={<BarChart3 className="h-5 w-5" />}
+            color="cyan"
+          />
+          <TronStatCard
+            title="Resume Coverage"
+            value={semanticStats?.resumes?.coverage || stats.coveragePercentage.resumes.toFixed(1) + '%'}
+            subtitle={`${semanticStats?.resumes?.withEmbeddings || stats.resumesWithEmbeddings}/${semanticStats?.resumes?.total || stats.totalResumes} resumes`}
+            icon={<BarChart3 className="h-5 w-5" />}
+            color="green"
+          />
+          <TronStatCard
+            title="Active Questions"
+            value={questionsStats?.active || 0}
+            subtitle={`Of ${questionsStats?.total || 0} total`}
+            icon={<Zap className="h-5 w-5" />}
+            color="blue"
+          />
+          <TronStatCard
+            title="Recent Embeddings"
+            value={(semanticStats?.jobPostings?.withRecentEmbeddings || 0) + (semanticStats?.resumes?.withRecentEmbeddings || 0)}
+            subtitle="Last 7 days"
+            icon={<CheckCircle className="h-5 w-5" />}
+            color="orange"
+          />
         </div>
-      </div>
+
+        {/* Semantic Questions Banner */}
+        {questionsStats && (
+          <div className="bg-tron-bg-card rounded-lg p-4 border border-tron-cyan/30">
+            <div className="flex items-start">
+              <Zap className="h-5 w-5 text-tron-cyan mr-3 mt-1" />
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-tron-white mb-1">
+                  Semantic Questions System Active
+                </h4>
+                <p className="text-xs text-tron-gray">
+                  Embeddings are enhanced with <strong>{questionsStats.active} semantic questions</strong> including:
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {Object.entries(questionsStats.byCategory || {}).map(([category, count]) => (
+                    <span key={category} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-tron-bg-panel text-tron-cyan border border-tron-cyan/20">
+                      {category.replace('_', ' ')}: {count as number}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </TronPanel>
 
       {/* Configuration Panel */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Configuration
-        </h3>
-        
+      <TronPanel title="Configuration" icon={<Settings className="h-5 w-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-tron-gray mb-2">
               Target Table
             </label>
             <select
               value={selectedTable}
               onChange={(e) => setSelectedTable(e.target.value as 'jobs' | 'resumes' | 'both')}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
+              className="tron-select w-full"
             >
               <option value="both">Both Jobs & Resumes</option>
               <option value="jobs">Jobs Only</option>
@@ -359,13 +345,13 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-tron-gray mb-2">
               Batch Size
             </label>
             <select
               value={config.batchSize}
               onChange={(e) => setConfig(prev => ({ ...prev, batchSize: Number(e.target.value) as 5 | 10 | 20 | 50 }))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
+              className="tron-select w-full"
             >
               <option value={5}>5 items</option>
               <option value={10}>10 items</option>
@@ -376,25 +362,25 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
         </div>
 
         <div className="flex items-center justify-between">
-          <button
+          <TronButton
+            variant="ghost"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+            icon={<Settings className="h-4 w-4" />}
           >
-            <Settings className="h-4 w-4 mr-1" />
             {showAdvanced ? 'Hide' : 'Show'} Advanced Options
-          </button>
+          </TronButton>
         </div>
 
         {showAdvanced && (
-          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Advanced Settings</h4>
+          <div className="mt-4 p-4 bg-tron-bg-card rounded-lg border border-tron-cyan/20">
+            <h4 className="text-sm font-medium text-tron-white mb-3">Advanced Settings</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-sm text-tron-gray">
                 <p><strong>Model:</strong> Gemini MRL 2048</p>
                 <p><strong>Dimensions:</strong> 2048</p>
                 <p><strong>Cost:</strong> $0.0001 per 1K tokens</p>
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-sm text-tron-gray">
                 <p><strong>Processing:</strong> Real-time</p>
                 <p><strong>Storage:</strong> Convex Vector DB</p>
                 <p><strong>Update:</strong> On data change</p>
@@ -402,24 +388,20 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
             </div>
           </div>
         )}
-      </div>
+      </TronPanel>
 
       {/* Enhanced Configuration */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Configuration
-        </h3>
-        
+      <TronPanel title="Enhanced Configuration" icon={<Settings className="h-5 w-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Collection Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-tron-gray mb-2">
               Collection
             </label>
             <select
               value={config.selectedCollection}
               onChange={(e) => setConfig(prev => ({ ...prev, selectedCollection: e.target.value as 'resumes' | 'jobpostings' }))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="tron-select w-full"
             >
               <option value="jobpostings">Job Postings</option>
               <option value="resumes">Resumes</option>
@@ -428,13 +410,13 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
 
           {/* Column Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-tron-gray mb-2">
               Focus Column
             </label>
             <select
               value={config.selectedColumn}
               onChange={(e) => setConfig(prev => ({ ...prev, selectedColumn: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="tron-select w-full"
             >
               {columnDefinitions[config.selectedCollection]?.map((col) => (
                 <option key={col.name} value={col.name}>
@@ -447,180 +429,183 @@ export function EmbeddingManagement({ className = '' }: EmbeddingManagementProps
 
         {/* Quality Metrics */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+          <div className="bg-tron-bg-card p-4 rounded-lg border border-tron-cyan/20">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Coverage</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+              <span className="text-sm font-medium text-tron-gray">Coverage</span>
+              <span className="text-lg font-semibold text-tron-white">
                 {config.qualityMetrics.coveragePercentage.toFixed(1)}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 mt-2">
+            <div className="tron-progress mt-2">
               <div
-                className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                className="tron-progress-bar bg-neon-success"
                 style={{ width: `${config.qualityMetrics.coveragePercentage}%` }}
               />
             </div>
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+          <div className="bg-tron-bg-card p-4 rounded-lg border border-tron-cyan/20">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Items</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+              <span className="text-sm font-medium text-tron-gray">Total Items</span>
+              <span className="text-lg font-semibold text-tron-white">
                 {config.qualityMetrics.totalItems}
               </span>
             </div>
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+          <div className="bg-tron-bg-card p-4 rounded-lg border border-tron-cyan/20">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">With Embeddings</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+              <span className="text-sm font-medium text-tron-gray">With Embeddings</span>
+              <span className="text-lg font-semibold text-tron-white">
                 {config.qualityMetrics.itemsWithEmbeddings}
               </span>
             </div>
           </div>
         </div>
-      </div>
+      </TronPanel>
 
       {/* Action Buttons */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Actions
-        </h3>
-        
+      <TronPanel title="Actions" icon={<Play className="h-5 w-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-          <button
+          <TronButton
             onClick={handleGenerateEmbeddings}
             disabled={processingStatus.isProcessing}
-            className="flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors"
+            variant="primary"
+            color="cyan"
+            icon={<Play className="h-5 w-5" />}
+            loading={processingStatus.isProcessing}
           >
-            <Play className="h-5 w-5 mr-2" />
             Generate New Embeddings
-          </button>
+          </TronButton>
         </div>
 
-        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-          <p><strong>Generate New:</strong> Creates vector-aware embeddings using prompt enhancement</p>
-          <p><strong>Note:</strong> Only administrators can generate embeddings</p>
+        <div className="mt-4 space-y-2">
+          <div className="bg-tron-bg-card rounded-lg p-3 border border-tron-cyan/30">
+            <p className="text-sm text-tron-white font-medium mb-1">
+              ✨ Semantic Enhancement Active
+            </p>
+            <p className="text-xs text-tron-gray">
+              Each document will be analyzed using <strong>{questionsStats?.active || 0} semantic questions</strong>, 
+              generating 13-15 Q&A pairs to create richer, more contextual embeddings for improved semantic matching.
+            </p>
+          </div>
+          <div className="text-xs text-tron-gray space-y-1">
+            <p><strong>⏱️ Processing Time:</strong> ~3-5 seconds per document</p>
+            <p><strong>💰 Cost Estimate:</strong> $0.04-$0.08 for 200 documents (OpenAI API)</p>
+            <p><strong>🎯 Batch Size:</strong> {config.batchSize} documents at a time with 2s delay</p>
+            <p><strong>🔒 Permission:</strong> Admin access required</p>
+          </div>
         </div>
-      </div>
+      </TronPanel>
 
       {/* Novel User Queries Section */}
       {getNovelQueries && getNovelQueries.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Discovered Search Patterns
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <TronPanel title="Discovered Search Patterns" icon={<Zap className="h-5 w-5" />}>
+          <p className="text-sm text-tron-gray mb-4">
             These user queries appear frequently and could enhance future embeddings:
           </p>
           
           <div className="space-y-3">
             {getNovelQueries.slice(0, 10).map((queryData: any, index: number) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div key={index} className="flex items-center justify-between p-3 bg-tron-bg-card rounded-lg border border-tron-cyan/20">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  <p className="text-sm font-medium text-tron-white">
                     "{queryData.query}"
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-tron-gray">
                     Used {queryData.usageCount} times | Confidence: {(queryData.averageConfidence * 100).toFixed(0)}%
                   </p>
                 </div>
-                <button
+                <TronButton
                   onClick={() => {
                     // In a full implementation, this would add the query to the static prompts
                     console.log('Add to prompts:', queryData.query);
                   }}
-                  className="ml-4 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                  variant="outline"
+                  color="cyan"
+                  size="sm"
                 >
                   Add to Prompts
-                </button>
+                </TronButton>
               </div>
             ))}
           </div>
-        </div>
+        </TronPanel>
       )}
 
       {/* Processing Status */}
       {processingStatus.isProcessing && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Processing Status
-          </h3>
-          
+        <TronPanel title="Processing Status" icon={<RefreshCw className="h-5 w-5 animate-spin" />}>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="text-sm text-tron-gray">
                 {processingStatus.currentOperation}
               </span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
+              <span className="text-sm font-medium text-tron-white">
                 {processingStatus.processedItems}/{processingStatus.totalItems}
               </span>
             </div>
             
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="tron-progress">
               <div
-                className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                className="tron-progress-bar bg-tron-cyan"
                 style={{ width: `${processingStatus.progress}%` }}
               />
             </div>
             
             <div className="text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto"></div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-tron-cyan mx-auto"></div>
+              <p className="text-sm text-tron-gray mt-2">
                 Please wait while embeddings are being processed...
               </p>
             </div>
           </div>
-        </div>
+        </TronPanel>
       )}
 
       {/* Processing Complete */}
       {!processingStatus.isProcessing && processingStatus.processedItems > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <TronPanel>
           <div className="text-center py-4">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <CheckCircle className="h-12 w-12 text-neon-success mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-tron-white mb-2">
               Processing Complete
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-tron-gray">
               Successfully processed {processingStatus.processedItems} items.
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+            <p className="text-sm text-tron-gray mt-1">
               The page will refresh automatically to show updated statistics.
             </p>
           </div>
-        </div>
+        </TronPanel>
       )}
 
       {/* System Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          System Information
-        </h3>
-        
+      <TronPanel title="System Information" icon={<Database className="h-5 w-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">Embedding System</h4>
-            <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <p><strong>Model:</strong> Google Gemini MRL 2048</p>
-              <p><strong>Vector Dimensions:</strong> 2048</p>
-              <p><strong>Storage:</strong> Convex Built-in Vector DB</p>
-              <p><strong>Update Strategy:</strong> Real-time on data change</p>
+            <h4 className="font-medium text-tron-white mb-2">Semantic Embedding System</h4>
+            <div className="space-y-2 text-sm text-tron-gray">
+              <p><strong>Model:</strong> OpenAI text-embedding-3-small</p>
+              <p><strong>Vector Dimensions:</strong> 1536</p>
+              <p><strong>Enhancement:</strong> {questionsStats?.active || 0} semantic questions</p>
+              <p><strong>Storage:</strong> Convex Database with vector fields</p>
+              <p><strong>Q&A Generation:</strong> GPT-4 for semantic analysis</p>
             </div>
           </div>
           
           <div>
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">Performance</h4>
-            <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <p><strong>Search Speed:</strong> Sub-second response</p>
-              <p><strong>Accuracy:</strong> 50%+ similarity threshold</p>
-              <p><strong>Scalability:</strong> Handles 10K+ documents</p>
-              <p><strong>Cost:</strong> ~$0.01 per 100 embeddings</p>
+            <h4 className="font-medium text-tron-white mb-2">Performance & Quality</h4>
+            <div className="space-y-2 text-sm text-tron-gray">
+              <p><strong>Search Accuracy:</strong> Enhanced with Q&A context</p>
+              <p><strong>Question Categories:</strong> {Object.keys(questionsStats?.byCategory || {}).length}</p>
+              <p><strong>Total Usage:</strong> {questionsStats?.totalUsage || 0} Q&A pairs generated</p>
+              <p><strong>Avg Effectiveness:</strong> {questionsStats?.averageEffectiveness?.toFixed(1) || 0}%</p>
             </div>
           </div>
         </div>
-      </div>
+      </TronPanel>
     </div>
   );
 }

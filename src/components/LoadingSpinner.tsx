@@ -19,9 +19,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   return (
     <div className={`flex flex-col items-center justify-center space-y-4 ${className}`}>
-      <div className={`animate-spin rounded-full border-b-2 border-blue-600 dark:border-blue-400 ${sizeClasses[size]}`}></div>
+      <div className={`animate-spin rounded-full border-b-2 border-blue-600 ${sizeClasses[size]}`}></div>
       {text && (
-        <p className="text-gray-600 dark:text-gray-300 font-medium text-sm">
+        <p className="text-powder_blue-500 font-medium text-sm">
           {text}
         </p>
       )}

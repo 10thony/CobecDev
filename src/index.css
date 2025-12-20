@@ -8,7 +8,7 @@ html, body, #root {
 @tailwind utilities;
 
 .accent-text {
-  @apply text-slate-600 dark:text-slate-300;
+  @apply text-powder_blue-700;
 }
 
 body {
@@ -28,17 +28,19 @@ body {
     "Segoe UI Emoji",
     "Segoe UI Symbol",
     "Noto Color Emoji";
-  @apply text-gray-900 dark:text-white bg-white dark:bg-gray-900;
+  @apply text-mint_cream-500 bg-oxford_blue-500;
+  background: var(--tron-bg-deep, #0a0a0f);
+  color: var(--tron-text, #f0f6fc);
 }
 
 /* only use this to update the style of the auth input fields. use a different class for all other input fields */
 .auth-input-field {
-  @apply w-full px-4 py-3 rounded-container bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow shadow-sm hover:shadow dark:text-white;
+  @apply w-full px-4 py-3 rounded-container bg-berkeley_blue-500 border border-powder_blue-400 focus:border-mint_cream-500 focus:ring-1 focus:ring-mint_cream-500 outline-none transition-shadow shadow-sm hover:shadow text-mint_cream-500;
 }
 
 /* only use this to update the style of the auth buttons. use the button class for all other buttons */
 .auth-button {
-  @apply w-full px-4 py-3 rounded bg-primary text-white font-semibold hover:bg-primary-hover transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply w-full px-4 py-3 rounded bg-yale_blue-500 text-mint_cream-500 font-semibold hover:bg-yale_blue-600 transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 /* Clerk component dark mode overrides */
@@ -192,9 +194,336 @@ body {
 
 /* Theme toggle button styles */
 .theme-toggle-button {
-  @apply fixed top-4 right-4 p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white;
+  @apply fixed top-4 right-4 p-2 rounded-lg bg-berkeley_blue-500 border border-powder_blue-400 shadow-sm hover:shadow-md transition-all duration-200 text-mint_cream-500 hover:text-mint_cream-600;
 }
 
 .theme-toggle-button:focus {
-  @apply outline-none ring-2 ring-primary ring-offset-2 dark:ring-offset-gray-800;
+  @apply outline-none ring-2 ring-mint_cream-500 ring-offset-2 ring-offset-berkeley_blue-500;
 }
+
+/* ==========================================
+   TRON UI DESIGN SYSTEM
+   ========================================== */
+
+/* CSS Custom Properties */
+:root {
+  /* Tron Color Palette */
+  --tron-bg-deep: #0a0a0f;
+  --tron-bg-panel: #0d1117;
+  --tron-bg-card: #161b22;
+  --tron-bg-elevated: #21262d;
+  
+  --tron-cyan: #00d4ff;
+  --tron-cyan-dim: #00a8cc;
+  --tron-cyan-glow: rgba(0, 212, 255, 0.5);
+  
+  --tron-blue: #0066ff;
+  --tron-orange: #ff6600;
+  
+  --tron-text: #f0f6fc;
+  --tron-text-muted: #8b949e;
+  --tron-text-dim: #484f58;
+  
+  /* Animation Timing */
+  --tron-transition-fast: 150ms;
+  --tron-transition-normal: 250ms;
+  --tron-transition-slow: 400ms;
+}
+
+/* Tron Grid Background Pattern */
+.tron-grid-bg {
+  background-image: 
+    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Tron Panel Component */
+.tron-panel {
+  background: var(--tron-bg-panel);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tron-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--tron-cyan), transparent);
+  opacity: 0.5;
+}
+
+/* Tron Card Component */
+.tron-card {
+  background: var(--tron-bg-card);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 6px;
+  transition: all var(--tron-transition-normal) ease;
+}
+
+.tron-card:hover {
+  border-color: rgba(0, 212, 255, 0.4);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+}
+
+/* Tron Button Styles */
+.tron-btn {
+  background: transparent;
+  border: 1px solid var(--tron-cyan);
+  color: var(--tron-cyan);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all var(--tron-transition-normal) ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.tron-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.tron-btn:hover {
+  background: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.tron-btn:hover::before {
+  left: 100%;
+}
+
+.tron-btn-primary {
+  background: var(--tron-cyan);
+  color: var(--tron-bg-deep);
+  border-color: var(--tron-cyan);
+}
+
+.tron-btn-primary:hover {
+  background: var(--tron-cyan-dim);
+  box-shadow: 0 0 25px var(--tron-cyan-glow);
+}
+
+.tron-btn-orange {
+  border-color: var(--tron-orange);
+  color: var(--tron-orange);
+}
+
+.tron-btn-orange:hover {
+  background: rgba(255, 102, 0, 0.1);
+  box-shadow: 0 0 20px rgba(255, 102, 0, 0.3);
+}
+
+/* Tron Input Styles */
+.tron-input {
+  background: var(--tron-bg-card);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--tron-text);
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  transition: all var(--tron-transition-normal) ease;
+}
+
+.tron-input:focus {
+  outline: none;
+  border-color: var(--tron-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1), 0 0 15px rgba(0, 212, 255, 0.2);
+}
+
+.tron-input::placeholder {
+  color: var(--tron-text-dim);
+}
+
+/* Tron Select Styles */
+.tron-select {
+  background: var(--tron-bg-card);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--tron-text);
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tron-select:focus {
+  outline: none;
+  border-color: var(--tron-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+.tron-select option {
+  background: var(--tron-bg-panel);
+  color: var(--tron-text);
+}
+
+/* Tron Progress Bar */
+.tron-progress {
+  background: var(--tron-bg-elevated);
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.tron-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--tron-cyan-dim), var(--tron-cyan));
+  box-shadow: 0 0 10px var(--tron-cyan-glow);
+  transition: width 0.3s ease;
+}
+
+/* Tron Status Badges */
+.tron-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tron-badge-success {
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  color: #00ff88;
+}
+
+.tron-badge-warning {
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+  color: #ffaa00;
+}
+
+.tron-badge-error {
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  color: #ff4444;
+}
+
+.tron-badge-info {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
+}
+
+/* Tron Stat Card */
+.tron-stat-card {
+  background: var(--tron-bg-card);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 8px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.tron-stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+}
+
+/* Tron Table Styles */
+.tron-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.tron-table th {
+  background: var(--tron-bg-elevated);
+  color: var(--tron-cyan);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.tron-table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  color: var(--tron-text-muted);
+}
+
+.tron-table tr:hover td {
+  background: rgba(0, 212, 255, 0.05);
+}
+
+/* Tron Divider */
+.tron-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+  margin: 1.5rem 0;
+}
+
+/* Tron Glow Text */
+.tron-glow-text {
+  text-shadow: 0 0 10px var(--tron-cyan-glow), 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+/* Tron Icon Glow */
+.tron-icon-glow {
+  filter: drop-shadow(0 0 5px var(--tron-cyan-glow));
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--tron-bg-panel);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.5);
+}
+
+/* Animations */
+@keyframes tron-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes tron-glow-pulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 212, 255, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.6); }
+}
+
+@keyframes tron-scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes tron-border-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Utility Classes */
+.animate-tron-pulse { animation: tron-pulse 2s ease-in-out infinite; }
+.animate-tron-glow { animation: tron-glow-pulse 3s ease-in-out infinite; }

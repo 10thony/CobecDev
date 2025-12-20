@@ -3,11 +3,17 @@
 import { v } from "convex/values";
 import { action, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import { Id } from "./_generated/dataModel";
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
+// Initialize OpenAI client
+const getOpenAI = () => {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY environment variable not set");
+  }
+  return new OpenAI({ apiKey });
+};
 
 // Types for enhanced embedding functionality
 interface EmbeddingContext {
@@ -56,17 +62,14 @@ export const generateVectorAwareEmbedding = action({
     context, 
     usePromptEnhancement = true, 
     useSkillEnhancement = true,
-    model = "gemini-text-embedding-004"
+    model = "text-embedding-3-small"
   }): Promise<EmbeddingResult> => {
-    if (!process.env.GOOGLE_AI_API_KEY) {
-      throw new Error("GOOGLE_AI_API_KEY environment variable not set");
-    }
-
     if (!text || text.trim().length === 0) {
       throw new Error("Empty text provided for embedding");
     }
 
     try {
+      const openai = getOpenAI();
       let enhancedText = text.trim();
       let extractedSkills: string[] = [];
       let skillCategories: Record<string, string[]> = {};
@@ -89,14 +92,17 @@ export const generateVectorAwareEmbedding = action({
         confidence = Math.max(confidence, promptEnhancement.confidence);
       }
 
-      // Phase 3: Generate embedding with enhanced text
-      const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
-      const result = await embeddingModel.embedContent(enhancedText);
-      const embedding = result.embedding;
+      // Phase 3: Generate embedding with enhanced text using OpenAI
+      const response = await openai.embeddings.create({
+        model: model,
+        input: enhancedText,
+      });
+      
+      const embedding = response.data[0].embedding;
 
-      // Validate embedding dimensions
-      if (!embedding.values || (embedding.values.length !== 768 && embedding.values.length !== 2048)) {
-        throw new Error(`Invalid embedding dimensions. Expected 768 or 2048, got ${embedding.values?.length || 0}`);
+      // Validate embedding
+      if (!embedding || embedding.length === 0) {
+        throw new Error("Received empty embedding from OpenAI");
       }
 
       // Phase 4: Update skill taxonomy and prompt effectiveness
@@ -118,9 +124,9 @@ export const generateVectorAwareEmbedding = action({
       }
 
       return {
-        embedding: embedding.values,
+        embedding: embedding,
         model,
-        dimensions: embedding.values.length,
+        dimensions: embedding.length,
         generatedAt: Date.now(),
         enhancedText,
         extractedSkills,
@@ -385,26 +391,30 @@ async function extractSkillsWithAI(
   contextType: "resume" | "job_posting" | "user_query"
 ): Promise<{ skills: string[]; categories: Record<string, string[]>; confidence: number }> {
   try {
-    if (!process.env.GOOGLE_AI_API_KEY) {
-      return extractBasicSkills(text);
-    }
+    const openai = getOpenAI();
 
-    const prompt = `
-      Extract technical skills, programming languages, frameworks, tools, and technologies from this ${contextType} text.
-      
-      Focus on: Programming languages, Frameworks, Tools, Databases, Cloud platforms, Domain expertise.
-      
-      Return only a comma-separated list of skills.
-      
-      Text: ${text.substring(0, 2000)}
-    `;
+    const prompt = `Extract technical skills, programming languages, frameworks, tools, and technologies from this ${contextType} text.
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(prompt);
-    const response = result.response.text().trim();
+Focus on: Programming languages, Frameworks, Tools, Databases, Cloud platforms, Domain expertise.
+
+Return only a comma-separated list of skills. No explanations.
+
+Text: ${text.substring(0, 2000)}`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are a technical skill extraction assistant. Return only comma-separated skills." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 200,
+    });
     
-    if (response) {
-      const skills = response.split(',').map(skill => skill.trim()).filter(Boolean);
+    const skillsText = response.choices[0]?.message?.content?.trim();
+    
+    if (skillsText) {
+      const skills = skillsText.split(',').map(skill => skill.trim()).filter(Boolean);
       const categories = categorizeSkills(skills);
       return { skills, categories, confidence: 0.8 };
     }

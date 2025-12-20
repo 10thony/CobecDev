@@ -1,0 +1,288 @@
+[
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Dallas — Enterprise Records & Document Management Modernization (FY2026 CIP funding)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Dallas — Office of Budget & IT Services / City Secretary (Records Management)",
+        "level": "City"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 3500000,
+      "keyDates": {
+        "publishedDate": "2025-06-18",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Dallas Financial Transparency / Current Budget (program/CIP listings)",
+        "url": "https://dallascityhall.com/departments/budget/financialtransparency/Pages/Current-Budget.aspx"
+      },
+      "summary": "City budget/CIP shows FY2026 programming for enterprise records/document management modernization and digitization (replace legacy ECM/archive). No active solicitation or award listed on procurement portal at source time. adHoc: { fundingSource: 'General Fund / Capital', inferredStartFlag: true }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Austin — CTM Cloud Migration & Enterprise Back‑Office Modernization (ERP/Finance/HR)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Austin — Communications & Technology Management (CTM)",
+        "level": "City"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 12000000,
+      "keyDates": {
+        "publishedDate": "2025-01-22",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Austin CTM Department page & Finance Online (contract catalog / planning references)",
+        "url": "https://www.austintexas.gov/department/information-technology"
+      },
+      "summary": "City CTM and Finance planning documents show FY2026 capital funds for a multi-year cloud migration and ERP/back-office modernization (finance/HR). No posted award/solicitation at source; procurement to be posted on Austin Finance Online when ready. adHoc: { fundingSource: 'Capital/IT Reserve', inferredStartFlag: true }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Travis County — Countywide e‑Records & Records Management Consolidation (FY2026)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Travis County — Planning & Budget / Purchasing",
+        "level": "County"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 2800000,
+      "keyDates": {
+        "publishedDate": "2025-03-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-04-01"
+      },
+      "source": {
+        "documentName": "Travis County Planning & Budget (Budget Documents / FY planning)",
+        "url": "https://www.traviscountytx.gov/planning-budget/current-year"
+      },
+      "summary": "Travis County budget documents show FY2026 CIP/operating funds for a countywide electronic records/document management consolidation program. No award posted on purchasing; planned solicitation expected. adHoc: { fundingSource: 'County CIP', inferredStartFlag: true }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Harris County — Countywide Cybersecurity Modernization & Zero‑Trust Implementation (FY2026)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Harris County — Office of Information Technology / Purchasing",
+        "level": "County"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 9500000,
+      "keyDates": {
+        "publishedDate": "2025-05-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-07-01"
+      },
+      "source": {
+        "documentName": "Harris County Budget Book — Capital Project Descriptions (IT / Cybersecurity sections)",
+        "url": "https://budget.harriscountytx.gov/doc/Budget/budgetbook/Budget_Book_Part_III_Capital_Project_Descriptions.pdf"
+      },
+      "summary": "Harris County CIP/budget includes multi-year funding for cybersecurity enhancements (Zero‑Trust architecture, identity mgmt, SOC enhancements). No active contract/award located on purchasing portal; project programmed for FY2026. adHoc: { fundingSource: 'County CIP / Federal Grants', inferredStartFlag: true }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Houston — Enterprise Content Management (ECM) Replacement / Records Modernization (FY2026)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Houston — Strategic Procurement / Department of IT",
+        "level": "City"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 4200000,
+      "keyDates": {
+        "publishedDate": "2025-07-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "City of Houston FY2026 Budget / IT capital lines",
+        "url": "https://www.houstontx.gov/budget/"
+      },
+      "summary": "City FY2026 budget shows ECM/records modernization funds for permitting, archives, and document workflows. No solicitation/award posted on City procurement as of source; planning stage. adHoc: { fundingSource: 'General Capital', inferredStartFlag: true }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of San Antonio — ERP Phase II: Finance & HR Modernization (programmed FY2027)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of San Antonio — Finance / IT",
+        "level": "City"
+      },
+      "location": {
+        "city": "San Antonio",
+        "county": "Bexar",
+        "region": "San Antonio"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 15000000,
+      "keyDates": {
+        "publishedDate": "2025-04-15",
+        "bidDeadline": null,
+        "projectedStartDate": "2027-01-01"
+      },
+      "source": {
+        "documentName": "City of San Antonio Purchasing & FY budget references (CIP/IT planning)",
+        "url": "https://www.sanantonio.gov/purchasing"
+      },
+      "summary": "City Council and FY budget references program funding for ERP modernization (Phase II Finance & HR) beginning FY2027. Procurement planning expected through Purchasing; no award or active RFP found at source. adHoc: { fundingSource: 'GO Bonds/Capital', inferredStartFlag: true }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Austin ISD — Districtwide Student Information System Integration & Data Platform (FY2026)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Austin Independent School District — Procurement / IT",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Austin",
+        "county": "Travis",
+        "region": "Austin"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 6000000,
+      "keyDates": {
+        "publishedDate": "2025-02-12",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-08-01"
+      },
+      "source": {
+        "documentName": "Austin ISD Procurement / district planning & CTM contract catalog references",
+        "url": "https://www.austinisd.org/finance/purchasing"
+      },
+      "summary": "AISD budget/IT planning indicates funds to integrate student information systems with finance/HR and to implement a consolidated data platform. No active solicitation/award posted on AISD procurement page at source time. adHoc: { fundingSource: 'District Capital', inferredStartFlag: true }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Harris County Flood Control — Smart Sensors & Asset Management Platform Pilot (IoT telemetry)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Harris County Flood Control District / Public Works",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "Seeking Subcontractors",
+      "estimatedValueUSD": 1800000,
+      "keyDates": {
+        "publishedDate": "2025-09-10",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-03-01"
+      },
+      "source": {
+        "documentName": "Harris County Purchasing Notices & Flood Control CIP / project descriptions",
+        "url": "https://budget.harriscountytx.gov/doc/Budget/budgetbook/Budget_Book_Part_III_Capital_Project_Descriptions.pdf"
+      },
+      "summary": "Harris County Flood Control CIP/project description references pilot for smart sensors (water level, telemetry) and an asset management platform. Solicitation/RFI planning indicated in Commissioners Court and Purchasing notices; no award posted at time of check. adHoc: { projectPhase: 'Pilot/Procurement' }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Port of Houston Authority — Portwide Cybersecurity & SOC Expansion (planning / FY2026)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Port of Houston Authority — Information Security / Procurement",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Houston",
+        "county": "Harris",
+        "region": "Houston"
+      },
+      "status": "In Planning Phase",
+      "estimatedValueUSD": 5200000,
+      "keyDates": {
+        "publishedDate": "2025-08-01",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-10-01"
+      },
+      "source": {
+        "documentName": "Port of Houston — Procurement & Business Opportunities / FY planning",
+        "url": "https://www.portofhouston.com/business/procurement/"
+      },
+      "summary": "Port business opportunities and FY planning pages document capital funding for SOC expansion and OT/IT cybersecurity improvements. No active solicitation/award located at source time. adHoc: { fundingSource: 'Port Capital / Federal Grants', inferredStartFlag: true }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "City of Fort Worth — Municipal Broadband Feasibility & Fiber Backbone Expansion (RFI / feasibility FY2026-27)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "City of Fort Worth — IT / Office of Broadband Initiatives",
+        "level": "City"
+      },
+      "location": {
+        "city": "Fort Worth",
+        "county": "Tarrant",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "In Planning Phase (RFI)",
+      "estimatedValueUSD": 18000000,
+      "keyDates": {
+        "publishedDate": "2025-10-05",
+        "bidDeadline": null,
+        "projectedStartDate": "2027-01-01"
+      },
+      "source": {
+        "documentName": "City of Fort Worth Purchasing / IT planning & regional connectivity program mentions",
+        "url": "https://www.fortworthtexas.gov/departments/finance/purchasing/bids-current"
+      },
+      "summary": "City council/IT planning materials and procurement notices reference municipal broadband feasibility and potential fiber backbone expansion; RFI/feasibility planning underway, no award posted. adHoc: { projectPhase: 'Feasibility / RFI', inferredStartFlag: true }"
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Dallas County — Justice & Court Records Management Modernization (FY2026)",
+      "contractID": null,
+      "issuingBody": {
+        "name": "Dallas County — Court Administration / IT / Purchasing",
+        "level": "County"
+      },
+      "location": {
+        "city": "Dallas",
+        "county": "Dallas",
+        "region": "Dallas–Fort Worth"
+      },
+      "status": "Budgeted for FY2026",
+      "estimatedValueUSD": 4200000,
+      "keyDates": {
+        "publishedDate": "2025-06-18",
+        "bidDeadline": null,
+        "projectedStartDate": "2026-06-01"
+      },
+      "source": {
+        "documentName": "Dallas County Purchasing / FY2026 budget & court admin planning",
+        "url": "https://www.dallascounty.org/department/purchasing/"
+      },
+      "summary": "Dallas County FY2026 budget/programming indicates funding for court and justice records modernization (eFile, case mgmt integration, digital storage). No active solicitation/award found on purchasing portal at check. adHoc: { fundingSource: 'County CIP', inferredStartFlag: true }"
+    }
+  ]

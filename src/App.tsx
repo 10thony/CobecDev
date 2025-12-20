@@ -13,6 +13,12 @@ import { ResumeDetailsPage } from "./pages/ResumeDetailsPage";
 import { KfcManagementPage } from "./pages/KfcManagementPage";
 import { HRDashboardPage } from "./pages/HRDashboardPage";
 import { LeadsManagementPage } from "./pages/LeadsManagementPage";
+import { JobPostingsPage } from "./pages/JobPostingsPage";
+import { ResumesPage } from "./pages/ResumesPage";
+import { QuestionsPage } from "./pages/QuestionsPage";
+import { CobeciumPage } from "./pages/CobeciumPage";
+import { AdminPanelPage } from "./pages/AdminPanelPage";
+import { GovernmentLinkHubPage } from "./pages/GovernmentLinkHubPage";
 import TempChatPage from "./pages/TempChatPage";
 import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider } from "./lib/ThemeContext";
@@ -22,7 +28,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <Router>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-oxford_blue-500">
           <Routes>
             <Route path="/temp-chat" element={<TempChatPage />} />
             <Route path="/*" element={<AppContent />} />
@@ -36,13 +42,19 @@ export default function App() {
 
 function AppContent() {
   const { isSignedIn, isLoaded } = useAuth();
+  const location = window.location.pathname;
   
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mint_cream-500"></div>
       </div>
     );
+  }
+
+  // Allow public access to government-links page (read-only for unauthenticated users)
+  if (location === "/government-links" && !isSignedIn) {
+    return <PublicGovernmentLinksPage />;
   }
 
   if (!isSignedIn) {
@@ -60,7 +72,7 @@ function AuthenticatedApp() {
   if (userRole === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mint_cream-500"></div>
       </div>
     );
   }
@@ -74,10 +86,16 @@ function AuthenticatedApp() {
         <Route path="/test-job" element={<div>Test Job Route Works!</div>} />
         <Route path="/job/:jobId" element={<JobDetailsPage />} />
         <Route path="/resume/:resumeId" element={<ResumeDetailsPage />} />
+        <Route path="/job-postings" element={<JobPostingsPage />} />
+        <Route path="/resumes" element={<ResumesPage />} />
+        <Route path="/questions" element={<QuestionsPage />} />
+        <Route path="/cobecium" element={<CobeciumPage />} />
         <Route path="/theme-config" element={<ThemeConfigPage />} />
         <Route path="/data-management" element={<DataManagementPage />} />
         <Route path="/kfc-management" element={<KfcManagementPage />} />
         <Route path="/leads-management" element={<LeadsManagementPage />} />
+        <Route path="/admin-panel" element={<AdminPanelPage />} />
+        <Route path="/government-links" element={<GovernmentLinkHubPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
@@ -89,10 +107,36 @@ function UnauthenticatedApp() {
     <div className="min-h-screen flex items-center justify-center p-8">
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Cobecium</h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">Sign in to start chatting with AI</p>
+          <h1 className="text-4xl font-bold text-mint_cream-500 mb-4">Cobecium</h1>
+          <p className="text-xl text-powder_blue-700">Sign in to start chatting with AI</p>
         </div>
         <SignInForm />
+      </div>
+    </div>
+  );
+}
+
+// Public read-only version of Government Links page (no authentication required)
+function PublicGovernmentLinksPage() {
+  return (
+    <div className="h-screen bg-tron-bg-deep flex flex-col">
+      {/* Simple header for public access */}
+      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold text-tron-white">Cobecium</h1>
+          <span className="text-tron-gray">|</span>
+          <span className="text-tron-cyan">Government Link Hub</span>
+        </div>
+        <a
+          href="/"
+          className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
+        >
+          Sign In for Full Access
+        </a>
+      </header>
+      {/* Render the page in read-only mode (isAdmin will be false) */}
+      <div className="flex-1 overflow-auto">
+        <GovernmentLinkHubPage isPublic={true} />
       </div>
     </div>
   );

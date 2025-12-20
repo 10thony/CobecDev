@@ -1,0 +1,304 @@
+{
+    "us_state_capitals_procurement": [
+      {
+        "state": "Alabama",
+        "capital": "Montgomery",
+        "official_website": "https://www.montgomeryal.gov/",
+        "procurement_link": "https://www.montgomeryal.gov/business/partner-with-the-city/procurement-purchasing"
+      },
+      {
+        "state": "Alaska",
+        "capital": "Juneau",
+        "official_website": "https://juneau.org/",
+        "procurement_link": "https://juneau.org/finance/purchasing/bids-rfps"
+      },
+      {
+        "state": "Arizona",
+        "capital": "Phoenix",
+        "official_website": "https://www.phoenix.gov/",
+        "procurement_link": "https://www.phoenix.gov/finance/procurement"
+      },
+      {
+        "state": "Arkansas",
+        "capital": "Little Rock",
+        "official_website": "https://www.littlerock.gov/",
+        "procurement_link": "https://www.littlerock.gov/city-administration/city-departments/finance/divisions/procurement/"
+      },
+      {
+        "state": "California",
+        "capital": "Sacramento",
+        "official_website": "https://www.cityofsacramento.gov/",
+        "procurement_link": "https://www.cityofsacramento.gov/finance/procurement"
+      },
+      {
+        "state": "Colorado",
+        "capital": "Denver",
+        "official_website": "https://www.denvergov.org/",
+        "procurement_link": "https://www.denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/General-Services/Purchasing"
+      },
+      {
+        "state": "Connecticut",
+        "capital": "Hartford",
+        "official_website": "https://www.hartfordct.gov/",
+        "procurement_link": "https://www.hartfordct.gov/Government/Departments/Finance/Procurement"
+      },
+      {
+        "state": "Delaware",
+        "capital": "Dover",
+        "official_website": "https://www.cityofdover.com/",
+        "procurement_link": "https://www.cityofdover.com/Bids-Requests-for-Proposals"
+      },
+      {
+        "state": "Florida",
+        "capital": "Tallahassee",
+        "official_website": "https://www.talgov.com/",
+        "procurement_link": "https://www.talgov.com/procurement/procurement-home"
+      },
+      {
+        "state": "Georgia",
+        "capital": "Atlanta",
+        "official_website": "https://www.atlantaga.gov/",
+        "procurement_link": "https://www.atlantaga.gov/government/departments/procurement"
+      },
+      {
+        "state": "Hawaii",
+        "capital": "Honolulu",
+        "official_website": "https://www.honolulu.gov/",
+        "procurement_link": "https://www.honolulu.gov/pur"
+      },
+      {
+        "state": "Idaho",
+        "capital": "Boise",
+        "official_website": "https://www.cityofboise.org/",
+        "procurement_link": "https://www.cityofboise.org/departments/finance-and-administration/procurement/"
+      },
+      {
+        "state": "Illinois",
+        "capital": "Springfield",
+        "official_website": "https://www.springfield.il.us/",
+        "procurement_link": "https://www.springfield.il.us/Departments/OBM/PurchasingHome.aspx"
+      },
+      {
+        "state": "Indiana",
+        "capital": "Indianapolis",
+        "official_website": "https://www.indy.gov/",
+        "procurement_link": "https://www.indy.gov/activity/find-bid-opportunities"
+      },
+      {
+        "state": "Iowa",
+        "capital": "Des Moines",
+        "official_website": "https://www.dsm.city/",
+        "procurement_link": "https://www.dsm.city/departments/finance/purchasing/index.php"
+      },
+      {
+        "state": "Kansas",
+        "capital": "Topeka",
+        "official_website": "https://www.topeka.org/",
+        "procurement_link": "https://www.topeka.org/finance/purchasing/"
+      },
+      {
+        "state": "Kentucky",
+        "capital": "Frankfort",
+        "official_website": "https://www.frankfort.ky.gov/",
+        "procurement_link": "https://www.frankfort.ky.gov/273/Finance-Business"
+      },
+      {
+        "state": "Louisiana",
+        "capital": "Baton Rouge",
+        "official_website": "https://www.brla.gov/",
+        "procurement_link": "https://www.brla.gov/directory.aspx?did=39"
+      },
+      {
+        "state": "Maine",
+        "capital": "Augusta",
+        "official_website": "https://www.augustamaine.gov/",
+        "procurement_link": "https://www.augustamaine.gov/businesses/bids_and_rfps.php"
+      },
+      {
+        "state": "Maryland",
+        "capital": "Annapolis",
+        "official_website": "https://www.annapolis.gov/",
+        "procurement_link": "https://www.annapolis.gov/155/Purchasing"
+      },
+      {
+        "state": "Massachusetts",
+        "capital": "Boston",
+        "official_website": "https://www.boston.gov/",
+        "procurement_link": "https://www.boston.gov/departments/procurement"
+      },
+      {
+        "state": "Michigan",
+        "capital": "Lansing",
+        "official_website": "https://www.lansingmi.gov/",
+        "procurement_link": "https://www.lansingmi.gov/313/Purchasing"
+      },
+      {
+        "state": "Minnesota",
+        "capital": "Saint Paul",
+        "official_website": "https://www.stpaul.gov/",
+        "procurement_link": "https://www.stpaul.gov/departments/financial-services/procurement"
+      },
+      {
+        "state": "Mississippi",
+        "capital": "Jackson",
+        "official_website": "https://www.jacksonms.gov/",
+        "procurement_link": "https://www.jacksonms.gov/departments/department-of-finance-administration/division-of-purchasing/"
+      },
+      {
+        "state": "Missouri",
+        "capital": "Jefferson City",
+        "official_website": "https://www.jeffersoncitymo.gov/",
+        "procurement_link": "https://www.jeffersoncitymo.gov/government/finance/purchasing/index.php"
+      },
+      {
+        "state": "Montana",
+        "capital": "Helena",
+        "official_website": "https://www.helenamt.gov/",
+        "procurement_link": "https://www.helenamt.gov/Government/Finance/Purchasing"
+      },
+      {
+        "state": "Nebraska",
+        "capital": "Lincoln",
+        "official_website": "https://www.lincoln.ne.gov/",
+        "procurement_link": "https://www.lincoln.ne.gov/City/Departments/Finance/Purchasing"
+      },
+      {
+        "state": "Nevada",
+        "capital": "Carson City",
+        "official_website": "https://www.carson.org/",
+        "procurement_link": "https://www.carson.org/government/departments-a-f/finance/purchasing-and-contracts"
+      },
+      {
+        "state": "New Hampshire",
+        "capital": "Concord",
+        "official_website": "https://www.concordnh.gov/",
+        "procurement_link": "https://www.concordnh.gov/658/Purchasing"
+      },
+      {
+        "state": "New Jersey",
+        "capital": "Trenton",
+        "official_website": "https://www.trentonnj.org/",
+        "procurement_link": "https://www.trentonnj.org/190/Purchasing"
+      },
+      {
+        "state": "New Mexico",
+        "capital": "Santa Fe",
+        "official_website": "https://www.santafenm.gov/",
+        "procurement_link": "https://www.santafenm.gov/purchasing"
+      },
+      {
+        "state": "New York",
+        "capital": "Albany",
+        "official_website": "https://www.albanyny.gov/",
+        "procurement_link": "https://www.albanyny.gov/220/Purchasing"
+      },
+      {
+        "state": "North Carolina",
+        "capital": "Raleigh",
+        "official_website": "https://raleighnc.gov/",
+        "procurement_link": "https://raleighnc.gov/business/procurement"
+      },
+      {
+        "state": "North Dakota",
+        "capital": "Bismarck",
+        "official_website": "https://www.bismarcknd.gov/",
+        "procurement_link": "https://www.bismarcknd.gov/86/Purchasing"
+      },
+      {
+        "state": "Ohio",
+        "capital": "Columbus",
+        "official_website": "https://www.columbus.gov/",
+        "procurement_link": "https://www.columbus.gov/Business-Development/Bids-Solicitations"
+      },
+      {
+        "state": "Oklahoma",
+        "capital": "Oklahoma City",
+        "official_website": "https://www.okc.gov/",
+        "procurement_link": "https://www.okc.gov/departments/finance/purchasing"
+      },
+      {
+        "state": "Oregon",
+        "capital": "Salem",
+        "official_website": "https://www.cityofsalem.net/",
+        "procurement_link": "https://www.cityofsalem.net/business/procurement-and-contracts"
+      },
+      {
+        "state": "Pennsylvania",
+        "capital": "Harrisburg",
+        "official_website": "https://harrisburgpa.gov/",
+        "procurement_link": "https://harrisburgpa.gov/bids-proposals/"
+      },
+      {
+        "state": "Rhode Island",
+        "capital": "Providence",
+        "official_website": "https://www.providenceri.gov/",
+        "procurement_link": "https://www.providenceri.gov/purchasing/"
+      },
+      {
+        "state": "South Carolina",
+        "capital": "Columbia",
+        "official_website": "https://www.columbiasc.gov/",
+        "procurement_link": "https://purchasing.columbiasc.gov/"
+      },
+      {
+        "state": "South Dakota",
+        "capital": "Pierre",
+        "official_website": "https://www.cityofpierre.org/",
+        "procurement_link": "https://www.cityofpierre.org/307/Bids-RFPs"
+      },
+      {
+        "state": "Tennessee",
+        "capital": "Nashville",
+        "official_website": "https://www.nashville.gov/",
+        "procurement_link": "https://www.nashville.gov/departments/finance/procurement"
+      },
+      {
+        "state": "Texas",
+        "capital": "Austin",
+        "official_website": "https://www.austintexas.gov/",
+        "procurement_link": "https://www.austintexas.gov/department/purchasing"
+      },
+      {
+        "state": "Utah",
+        "capital": "Salt Lake City",
+        "official_website": "https://www.slc.gov/",
+        "procurement_link": "https://www.slc.gov/finance/purchasing/"
+      },
+      {
+        "state": "Vermont",
+        "capital": "Montpelier",
+        "official_website": "https://www.montpelier-vt.org/",
+        "procurement_link": "https://www.montpelier-vt.org/Bids.aspx"
+      },
+      {
+        "state": "Virginia",
+        "capital": "Richmond",
+        "official_website": "https://www.rva.gov/",
+        "procurement_link": "https://www.rva.gov/procurement"
+      },
+      {
+        "state": "Washington",
+        "capital": "Olympia",
+        "official_website": "https://www.olympiawa.gov/",
+        "procurement_link": "https://www.olympiawa.gov/business/bids___rfps.php"
+      },
+      {
+        "state": "West Virginia",
+        "capital": "Charleston",
+        "official_website": "https://charlestonwv.gov/",
+        "procurement_link": "https://charlestonwv.gov/bids-rfps"
+      },
+      {
+        "state": "Wisconsin",
+        "capital": "Madison",
+        "official_website": "https://www.cityofmadison.com/",
+        "procurement_link": "https://www.cityofmadison.com/finance/purchasing"
+      },
+      {
+        "state": "Wyoming",
+        "capital": "Cheyenne",
+        "official_website": "https://www.cheyennecity.org/",
+        "procurement_link": "https://www.cheyennecity.org/Government/Departments/Purchasing"
+      }
+    ]
+  }

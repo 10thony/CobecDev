@@ -67,7 +67,7 @@ export const searchJobPostings = query({
         totalFound: results.length,
         totalWithEmbeddings: (jobPostings as any[]).filter((job: any) => job.embedding).length,
         similarityThreshold,
-        model: "gemini-mrl-2048",
+        model: "text-embedding-3-large",
         skillEnhancement: false,
         enhancedQuery: query,
         taxonomy: null
@@ -100,11 +100,11 @@ export const searchJobPostingsWithEmbedding = action({
       // Generate query embedding
       const queryEmbedding = await ctx.runAction(api.embeddingService.generateEmbedding, {
         text: query,
-        model: "gemini-mrl-2048"
+        model: "text-embedding-3-large"
       });
 
-      // Get all job postings with embeddings
-      const jobPostings = await ctx.runQuery(api.jobPostings.list);
+      // Get job postings for vector search (optimized with limit)
+      const jobPostings = await ctx.runQuery(api.jobPostings.listForVectorSearch, { limit: 1000 });
       
       const results = (jobPostings as any[])
         .filter((job: any) => job.embedding && job.completeSearchableText)
@@ -127,7 +127,7 @@ export const searchJobPostingsWithEmbedding = action({
         totalFound: results.length,
         totalWithEmbeddings: (jobPostings as any[]).filter((job: any) => job.embedding).length,
         similarityThreshold,
-        model: "gemini-mrl-2048",
+        model: "text-embedding-3-large",
         skillEnhancement: useSkillEnhancement,
         enhancedQuery: query,
         queryEmbedding: queryEmbedding,
@@ -183,7 +183,7 @@ export const searchResumes = query({
         totalFound: results.length,
         totalWithEmbeddings: (resumes as any[]).filter((resume: any) => resume.embedding).length,
         similarityThreshold,
-        model: "gemini-mrl-2048",
+        model: "text-embedding-3-large",
         skillEnhancement: false,
         enhancedQuery: query,
         taxonomy: null
@@ -216,11 +216,11 @@ export const searchResumesWithEmbedding = action({
       // Generate query embedding
       const queryEmbedding = await ctx.runAction(api.embeddingService.generateEmbedding, {
         text: query,
-        model: "gemini-mrl-2048"
+        model: "text-embedding-3-large"
       });
 
-      // Get all resumes with embeddings
-      const resumes = await ctx.runQuery(api.resumes.list);
+      // Get resumes for vector search (optimized with limit)
+      const resumes = await ctx.runQuery(api.resumes.listForVectorSearch, { limit: 1000 });
       
       const results = (resumes as any[])
         .filter((resume: any) => resume.embedding && resume.completeSearchableText)
@@ -243,7 +243,7 @@ export const searchResumesWithEmbedding = action({
         totalFound: results.length,
         totalWithEmbeddings: (resumes as any[]).filter((resume: any) => resume.embedding).length,
         similarityThreshold,
-        model: "gemini-mrl-2048",
+        model: "text-embedding-3-large",
         skillEnhancement: useSkillEnhancement,
         enhancedQuery: query,
         queryEmbedding: queryEmbedding,
@@ -325,7 +325,7 @@ export const unifiedSemanticSearch = query({
           total: resumeResults.length + jobResults.length
         },
         similarityThreshold,
-        model: "gemini-mrl-2048",
+        model: "text-embedding-3-large",
         skillEnhancement: false, // Disabled in query context
         taxonomy: null,
         skillAnalysis
@@ -360,12 +360,12 @@ export const unifiedSemanticSearchWithEmbedding = action({
       // Generate query embedding
       const queryEmbedding = await ctx.runAction(api.embeddingService.generateEmbedding, {
         text: query,
-        model: "gemini-mrl-2048"
+        model: "text-embedding-3-large"
       });
 
-      // Get all documents with embeddings
-      const resumes = await ctx.runQuery(api.resumes.list);
-      const jobPostings = await ctx.runQuery(api.jobPostings.list);
+      // Get documents for vector search (optimized with limit)
+      const resumes = await ctx.runQuery(api.resumes.listForVectorSearch, { limit: 1000 });
+      const jobPostings = await ctx.runQuery(api.jobPostings.listForVectorSearch, { limit: 1000 });
       
       // Search resumes with real similarity calculation
       const resumeResults = (resumes as any[])
@@ -422,7 +422,7 @@ export const unifiedSemanticSearchWithEmbedding = action({
           total: resumeResults.length + jobResults.length
         },
         similarityThreshold,
-        model: "gemini-mrl-2048",
+        model: "text-embedding-3-large",
         skillEnhancement: useSkillEnhancement,
         queryEmbedding: queryEmbedding,
         taxonomy: null,
@@ -649,7 +649,7 @@ export const crossTableSemanticSearch = query({
       searchType,
       similarityThreshold,
       timestamp: Date.now(),
-      model: "gemini-mrl-2048"
+      model: "text-embedding-3-large"
     };
 
     if (searchType === "jobs" || searchType === "both") {
@@ -730,7 +730,7 @@ export const searchKfcPoints = query({
       totalFound: results.length,
       totalWithEmbeddings: kfcPoints.filter(point => point.embedding).length,
       similarityThreshold,
-      model: "gemini-mrl-2048"
+      model: "text-embedding-3-large"
     };
   },
 });
@@ -882,7 +882,7 @@ export const getEmbeddingStats = query({
           resumes.filter(resume => resume.embedding).length +
           kfcPoints.filter(point => point.embedding).length,
         embeddingCoverage: 0, // Will be calculated below
-        model: "gemini-mrl-2048"
+        model: "text-embedding-3-large"
       }
     };
 

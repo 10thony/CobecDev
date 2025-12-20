@@ -587,7 +587,7 @@ export const enhancedSearchWithSkillContext = action({
       // Generate embedding for enhanced query
       const queryEmbedding = await ctx.runAction(api.embeddingService.generateEmbedding, {
         text: enhancedQuery,
-        model: "gemini-mrl-2048"
+        model: "text-embedding-3-large"
       });
 
       let results: any[] = [];

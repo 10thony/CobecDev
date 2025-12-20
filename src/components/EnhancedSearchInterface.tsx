@@ -19,6 +19,8 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import { TronPanel } from './TronPanel';
+import { TronButton } from './TronButton';
 
 interface EnhancedSearchInterfaceProps {
   className?: string;
@@ -334,52 +336,45 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
       <div className="relative">
         <div className="flex items-center space-x-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-tron-gray" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Search for jobs, skills, or candidates..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              className="tron-input w-full pl-10 pr-4"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-tron-gray hover:text-tron-white"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
           
-          <button
+          <TronButton
             onClick={handleSearch}
             disabled={isSearching || !query.trim()}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors flex items-center"
+            variant="primary"
+            color="cyan"
+            icon={<Search className="h-4 w-4" />}
+            loading={isSearching}
           >
-            {isSearching ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Searching...
-              </>
-            ) : (
-              <>
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </>
-            )}
-          </button>
+            Search
+          </TronButton>
         </div>
 
         {/* Search Suggestions */}
         {suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-tron-bg-panel border border-tron-cyan/20 rounded-lg shadow-lg z-10">
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                className="w-full text-left px-4 py-2 hover:bg-tron-bg-elevated text-tron-white"
               >
                 {suggestion}
               </button>
@@ -391,11 +386,11 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
       {/* Search Type and Quick Options */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search:</label>
+          <label className="text-sm font-medium text-tron-gray">Search:</label>
           <select
             value={searchType}
             onChange={(e) => setSearchType(e.target.value as 'jobs' | 'resumes' | 'both')}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            className="tron-select"
           >
             <option value="both">Jobs & Resumes</option>
             <option value="jobs">Jobs Only</option>
@@ -404,51 +399,48 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
         </div>
 
         <div className="flex items-center space-x-2">
-          <button
+          <TronButton
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              showFilters 
-                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-            }`}
+            variant={showFilters ? "primary" : "outline"}
+            color="cyan"
+            size="sm"
+            icon={showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           >
             <Filter className="h-4 w-4 mr-1" />
             Filters
-            {showFilters ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
-          </button>
+          </TronButton>
 
-          <button
+          <TronButton
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              showAdvanced 
-                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-            }`}
+            variant={showAdvanced ? "primary" : "outline"}
+            color="cyan"
+            size="sm"
+            icon={showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           >
             <Sliders className="h-4 w-4 mr-1" />
             Advanced
-            {showAdvanced ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
-          </button>
+          </TronButton>
         </div>
       </div>
 
       {/* Filters Panel */}
       {showFilters && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <TronPanel title="Search Filters" glowColor="cyan">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Search Filters</h3>
-            <button
+            <TronButton
               onClick={clearFilters}
-              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              variant="ghost"
+              color="cyan"
+              size="sm"
             >
               Clear All
-            </button>
+            </TronButton>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Location Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 <MapPin className="h-4 w-4 inline mr-1" />
                 Location
               </label>
@@ -457,13 +449,13 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
                 placeholder="Enter locations..."
                 value={filters.location.join(', ')}
                 onChange={(e) => handleFilterChange('location', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="tron-input w-full"
               />
             </div>
 
             {/* Job Type Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 <Briefcase className="h-4 w-4 inline mr-1" />
                 Job Type
               </label>
@@ -471,7 +463,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
                 multiple
                 value={filters.jobType}
                 onChange={(e) => handleFilterChange('jobType', Array.from(e.target.selectedOptions, option => option.value))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="tron-select w-full"
               >
                 <option value="full-time">Full-time</option>
                 <option value="part-time">Part-time</option>
@@ -483,7 +475,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
 
             {/* Experience Level Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 <TrendingUp className="h-4 w-4 inline mr-1" />
                 Experience Level
               </label>
@@ -491,7 +483,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
                 multiple
                 value={filters.experienceLevel}
                 onChange={(e) => handleFilterChange('experienceLevel', Array.from(e.target.selectedOptions, option => option.value))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="tron-select w-full"
               >
                 <option value="entry">Entry Level</option>
                 <option value="mid">Mid Level</option>
@@ -502,7 +494,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
 
             {/* Education Level Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 <GraduationCap className="h-4 w-4 inline mr-1" />
                 Education Level
               </label>
@@ -510,7 +502,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
                 multiple
                 value={filters.educationLevel}
                 onChange={(e) => handleFilterChange('educationLevel', Array.from(e.target.selectedOptions, option => option.value))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="tron-select w-full"
               >
                 <option value="high school">High School</option>
                 <option value="associate">Associate's Degree</option>
@@ -522,7 +514,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
 
             {/* Skills Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 <Zap className="h-4 w-4 inline mr-1" />
                 Skills
               </label>
@@ -531,13 +523,13 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
                 placeholder="Enter skills..."
                 value={filters.skills.join(', ')}
                 onChange={(e) => handleFilterChange('skills', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="tron-input w-full"
               />
             </div>
 
             {/* Date Range Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 <Clock className="h-4 w-4 inline mr-1" />
                 Date Range
               </label>
@@ -546,33 +538,31 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
                   type="date"
                   value={filters.dateRange.start}
                   onChange={(e) => handleFilterChange('dateRange', { ...filters.dateRange, start: e.target.value })}
-                  className="w-full px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="tron-input w-full"
                 />
                 <input
                   type="date"
                   value={filters.dateRange.end}
                   onChange={(e) => handleFilterChange('dateRange', { ...filters.dateRange, end: e.target.value })}
-                  className="w-full px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="tron-input w-full"
                 />
               </div>
             </div>
           </div>
-        </div>
+        </TronPanel>
       )}
 
       {/* Advanced Options Panel */}
       {showAdvanced && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Advanced Search Options</h3>
-          
+        <TronPanel title="Advanced Search Options" glowColor="cyan">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Search Method */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 Search Method
               </label>
               <div className="space-y-2">
-                <label className="flex items-center">
+                <label className="flex items-center text-tron-white">
                   <input
                     type="checkbox"
                     checked={options.useSemanticSearch}
@@ -581,7 +571,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
                   />
                   <span className="text-sm">Semantic Search</span>
                 </label>
-                <label className="flex items-center">
+                <label className="flex items-center text-tron-white">
                   <input
                     type="checkbox"
                     checked={options.useKeywordSearch}
@@ -590,7 +580,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
                   />
                   <span className="text-sm">Keyword Search</span>
                 </label>
-                <label className="flex items-center">
+                <label className="flex items-center text-tron-white">
                   <input
                     type="checkbox"
                     checked={options.useHybridSearch}
@@ -604,7 +594,7 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
 
             {/* Similarity Threshold */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 Similarity Threshold: {(options.similarityThreshold * 100).toFixed(0)}%
               </label>
               <input
@@ -614,22 +604,23 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
                 step="0.1"
                 value={options.similarityThreshold}
                 onChange={(e) => handleOptionChange('similarityThreshold', parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                className="w-full h-2 bg-tron-bg-elevated rounded-lg appearance-none cursor-pointer tron-progress-bar"
+                style={{ background: `linear-gradient(90deg, rgba(0, 212, 255, 0.3) 0%, rgba(0, 212, 255, 0.3) ${(options.similarityThreshold * 100)}%, rgba(0, 212, 255, 0.1) ${(options.similarityThreshold * 100)}%)` }}
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-tron-gray mt-1">
                 50% recommended for HR matching
               </p>
             </div>
 
             {/* Result Limit */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 Result Limit
               </label>
               <select
                 value={options.resultLimit}
                 onChange={(e) => handleOptionChange('resultLimit', parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="tron-select w-full"
               >
                 <option value={10}>10 results</option>
                 <option value={20}>20 results</option>
@@ -640,13 +631,13 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
 
             {/* Sort By */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 Sort By
               </label>
               <select
                 value={options.sortBy}
                 onChange={(e) => handleOptionChange('sortBy', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="tron-select w-full"
               >
                 <option value="relevance">Relevance</option>
                 <option value="similarity">Similarity Score</option>
@@ -657,38 +648,38 @@ export function EnhancedSearchInterface({ className = '', onResultsUpdate }: Enh
 
             {/* Sort Order */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-tron-gray mb-2">
                 Sort Order
               </label>
               <select
                 value={options.sortOrder}
                 onChange={(e) => handleOptionChange('sortOrder', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="tron-select w-full"
               >
                 <option value="desc">Descending</option>
                 <option value="asc">Ascending</option>
               </select>
             </div>
           </div>
-        </div>
+        </TronPanel>
       )}
 
       {/* Recent Searches */}
       {recentSearches.length > 0 && (
-        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recent Searches</h3>
+        <TronPanel glowColor="cyan">
+          <h3 className="text-sm font-medium text-tron-white mb-2">Recent Searches</h3>
           <div className="flex flex-wrap gap-2">
             {recentSearches.map((search, index) => (
               <button
                 key={index}
                 onClick={() => handleRecentSearchClick(search)}
-                className="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                className="px-3 py-1 bg-tron-bg-card border border-tron-cyan/20 rounded-full text-sm text-tron-white hover:bg-tron-bg-elevated transition-colors"
               >
                 {search}
               </button>
             ))}
           </div>
-        </div>
+        </TronPanel>
       )}
     </div>
   );

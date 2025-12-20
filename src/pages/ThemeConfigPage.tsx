@@ -7,57 +7,57 @@ import { CustomColorPicker } from '../components/CustomColorPicker';
 
 // Predefined color options for easy selection
 const colorOptions = [
-  { name: 'Default', value: 'bg-white dark:bg-gray-800' },
-  { name: 'Blue', value: 'bg-blue-50 dark:bg-blue-900' },
-  { name: 'Green', value: 'bg-green-50 dark:bg-green-900' },
-  { name: 'Purple', value: 'bg-purple-50 dark:bg-purple-900' },
-  { name: 'Pink', value: 'bg-pink-50 dark:bg-pink-900' },
-  { name: 'Yellow', value: 'bg-yellow-50 dark:bg-yellow-900' },
-  { name: 'Red', value: 'bg-red-50 dark:bg-red-900' },
-  { name: 'Indigo', value: 'bg-indigo-50 dark:bg-indigo-900' },
+  { name: 'Default', value: 'bg-berkeley-blue-DEFAULT bg-berkeley-blue-DEFAULT' },
+  { name: 'Blue', value: 'bg-blue-50 bg-yale-blue-500' },
+  { name: 'Green', value: 'bg-green-50' },
+  { name: 'Purple', value: 'bg-purple-50' },
+  { name: 'Pink', value: 'bg-pink-50' },
+  { name: 'Yellow', value: 'bg-yellow-50' },
+  { name: 'Red', value: 'bg-red-50' },
+  { name: 'Indigo', value: 'bg-indigo-50' },
 ];
 
 const borderOptions = [
-  { name: 'Default', value: 'border-gray-200 dark:border-gray-700' },
-  { name: 'Blue', value: 'border-blue-200 dark:border-blue-700' },
-  { name: 'Green', value: 'border-green-200 dark:border-green-700' },
-  { name: 'Purple', value: 'border-purple-200 dark:border-purple-700' },
-  { name: 'Pink', value: 'border-pink-200 dark:border-pink-700' },
-  { name: 'Yellow', value: 'border-yellow-200 dark:border-yellow-700' },
-  { name: 'Red', value: 'border-red-200 dark:border-red-700' },
-  { name: 'Indigo', value: 'border-indigo-200 dark:border-indigo-700' },
+  { name: 'Default', value: 'border-yale-blue-300' },
+  { name: 'Blue', value: 'border-blue-200' },
+  { name: 'Green', value: 'border-green-200' },
+  { name: 'Purple', value: 'border-purple-200' },
+  { name: 'Pink', value: 'border-pink-200' },
+  { name: 'Yellow', value: 'border-yellow-200' },
+  { name: 'Red', value: 'border-red-200' },
+  { name: 'Indigo', value: 'border-indigo-200' },
 ];
 
 const textOptions = [
-  { name: 'Default', value: 'text-gray-700 dark:text-gray-300' },
-  { name: 'Blue', value: 'text-blue-700 dark:text-blue-300' },
-  { name: 'Green', value: 'text-green-700 dark:text-green-300' },
-  { name: 'Purple', value: 'text-purple-700 dark:text-purple-300' },
-  { name: 'Pink', value: 'text-pink-700 dark:text-pink-300' },
-  { name: 'Yellow', value: 'text-yellow-700 dark:text-yellow-300' },
-  { name: 'Red', value: 'text-red-700 dark:text-red-300' },
-  { name: 'Indigo', value: 'text-indigo-700 dark:text-indigo-300' },
+  { name: 'Default', value: 'text-mint-cream-500' },
+  { name: 'Blue', value: 'text-mint-cream-DEFAULT text-mint-cream-DEFAULT' },
+  { name: 'Green', value: 'text-green-700' },
+  { name: 'Purple', value: 'text-purple-700' },
+  { name: 'Pink', value: 'text-pink-700' },
+  { name: 'Yellow', value: 'text-yellow-700' },
+  { name: 'Red', value: 'text-red-700' },
+  { name: 'Indigo', value: 'text-indigo-700' },
 ];
 
 const hoverOptions = [
-  { name: 'Default', value: 'hover:bg-gray-100 dark:hover:bg-gray-700' },
-  { name: 'Blue', value: 'hover:bg-blue-100 dark:hover:bg-blue-800' },
-  { name: 'Green', value: 'hover:bg-green-100 dark:hover:bg-green-800' },
-  { name: 'Purple', value: 'hover:bg-purple-100 dark:hover:bg-purple-800' },
-  { name: 'Pink', value: 'hover:bg-pink-100 dark:hover:bg-pink-800' },
-  { name: 'Yellow', value: 'hover:bg-yellow-100 dark:hover:bg-yellow-800' },
-  { name: 'Red', value: 'hover:bg-red-100 dark:hover:bg-red-800' },
-  { name: 'Indigo', value: 'hover:bg-indigo-100 dark:hover:bg-indigo-800' },
+  { name: 'Default', value: 'hover:bg-mint-cream-800' },
+  { name: 'Blue', value: 'hover:bg-yale-blue-500' },
+  { name: 'Green', value: 'hover:bg-green-100' },
+  { name: 'Purple', value: 'hover:bg-purple-100' },
+  { name: 'Pink', value: 'hover:bg-pink-100' },
+  { name: 'Yellow', value: 'hover:bg-yellow-100' },
+  { name: 'Red', value: 'hover:bg-red-100' },
+  { name: 'Indigo', value: 'hover:bg-indigo-100' },
 ];
 
 const activeOptions = [
-  { name: 'Default', value: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' },
-  { name: 'Green', value: 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' },
-  { name: 'Purple', value: 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300' },
-  { name: 'Pink', value: 'bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300' },
-  { name: 'Yellow', value: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300' },
-  { name: 'Red', value: 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300' },
-  { name: 'Indigo', value: 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' },
+  { name: 'Default', value: 'bg-yale-blue-500 bg-yale-blue-500 text-mint-cream-DEFAULT text-mint-cream-DEFAULT' },
+  { name: 'Green', value: 'bg-green-100 text-green-700' },
+  { name: 'Purple', value: 'bg-purple-100 text-purple-700' },
+  { name: 'Pink', value: 'bg-pink-100 text-pink-700' },
+  { name: 'Yellow', value: 'bg-yellow-100 text-yellow-700' },
+  { name: 'Red', value: 'bg-red-100 text-red-700' },
+  { name: 'Indigo', value: 'bg-indigo-100 text-indigo-700' },
 ];
 
 export function ThemeConfigPage() {
@@ -154,7 +154,7 @@ export function ThemeConfigPage() {
     
     return (
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-mint-cream-500">
           {title}
         </label>
         
@@ -178,13 +178,9 @@ export function ThemeConfigPage() {
             <button
               key={option.name}
               onClick={() => onChange(option.value)}
-              className={`p-3 rounded-lg border-2 transition-all ${
-                value === option.value
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
+              className={`p-3 rounded-lg border-2 transition-all ${ value === option.value ? 'border-powder-blue-600 bg-blue-50 bg-yale-blue-500/20' : 'border-yale-blue-300 hover:border-yale-blue-400' }`}
             >
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              <div className="text-xs font-medium text-mint-cream-500">
                 {option.name}
               </div>
             </button>
@@ -195,21 +191,21 @@ export function ThemeConfigPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-mint-cream-900 bg-oxford-blue-DEFAULT">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
             <Link
               to="/"
-              className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="flex items-center space-x-2 text-mint-cream-600 hover:text-mint-cream-DEFAULT transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               <span>Back to Chat</span>
             </Link>
             <div className="flex items-center space-x-2">
-              <Palette className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <Palette className="w-6 h-6 text-powder-blue-600" />
+              <h1 className="text-2xl font-bold text-mint-cream-DEFAULT">
                 Theme Configuration
               </h1>
             </div>
@@ -218,14 +214,14 @@ export function ThemeConfigPage() {
           <div className="flex space-x-3">
             <button
               onClick={handleReset}
-              className="flex items-center space-x-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 text-mint-cream-600 hover:text-mint-cream-DEFAULT transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Reset</span>
             </button>
             <button
               onClick={handleSave}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+              className="px-6 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-yale-blue-600 transition-colors font-medium"
             >
               Save Changes
             </button>
@@ -235,8 +231,8 @@ export function ThemeConfigPage() {
         {/* Configuration Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Sidebar Configuration */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+          <div className="bg-berkeley-blue-DEFAULT rounded-lg border border-yale-blue-300 p-6">
+            <h2 className="text-lg font-semibold text-mint-cream-DEFAULT mb-6">
               Sidebar Colors
             </h2>
             <div className="space-y-6">
@@ -291,8 +287,8 @@ export function ThemeConfigPage() {
           </div>
 
           {/* Preview */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+          <div className="bg-berkeley-blue-DEFAULT rounded-lg border border-yale-blue-300 p-6">
+            <h2 className="text-lg font-semibold text-mint-cream-DEFAULT mb-6">
               Live Preview
             </h2>
             <div className={`w-full min-h-96 rounded-lg border ${localColors.sidebar.border} ${localColors.sidebar.background} p-4`}>
@@ -342,11 +338,11 @@ export function ThemeConfigPage() {
         </div>
 
         {/* Instructions */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-6">
-          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">
+        <div className="bg-blue-50 bg-yale-blue-500/20 rounded-lg border border-blue-200 p-6">
+          <h3 className="text-lg font-semibold text-blue-900 mb-3">
             How to Use Custom Colors
           </h3>
-          <div className="text-blue-800 dark:text-blue-200 space-y-2">
+          <div className="text-blue-800 space-y-2">
             <p>• Click "Custom Color" to enter a hex color code (e.g., #FF5733)</p>
             <p>• Use the "Save" button to save custom colors for future use</p>
             <p>• Saved colors will appear as selectable options in the "Saved Colors" section</p>

@@ -56,18 +56,14 @@ export function Sidebar() {
   };
 
   return (
-    <div className={`relative flex flex-col transition-all duration-300 ease-in-out ${
-      isCollapsed ? 'w-16' : 'w-64'
-    } ${sidebarTheme.background} border-r ${sidebarTheme.border}`}>
+    <div className={`relative flex flex-col transition-all duration-300 ease-in-out ${ isCollapsed ? 'w-16' : 'w-64' } ${sidebarTheme.background} border-r ${sidebarTheme.border}`}>
       {/* Hamburger Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className={`absolute -right-3 top-4 z-10 ${sidebarTheme.background} rounded-full p-1 border ${sidebarTheme.border} ${sidebarTheme.hover}`}
       >
         <svg
-          className={`w-4 h-4 ${sidebarTheme.text} transition-transform duration-300 ${
-            isCollapsed ? 'rotate-180' : ''
-          }`}
+          className={`w-4 h-4 ${sidebarTheme.text} transition-transform duration-300 ${ isCollapsed ? 'rotate-180' : '' }`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -86,9 +82,7 @@ export function Sidebar() {
         <button
           onClick={handleNewChat}
           disabled={isCreating || aiModels.length === 0}
-          className={`w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed ${
-            isCollapsed ? 'px-2' : ''
-          }`}
+          className={`w-full bg-tron-cyan text-tron-bg-deep px-4 py-2 rounded-md hover:bg-tron-cyan-dim disabled:opacity-50 disabled:cursor-not-allowed ${ isCollapsed ? 'px-2' : '' }`}
         >
           {isCollapsed ? (
             <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,7 +126,7 @@ export function Sidebar() {
                     <button
                       onClick={(e) => handleDeleteChat(chat._id, e)}
                       disabled={deletingChatId === chat._id}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-tron-gray hover:text-neon-error disabled:opacity-50"
                     >
                       {deletingChatId === chat._id ? "Deleting..." : "×"}
                     </button>

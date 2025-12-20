@@ -22,7 +22,7 @@ export const generateJobPostingEmbedding = action({
       // Generate embedding
       const embeddingResult = await ctx.runAction(api.embeddingService.generateEmbedding, {
         text: completeSearchableText,
-        model: "gemini-mrl-2048"
+        model: "text-embedding-3-large"
       });
 
       // Update job posting with embedding
@@ -66,7 +66,7 @@ export const generateResumeEmbedding = action({
       // Generate embedding
       const embeddingResult = await ctx.runAction(api.embeddingService.generateEmbedding, {
         text: completeSearchableText,
-        model: "gemini-mrl-2048"
+        model: "text-embedding-3-large"
       });
 
       // Update resume with embedding
@@ -110,7 +110,7 @@ export const generateKfcPointsEmbedding = action({
       // Generate embedding
       const embeddingResult = await ctx.runAction(api.embeddingService.generateEmbedding, {
         text: searchableText,
-        model: "gemini-mrl-2048"
+        model: "text-embedding-3-large"
       });
 
       // Update KFC points with embedding

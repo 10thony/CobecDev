@@ -3,6 +3,10 @@ import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { LeadForm } from './LeadForm';
+import { JsonUploadComponent } from './JsonUploadComponent';
+import { TronPanel } from './TronPanel';
+import { TronButton } from './TronButton';
+import { TronStatCard } from './TronStatCard';
 import { 
   Search, 
   Filter, 
@@ -68,8 +72,10 @@ interface Lead {
   subcategory?: string;
   isActive?: boolean;
   lastChecked?: number;
+  adHoc?: any; // For additional data from imports
   createdAt: number;
   updatedAt: number;
+  [key: string]: any; // Allow for dynamic fields
 }
 
 interface LeadsManagementProps {
@@ -91,6 +97,7 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [showJsonUpload, setShowJsonUpload] = useState(false);
 
   // Queries
   const allLeads = useQuery(api.leads.getAllLeads);
@@ -248,26 +255,31 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
     }
   };
 
+  // Helper function to get original name from sanitized key
+  const getOriginalName = (sanitizedKey: string, originalNames?: Record<string, string>) => {
+    return originalNames?.[sanitizedKey] || sanitizedKey.replace(/_/g, ' ');
+  };
+
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
-    if (statusLower.includes('active') || statusLower.includes('open')) return 'text-green-600 bg-green-100';
-    if (statusLower.includes('planning') || statusLower.includes('budgeted')) return 'text-blue-600 bg-blue-100';
-    if (statusLower.includes('closed') || statusLower.includes('completed')) return 'text-gray-600 bg-gray-100';
-    return 'text-yellow-600 bg-yellow-100';
+    if (statusLower.includes('active') || statusLower.includes('open')) return 'tron-badge-success';
+    if (statusLower.includes('planning') || statusLower.includes('budgeted')) return 'tron-badge-info';
+    if (statusLower.includes('closed') || statusLower.includes('completed')) return 'tron-badge';
+    return 'tron-badge-warning';
   };
 
   const getVerificationStatusIcon = (status?: string) => {
-    if (!status) return <AlertCircle className="w-4 h-4 text-gray-400" />;
-    if (status.toLowerCase().includes('verified')) return <CheckCircle className="w-4 h-4 text-green-500" />;
-    if (status.toLowerCase().includes('pending')) return <Clock className="w-4 h-4 text-yellow-500" />;
-    return <AlertCircle className="w-4 h-4 text-red-500" />;
+    if (!status) return <AlertCircle className="w-4 h-4 text-tron-gray" />;
+    if (status.toLowerCase().includes('verified')) return <CheckCircle className="w-4 h-4 text-neon-success" />;
+    if (status.toLowerCase().includes('pending')) return <Clock className="w-4 h-4 text-neon-warning" />;
+    return <AlertCircle className="w-4 h-4 text-neon-error" />;
   };
 
   if (!allLeads) {
     return (
       <div className={`flex items-center justify-center h-64 ${className}`}>
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-500 dark:text-blue-400" />
-        <span className="ml-2 text-gray-600 dark:text-gray-400">Loading leads...</span>
+        <RefreshCw className="w-8 h-8 animate-spin text-tron-cyan" />
+        <span className="ml-2 text-tron-gray">Loading leads...</span>
       </div>
     );
   }
@@ -277,83 +289,66 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Leads Management</h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">Manage procurement opportunity leads</p>
+          <h1 className="text-3xl font-bold text-tron-white">Leads Management</h1>
+          <p className="text-lg text-tron-gray">Manage procurement opportunity leads</p>
         </div>
-        <div className="flex gap-3">
-          <button
+        <div className="flex gap-3 flex-wrap">
+          <TronButton
             onClick={handleImportTexasLeads}
             disabled={isImporting}
-            className="flex items-center gap-2 px-6 py-3 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="primary"
+            color="cyan"
+            icon={isImporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            loading={isImporting}
           >
-            {isImporting ? (
-              <RefreshCw className="w-5 h-5 animate-spin" />
-            ) : (
-              <Upload className="w-5 h-5" />
-            )}
             {isImporting ? 'Importing...' : 'Import Texas Leads'}
-          </button>
-          <button
-            onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 shadow-sm hover:shadow-md"
+          </TronButton>
+          <TronButton
+            onClick={() => setShowJsonUpload(true)}
+            variant="outline"
+            color="cyan"
+            icon={<Upload className="w-4 h-4" />}
           >
-            <Plus className="w-5 h-5" />
+            Import JSON
+          </TronButton>
+          <TronButton
+            onClick={() => setIsCreating(true)}
+            variant="primary"
+            color="cyan"
+            icon={<Plus className="w-4 h-4" />}
+          >
             Add Lead
-          </button>
+          </TronButton>
         </div>
       </div>
 
       {/* Stats Cards */}
       {leadsStats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 flex-shrink-0">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Leads</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{leadsStats.total}</p>
-              </div>
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <Briefcase className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Leads</p>
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">{leadsStats.active}</p>
-              </div>
-              <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Public Sector</p>
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                  {leadsStats.byOpportunityType['Public Sector'] || 0}
-                </p>
-              </div>
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <Building className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Private Subcontract</p>
-                <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                  {leadsStats.byOpportunityType['Private Subcontract'] || 0}
-                </p>
-              </div>
-              <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <ExternalLink className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-              </div>
-            </div>
-          </div>
+          <TronStatCard
+            title="Total Leads"
+            value={leadsStats.total}
+            icon={<Briefcase className="w-8 h-8" />}
+            color="cyan"
+          />
+          <TronStatCard
+            title="Active Leads"
+            value={leadsStats.active}
+            icon={<CheckCircle className="w-8 h-8" />}
+            color="green"
+          />
+          <TronStatCard
+            title="Public Sector"
+            value={leadsStats.byOpportunityType['Public Sector'] || 0}
+            icon={<Building className="w-8 h-8" />}
+            color="blue"
+          />
+          <TronStatCard
+            title="Private Subcontract"
+            value={leadsStats.byOpportunityType['Private Subcontract'] || 0}
+            icon={<ExternalLink className="w-8 h-8" />}
+            color="orange"
+          />
         </div>
       )}
 
@@ -361,46 +356,48 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
         {/* Leads List */}
         <div className="lg:col-span-2 space-y-6">
           {/* Search and Filters */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <TronPanel>
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tron-gray w-5 h-5" />
                   <input
                     type="text"
                     placeholder="Search leads..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors text-sm"
+                    className="tron-input w-full pl-12 pr-4 py-3"
                   />
                 </div>
               </div>
-              <button
+              <TronButton
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 text-sm font-medium text-gray-700 dark:text-gray-300"
+                variant="outline"
+                color="cyan"
+                icon={showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               >
                 <Filter className="w-4 h-4" />
                 Filters
-                {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-              <button
+              </TronButton>
+              <TronButton
                 onClick={clearFilters}
-                className="px-4 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 text-sm font-medium"
+                variant="ghost"
+                color="cyan"
               >
                 Clear
-              </button>
+              </TronButton>
             </div>
 
             {/* Filter Options */}
             {showFilters && (
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
+              <div className="mt-6 pt-6 border-t border-tron-cyan/20">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Opportunity Type</label>
+                    <label className="block text-sm font-medium text-tron-gray">Opportunity Type</label>
                     <select
                       value={filters.opportunityType}
                       onChange={(e) => setFilters(prev => ({ ...prev, opportunityType: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors text-sm"
+                      className="tron-select w-full"
                     >
                       <option value="">All Types</option>
                       {uniqueValues.opportunityTypes.map(type => (
@@ -409,11 +406,11 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                    <label className="block text-sm font-medium text-tron-gray">Status</label>
                     <select
                       value={filters.status}
                       onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors text-sm"
+                      className="tron-select w-full"
                     >
                       <option value="">All Statuses</option>
                       {uniqueValues.statuses.map(status => (
@@ -422,11 +419,11 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Region</label>
+                    <label className="block text-sm font-medium text-tron-gray">Region</label>
                     <select
                       value={filters.region}
                       onChange={(e) => setFilters(prev => ({ ...prev, region: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors text-sm"
+                      className="tron-select w-full"
                     >
                       <option value="">All Regions</option>
                       {uniqueValues.regions.map(region => (
@@ -435,11 +432,11 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Level</label>
+                    <label className="block text-sm font-medium text-tron-gray">Level</label>
                     <select
                       value={filters.level}
                       onChange={(e) => setFilters(prev => ({ ...prev, level: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors text-sm"
+                      className="tron-select w-full"
                     >
                       <option value="">All Levels</option>
                       {uniqueValues.levels.map(level => (
@@ -448,11 +445,11 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Verification Status</label>
+                    <label className="block text-sm font-medium text-tron-gray">Verification Status</label>
                     <select
                       value={filters.verificationStatus}
                       onChange={(e) => setFilters(prev => ({ ...prev, verificationStatus: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors text-sm"
+                      className="tron-select w-full"
                     >
                       <option value="">All Statuses</option>
                       {uniqueValues.verificationStatuses.map(status => (
@@ -461,14 +458,14 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Active Status</label>
+                    <label className="block text-sm font-medium text-tron-gray">Active Status</label>
                     <select
                       value={filters.isActive === null ? '' : filters.isActive.toString()}
                       onChange={(e) => setFilters(prev => ({ 
                         ...prev, 
                         isActive: e.target.value === '' ? null : e.target.value === 'true' 
                       }))}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors text-sm"
+                      className="tron-select w-full"
                     >
                       <option value="">All</option>
                       <option value="true">Active</option>
@@ -478,11 +475,11 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 </div>
               </div>
             )}
-          </div>
+          </TronPanel>
 
           {/* Leads List */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 px-6 py-4 border-b border-gray-200 dark:border-gray-600">
+          <TronPanel>
+            <div className="flex items-center justify-between text-sm text-tron-gray px-6 py-4 border-b border-tron-cyan/20">
               <span className="font-medium">Showing {filteredLeads.length} of {allLeads.length} leads</span>
             </div>
             <div 
@@ -496,41 +493,37 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
               {filteredLeads.map((lead) => (
                 <div
                   key={lead._id}
-                  className={`p-5 border rounded-xl cursor-pointer transition-all duration-200 ${
-                    selectedLeadId === lead._id
-                      ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-md'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:shadow-sm'
-                  }`}
+                  className={`p-5 border rounded-xl cursor-pointer transition-all duration-200 ${ selectedLeadId === lead._id ? 'border-tron-cyan bg-tron-bg-card shadow-md' : 'border-tron-cyan/20 hover:border-tron-cyan/40 hover:bg-tron-bg-card hover:shadow-sm' }`}
                   onClick={() => setSelectedLeadId(lead._id)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0 space-y-3">
                       <div className="flex items-center gap-3">
-                        <h3 className="font-semibold text-gray-900 dark:text-white truncate text-lg">
+                        <h3 className="font-semibold text-tron-white truncate text-lg">
                           {lead.opportunityTitle}
                         </h3>
                         <div className="flex items-center gap-2">
                           {getVerificationStatusIcon(lead.verificationStatus)}
                           {lead.isActive ? (
-                            <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400" />
+                            <CheckCircle className="w-5 h-5 text-neon-success" />
                           ) : (
-                            <EyeOff className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                            <EyeOff className="w-5 h-5 text-tron-gray" />
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-6 text-sm text-tron-gray">
                         <div className="flex items-center gap-2">
-                          <Building className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <Building className="w-4 h-4 text-tron-gray" />
                           <span className="font-medium">{lead.issuingBody.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <MapPin className="w-4 h-4 text-tron-gray" />
                           <span>{lead.location.region}</span>
                         </div>
                         {lead.estimatedValueUSD && (
                           <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                            <span className="font-semibold text-green-600 dark:text-green-400">{formatCurrency(lead.estimatedValueUSD)}</span>
+                            <DollarSign className="w-4 h-4 text-tron-gray" />
+                            <span className="font-semibold text-tron-white">{formatCurrency(lead.estimatedValueUSD)}</span>
                           </div>
                         )}
                       </div>
@@ -538,56 +531,62 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
                           {lead.status}
                         </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                        <span className="text-xs text-tron-gray bg-tron-bg-elevated px-2 py-1 rounded">
                           {lead.opportunityType}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 ml-6">
-                      <button
+                      <TronButton
                         onClick={(e) => {
                           e.stopPropagation();
                           handleToggleActive(lead._id);
                         }}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-all duration-200"
+                        variant="ghost"
+                        color="cyan"
+                        size="sm"
                         title={lead.isActive ? 'Deactivate' : 'Activate'}
                       >
                         {lead.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                      <button
+                      </TronButton>
+                      <TronButton
                         onClick={(e) => {
                           e.stopPropagation();
                           handleMarkAsChecked(lead._id);
                         }}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-all duration-200"
+                        variant="ghost"
+                        color="cyan"
+                        size="sm"
                         title="Mark as checked"
                       >
                         <CheckCircle className="w-4 h-4" />
-                      </button>
-                      <button
+                      </TronButton>
+                      <TronButton
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteLead(lead._id);
                         }}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
+                        variant="ghost"
+                        color="orange"
+                        size="sm"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </TronButton>
                     </div>
                   </div>
                 </div>
               ))}
               </div>
             </div>
-          </div>
+          </TronPanel>
         </div>
 
         {/* Lead Details */}
         <div className="lg:col-span-1">
           {selectedLead ? (
             <div 
-              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 sticky top-6"
+              className="sticky top-6"
               style={{ 
                 height: selectedLead ? '60vh' : '0vh',
                 overflow: selectedLead ? 'hidden' : 'visible',
@@ -595,61 +594,65 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 opacity: selectedLead ? 1 : 0
               }}
             >
+              <TronPanel title="Lead Details">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Lead Details</h2>
                 <div className="flex gap-2">
-                  <button
+                  <TronButton
                     onClick={() => setIsEditing(true)}
-                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200"
+                    variant="ghost"
+                    color="cyan"
+                    size="sm"
                     title="Edit"
                   >
                     <Edit className="w-5 h-5" />
-                  </button>
-                  <button
+                  </TronButton>
+                  <TronButton
                     onClick={() => setSelectedLeadId(null)}
-                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-all duration-200"
+                    variant="ghost"
+                    color="orange"
+                    size="sm"
                     title="Close"
                   >
                     <X className="w-5 h-5" />
-                  </button>
+                  </TronButton>
                 </div>
               </div>
 
               <div className="space-y-6 overflow-y-auto" style={{ height: 'calc(60vh - 120px)' }}>
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{selectedLead.opportunityTitle}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{selectedLead.summary}</p>
+                  <h3 className="font-semibold text-tron-white text-lg">{selectedLead.opportunityTitle}</h3>
+                  <p className="text-sm text-tron-gray leading-relaxed">{selectedLead.summary}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm space-y-4">
                   <div className="space-y-1">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Type:</span>
-                    <p className="text-gray-600 dark:text-gray-400">{selectedLead.opportunityType}</p>
+                    <span className="font-medium text-tron-gray">Type:</span>
+                    <p className="text-tron-white">{selectedLead.opportunityType}</p>
                   </div>
                   <div className="space-y-1">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Status:</span>
-                    <p className="text-gray-600 dark:text-gray-400">{selectedLead.status}</p>
+                    <span className="font-medium text-tron-gray">Status:</span>
+                    <p className="text-tron-white">{selectedLead.status}</p>
                   </div>
                   <div className="space-y-1">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Contract ID:</span>
-                    <p className="text-gray-600 dark:text-gray-400">{selectedLead.contractID || 'N/A'}</p>
+                    <span className="font-medium text-tron-gray">Contract ID:</span>
+                    <p className="text-tron-white">{selectedLead.contractID || 'N/A'}</p>
                   </div>
                   <div className="space-y-1">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Value:</span>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <span className="font-medium text-tron-gray">Value:</span>
+                    <p className="text-tron-white">
                       {selectedLead.estimatedValueUSD ? formatCurrency(selectedLead.estimatedValueUSD) : 'N/A'}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Issuing Body:</span>
-                  <p className="text-gray-600 dark:text-gray-400">{selectedLead.issuingBody.name} ({selectedLead.issuingBody.level})</p>
+                  <span className="font-medium text-tron-gray">Issuing Body:</span>
+                  <p className="text-tron-white">{selectedLead.issuingBody.name} ({selectedLead.issuingBody.level})</p>
                 </div>
 
                 <div className="space-y-2">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Location:</span>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <span className="font-medium text-tron-gray">Location:</span>
+                  <p className="text-tron-white">
                     {[selectedLead.location.city, selectedLead.location.county, selectedLead.location.region]
                       .filter(Boolean)
                       .join(', ')}
@@ -657,8 +660,8 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 </div>
 
                 <div className="space-y-3">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Key Dates:</span>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                  <span className="font-medium text-tron-gray">Key Dates:</span>
+                  <div className="text-sm text-tron-white space-y-2">
                     <div className="flex justify-between">
                       <span>Published:</span>
                       <span className="font-medium">{formatDate(selectedLead.keyDates.publishedDate)}</span>
@@ -675,12 +678,12 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Source:</span>
+                  <span className="font-medium text-tron-gray">Source:</span>
                   <a
                     href={selectedLead.source.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm flex items-center gap-2 hover:underline transition-colors"
+                    className="text-tron-cyan hover:text-tron-blue text-sm flex items-center gap-2 hover:underline transition-colors"
                   >
                     {selectedLead.source.documentName}
                     <ExternalLink className="w-4 h-4" />
@@ -689,21 +692,21 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
 
                 {selectedLead.contacts.length > 0 && (
                   <div className="space-y-3">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Contacts:</span>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 space-y-3">
+                    <span className="font-medium text-tron-gray">Contacts:</span>
+                    <div className="text-sm text-tron-white space-y-3">
                       {selectedLead.contacts.map((contact, index) => (
-                        <div key={index} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
-                          <p className="font-medium text-gray-900 dark:text-white">{contact.name || 'N/A'} - {contact.title}</p>
-                          {contact.email && <p className="flex items-center gap-2"><span className="text-gray-500 dark:text-gray-400">Email:</span> {contact.email}</p>}
-                          {contact.phone && <p className="flex items-center gap-2"><span className="text-gray-500 dark:text-gray-400">Phone:</span> {contact.phone}</p>}
+                        <div key={index} className="p-3 bg-tron-bg-card rounded-lg space-y-2 border border-tron-cyan/20">
+                          <p className="font-medium text-tron-white">{contact.name || 'N/A'} - {contact.title}</p>
+                          {contact.email && <p className="flex items-center gap-2"><span className="text-tron-gray">Email:</span> {contact.email}</p>}
+                          {contact.phone && <p className="flex items-center gap-2"><span className="text-tron-gray">Phone:</span> {contact.phone}</p>}
                           {contact.url && (
                             <a
                               href={contact.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-2 hover:underline transition-colors"
+                              className="text-tron-cyan hover:text-tron-blue flex items-center gap-2 hover:underline transition-colors"
                             >
-                              <span className="text-gray-500 dark:text-gray-400">URL:</span>
+                              <span className="text-tron-gray">URL:</span>
                               <span className="truncate">{contact.url}</span>
                               <ExternalLink className="w-4 h-4 flex-shrink-0" />
                             </a>
@@ -714,8 +717,8 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                   </div>
                 )}
 
-                <div className="pt-6 border-t border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                <div className="pt-6 border-t border-tron-cyan/20">
+                  <div className="flex items-center justify-between text-sm text-tron-gray">
                     <div className="space-y-1">
                       <span className="block">Created: {new Date(selectedLead.createdAt).toLocaleDateString()}</span>
                       <span className="block">Updated: {new Date(selectedLead.updatedAt).toLocaleDateString()}</span>
@@ -723,10 +726,11 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                   </div>
                 </div>
               </div>
+              </TronPanel>
             </div>
           ) : (
             <div 
-              className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center sticky top-6"
+              className="text-center sticky top-6"
               style={{ 
                 height: '40vh',
                 display: 'flex',
@@ -735,11 +739,13 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 alignItems: 'center'
               }}
             >
-              <div className="text-gray-400 dark:text-gray-500 mb-6">
-                <Briefcase className="w-16 h-16 mx-auto" />
-              </div>
-              <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-3">No Lead Selected</h3>
-              <p className="text-gray-600 dark:text-gray-400 text-lg">Select a lead from the list to view its details</p>
+              <TronPanel>
+                <div className="text-tron-gray mb-6">
+                  <Briefcase className="w-16 h-16 mx-auto" />
+                </div>
+                <h3 className="text-xl font-medium text-tron-white mb-3">No Lead Selected</h3>
+                <p className="text-tron-gray text-lg">Select a lead from the list to view its details</p>
+              </TronPanel>
             </div>
           )}
         </div>
@@ -765,6 +771,19 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
           // Keep selected lead to show updated data
         }}
       />
+
+      {showJsonUpload && (
+        <JsonUploadComponent
+          onClose={() => setShowJsonUpload(false)}
+          onSuccess={(result) => {
+            console.log('Import successful:', result);
+            // Clear selected lead to refresh the view
+            setSelectedLeadId(null);
+            // Optionally show a success message
+            alert(`Successfully imported ${result.importedCount} leads!${result.schemaChanges?.length ? ` Schema changes: ${result.schemaChanges.join(', ')}` : ''}`);
+          }}
+        />
+      )}
     </div>
   );
 }

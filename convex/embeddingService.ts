@@ -2,56 +2,61 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
-// Initialize Gemini AI with MRL 2048 model
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
+// Initialize OpenAI client
+const getOpenAI = () => {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY environment variable not set. Please set it in your Convex dashboard under Settings > Environment Variables.");
+  }
+  return new OpenAI({ apiKey });
+};
 
 /**
- * Generate embedding using Gemini text-embedding-004 model
- * This model produces 768-dimensional vectors optimized for semantic search
- * (We accept both 768 and 2048 dimensions for flexibility)
+ * Generate embedding using OpenAI text-embedding-3-small model
+ * This model produces 1536-dimensional vectors optimized for semantic search
+ * More cost-effective and reliable than Google AI
  */
 export const generateEmbedding = action({
   args: {
     text: v.string(),
-    model: v.optional(v.literal("gemini-mrl-2048")),
+    model: v.optional(v.union(v.literal("text-embedding-3-small"), v.literal("text-embedding-3-large"), v.literal("text-embedding-ada-002"))),
   },
-  handler: async (ctx, { text, model = "gemini-mrl-2048" }): Promise<{
+  handler: async (ctx, { text, model = "text-embedding-3-small" }): Promise<{
     embedding: number[];
     model: string;
     dimensions: number;
     generatedAt: number;
   }> => {
-    if (!process.env.GOOGLE_AI_API_KEY) {
-      throw new Error("GOOGLE_AI_API_KEY environment variable not set. Please set it in your Convex dashboard under Settings > Environment Variables.");
-    }
-
     if (!text || text.trim().length === 0) {
       throw new Error("Empty text provided for embedding");
     }
 
     try {
-      // Use the text-embedding-004 model which produces 2048-dimensional vectors
-      const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+      const openai = getOpenAI();
       
-      // Generate embedding
-      const result = await embeddingModel.embedContent(text.trim());
-      const embedding = result.embedding;
+      // Generate embedding using OpenAI
+      const response = await openai.embeddings.create({
+        model: model,
+        input: text.trim(),
+      });
       
-      // Validate embedding dimensions - accept both 768 and 2048 for flexibility
-      if (!embedding.values || (embedding.values.length !== 768 && embedding.values.length !== 2048)) {
-        throw new Error(`Invalid embedding dimensions. Expected 768 or 2048, got ${embedding.values?.length || 0}`);
+      const embedding = response.data[0].embedding;
+      
+      // Validate embedding
+      if (!embedding || embedding.length === 0) {
+        throw new Error("Received empty embedding from OpenAI");
       }
 
       return {
-        embedding: embedding.values,
+        embedding: embedding,
         model: model,
-        dimensions: embedding.values.length,
+        dimensions: embedding.length,
         generatedAt: Date.now()
       };
     } catch (error) {
-      console.error("Error generating Gemini embedding:", error);
+      console.error("Error generating OpenAI embedding:", error);
       throw new Error(`Failed to generate embedding: ${error instanceof Error ? error.message : String(error)}`);
     }
   },

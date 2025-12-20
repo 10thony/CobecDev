@@ -61,7 +61,7 @@ export function mergeThemeColors(
 export function validateThemeClass(className: string): boolean {
   // Basic validation - you can expand this as needed
   const validPrefixes = [
-    'bg-', 'text-', 'border-', 'hover:', 'focus:', 'active:', 'dark:'
+    'bg-', 'text-', 'border-', 'hover:', 'focus:', 'active:', '
   ];
   
   return validPrefixes.some(prefix => className.includes(prefix));

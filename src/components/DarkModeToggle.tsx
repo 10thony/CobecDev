@@ -1,17 +1,22 @@
 import { useTheme } from '../lib/ThemeContext';
 
-export function DarkModeToggle() {
+interface DarkModeToggleProps {
+  size?: 'default' | 'large';
+}
+
+export function DarkModeToggle({ size = 'default' }: DarkModeToggleProps) {
   const { theme, toggleTheme } = useTheme();
+  const iconSize = size === 'large' ? 'w-6 h-6' : 'w-5 h-5';
 
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-md text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
+      className="p-2 rounded-md text-tron-gray hover:text-tron-white hover:bg-tron-cyan/10 transition-colors"
       aria-label="Toggle dark mode"
     >
       {theme === 'light' ? (
         <svg
-          className="w-5 h-5"
+          className={iconSize}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -25,7 +30,7 @@ export function DarkModeToggle() {
         </svg>
       ) : (
         <svg
-          className="w-5 h-5"
+          className={iconSize}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

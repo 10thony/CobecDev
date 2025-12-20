@@ -50,7 +50,7 @@ export function HelpWidget({ content, selectedProvider, selectedModelId }: HelpW
       {/* Help Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-colors"
+        className="bg-yale-blue-DEFAULT hover:bg-yale-blue-600 text-white rounded-full p-3 shadow-lg transition-colors"
         aria-label="Help"
       >
         {isOpen ? <X size={24} /> : <HelpCircle size={24} />}
@@ -58,8 +58,8 @@ export function HelpWidget({ content, selectedProvider, selectedModelId }: HelpW
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+        <div className="absolute bottom-16 right-0 w-80 bg-berkeley-blue-DEFAULT rounded-lg shadow-xl border border-yale-blue-300 p-4">
+          <h3 className="text-lg font-semibold text-mint-cream-DEFAULT mb-3">
             Need Help?
           </h3>
           <div className="space-y-3">
@@ -69,13 +69,13 @@ export function HelpWidget({ content, selectedProvider, selectedModelId }: HelpW
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block p-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="block p-3 rounded-md hover:bg-mint-cream-800 transition-colors"
               >
-                <div className="font-medium text-blue-600 dark:text-blue-400">
+                <div className="font-medium text-powder-blue-600">
                   {link.title}
                 </div>
                 {link.description && (
-                  <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                  <div className="text-sm text-mint-cream-600 mt-1">
                     {link.description}
                   </div>
                 )}

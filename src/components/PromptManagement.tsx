@@ -138,13 +138,13 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-sm border border-yale-blue-300 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-2xl font-bold text-mint-cream-DEFAULT">
               Vector Search Prompts
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-mint-cream-600">
               Manage prompts used for embedding generation and semantic search
             </p>
           </div>
@@ -155,14 +155,14 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
 
         {/* Regeneration Status */}
         {regenerationStatus?.needsRegeneration && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
             <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-2" />
+              <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
               <div className="flex-1">
-                <h4 className="font-medium text-yellow-800 dark:text-yellow-200">
+                <h4 className="font-medium text-yellow-800">
                   Embeddings Need Regeneration
                 </h4>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                <p className="text-sm text-yellow-700">
                   {regenerationStatus.promptsNeedingRegeneration} prompts have been modified. 
                   Regenerate embeddings for optimal search results.
                 </p>
@@ -187,36 +187,36 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+          <div className="bg-blue-50 bg-yale-blue-500/20 rounded-lg p-4">
             <div className="flex items-center">
-              <Search className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
+              <Search className="h-5 w-5 text-powder-blue-600 mr-2" />
               <div>
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Prompts</p>
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                <p className="text-sm font-medium text-powder-blue-600">Total Prompts</p>
+                <p className="text-2xl font-bold text-blue-900">
                   {prompts?.totalCount || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+          <div className="bg-green-50 rounded-lg p-4">
             <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" />
+              <CheckCircle className="h-5 w-5 text-mint-cream-600 mr-2" />
               <div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">Categories</p>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                <p className="text-sm font-medium text-mint-cream-600">Categories</p>
+                <p className="text-2xl font-bold text-green-900">
                   {categories.length - 1}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+          <div className="bg-purple-50 rounded-lg p-4">
             <div className="flex items-center">
-              <RefreshCw className="h-5 w-5 text-purple-600 dark:text-purple-400 mr-2" />
+              <RefreshCw className="h-5 w-5 text-powder-blue-600 mr-2" />
               <div>
-                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Status</p>
-                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                <p className="text-sm font-medium text-powder-blue-600">Status</p>
+                <p className="text-2xl font-bold text-purple-900">
                   {regenerationStatus?.needsRegeneration ? 'Update Needed' : 'Up to Date'}
                 </p>
               </div>
@@ -226,28 +226,28 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
       </div>
 
       {/* Add New Prompt */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-sm border border-yale-blue-300 p-6">
+        <h3 className="text-lg font-semibold text-mint-cream-DEFAULT mb-4">
           Add New Prompt
         </h3>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-mint-cream-500 mb-2">
               Prompt Text
             </label>
             <textarea
               value={newPrompt}
               onChange={(e) => setNewPrompt(e.target.value)}
               placeholder="e.g., 'Find candidates with iOS development experience'"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 border border-yale-blue-400 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-powder-blue-600 text-mint-cream-DEFAULT"
               rows={3}
             />
           </div>
           
           <div className="flex space-x-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-mint-cream-500 mb-2">
                 Category
               </label>
               <input
@@ -255,14 +255,14 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 placeholder="e.g., Mobile Development, Technical Skills"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                className="w-full px-3 py-2 border border-yale-blue-400 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-powder-blue-600 text-mint-cream-DEFAULT"
               />
             </div>
             <div className="flex items-end">
               <button
                 onClick={handleAddPrompt}
                 disabled={!newPrompt.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                className="px-4 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-yale-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 <Plus className="h-4 w-4" />
                 <span>Add Prompt</span>
@@ -274,20 +274,20 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
 
       {/* Initialize Defaults */}
       {prompts?.totalCount === 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-6">
+        <div className="bg-blue-50 bg-yale-blue-500/20 rounded-lg border border-blue-200 p-6">
           <div className="flex items-center">
-            <Lightbulb className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3" />
+            <Lightbulb className="h-6 w-6 text-powder-blue-600 mr-3" />
             <div className="flex-1">
-              <h4 className="text-lg font-medium text-blue-900 dark:text-blue-100 mb-2">
+              <h4 className="text-lg font-medium text-blue-900 mb-2">
                 Initialize Default Prompts
               </h4>
-              <p className="text-blue-800 dark:text-blue-200 text-sm">
+              <p className="text-blue-800 text-sm">
                 Load pre-configured prompts from the VECTOR_SEARCH_PROMPTS.md file to get started quickly.
               </p>
             </div>
             <button
               onClick={handleInitializeDefaults}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-yale-blue-600"
             >
               Initialize Defaults
             </button>
@@ -296,38 +296,38 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
       )}
 
       {/* Filters and Search */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-sm border border-yale-blue-300 p-6">
+        <h3 className="text-lg font-semibold text-mint-cream-DEFAULT mb-4">
           Manage Prompts
         </h3>
         
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-mint-cream-500 mb-2">
               Search Prompts
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-mint-cream-700" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search prompt text..."
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                className="w-full pl-10 pr-3 py-2 border border-yale-blue-400 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-powder-blue-600 text-mint-cream-DEFAULT"
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-mint-cream-500 mb-2">
               Filter by Category
             </label>
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-mint-cream-700" />
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                className="pl-10 pr-8 py-2 border border-yale-blue-400 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-powder-blue-600 text-mint-cream-DEFAULT"
               >
                 {categories.map((category) => (
                   <option key={category} value={category}>
@@ -344,14 +344,14 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
           {filteredPrompts.map((prompt: VectorSearchPrompt) => (
             <div
               key={prompt.id}
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+              className="p-4 border border-yale-blue-300 rounded-lg bg-mint-cream-900"
             >
               {editingPrompt === prompt.id ? (
                 <div className="space-y-3">
                   <textarea
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-yale-blue-400 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-powder-blue-600 text-mint-cream-DEFAULT"
                     rows={2}
                   />
                   <div className="flex items-center space-x-2">
@@ -360,7 +360,7 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
                       value={editCategory}
                       onChange={(e) => setEditCategory(e.target.value)}
                       placeholder="Category"
-                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="px-3 py-1 border border-yale-blue-400 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-powder-blue-600 text-mint-cream-DEFAULT"
                     />
                     <button
                       onClick={handleSaveEdit}
@@ -370,7 +370,7 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
                     </button>
                     <button
                       onClick={() => setEditingPrompt(null)}
-                      className="px-3 py-1 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700"
+                      className="px-3 py-1 bg-gray-600 text-white text-sm rounded-md hover:bg-yale-blue-400"
                     >
                       Cancel
                     </button>
@@ -379,17 +379,17 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
               ) : (
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="text-gray-900 dark:text-white font-medium mb-1">
+                    <p className="text-mint-cream-DEFAULT font-medium mb-1">
                       {prompt.text}
                     </p>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                    <div className="flex items-center space-x-4 text-sm text-mint-cream-700">
+                      <span className="bg-yale-blue-500 bg-yale-blue-500/30 text-blue-800 px-2 py-1 rounded">
                         {prompt.category}
                       </span>
                       <span>Used {prompt.usageCount} times</span>
                       <span>Effectiveness: {(prompt.effectiveness * 100).toFixed(0)}%</span>
                       {prompt.isDefault && (
-                        <span className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-2 py-1 rounded">
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
                           Default
                         </span>
                       )}
@@ -400,13 +400,13 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
                     <div className="flex items-center space-x-2 ml-4">
                       <button
                         onClick={() => handleEditPrompt(prompt)}
-                        className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                        className="p-1 text-mint-cream-700 hover:text-powder-blue-600"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeletePrompt(prompt.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                        className="p-1 text-mint-cream-700 hover:text-mint-cream-600"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -419,11 +419,11 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
           
           {filteredPrompts.length === 0 && (
             <div className="text-center py-8">
-              <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              <Search className="h-12 w-12 text-mint-cream-700 mx-auto mb-4" />
+              <h4 className="text-lg font-medium text-mint-cream-DEFAULT mb-2">
                 No Prompts Found
               </h4>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-mint-cream-600">
                 {searchTerm || filterCategory !== 'All' 
                   ? 'Try adjusting your search or filter criteria.'
                   : 'Add your first prompt to get started.'

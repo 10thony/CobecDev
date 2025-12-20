@@ -52,9 +52,9 @@ export function KfcManagementPage() {
   // Loading state
   if (cobecAdmins === undefined) {
     return (
-      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-oxford-blue-DEFAULT text-mint_cream-500' : 'bg-mint-cream-900 text-mint-cream-DEFAULT'}`}>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-powder-blue-600"></div>
           <span className="ml-2">Loading KFC management...</span>
         </div>
       </div>
@@ -62,14 +62,14 @@ export function KfcManagementPage() {
   }
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-oxford-blue-DEFAULT text-white' : 'bg-mint-cream-900 text-mint-cream-DEFAULT'}`}>
       {/* Header */}
-      <div className={`border-b ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+      <div className={`border-b ${theme === 'dark' ? 'bg-berkeley-blue-DEFAULT' : 'border-yale-blue-300 bg-berkeley-blue-DEFAULT'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-3xl font-bold">KFC Management</h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-mint-cream-700 mt-1">
                 Manage KFC points, nominations, and database operations
               </p>
             </div>
@@ -77,18 +77,14 @@ export function KfcManagementPage() {
             {/* Status Indicators */}
             <div className="flex items-center space-x-4">
               {isAdmin !== null && (
-                <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-                  isAdmin 
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' 
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                }`}>
+                <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${ isAdmin ? 'bg-green-100 text-green-800' : 'bg-mint-cream-800 text-mint-cream-DEFAULT' }`}>
                   <Shield className="w-4 h-4" />
                   <span>{isAdmin ? 'Admin Access' : 'User Access'}</span>
                 </div>
               )}
               
               {databaseStatus && (
-                <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-yale-blue-500 text-blue-800 bg-yale-blue-500/20 text-mint-cream-DEFAULT">
                   <Database className="w-4 h-4" />
                   <span>{databaseStatus.kfcCount} KFC, {databaseStatus.employeeCount} Emp</span>
                 </div>
@@ -99,16 +95,12 @@ export function KfcManagementPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className={`border-b ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+      <div className={`border-b ${theme === 'dark' ? 'bg-berkeley-blue-DEFAULT' : 'border-yale-blue-300 bg-berkeley-blue-DEFAULT'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
             <button
               onClick={() => handleTabChange('nominations')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'nominations'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'nominations' ? 'border-powder-blue-600 text-yale_blue-500' : 'border-transparent text-mint-cream-700 hover:text-mint-cream-500 hover:border-yale-blue-400'}`}
             >
               <div className="flex items-center space-x-2">
                 <Trophy className="w-4 h-4" />
@@ -118,11 +110,7 @@ export function KfcManagementPage() {
             
             <button
               onClick={() => handleTabChange('manager')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'manager'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${ activeTab === 'manager' ? 'border-powder-blue-600 text-powder-blue-600' : 'border-transparent text-mint-cream-700 hover:text-mint-cream-500 hover:border-yale-blue-400' }`}
             >
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4" />
@@ -133,11 +121,7 @@ export function KfcManagementPage() {
             {isAdmin && (
               <button
                 onClick={() => handleTabChange('database')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'database'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${ activeTab === 'database' ? 'border-powder-blue-600 text-powder-blue-600' : 'border-transparent text-mint-cream-700 hover:text-mint-cream-500 hover:border-yale-blue-400' }`}
               >
                 <div className="flex items-center space-x-2">
                   <Database className="w-4 h-4" />
@@ -153,7 +137,7 @@ export function KfcManagementPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error Display */}
         {clientError && (
-          <div className="mb-6 bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
             <div className="flex items-start space-x-3">
               <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
@@ -174,7 +158,7 @@ export function KfcManagementPage() {
         {/* Loading State */}
         {!isClientReady && (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-powder-blue-600"></div>
             <span className="ml-2">Initializing KFC management system...</span>
           </div>
         )}
@@ -186,7 +170,7 @@ export function KfcManagementPage() {
               <div>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold mb-2">KFC Nominations</h2>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-powder_blue-400">
                     Create and manage employee nominations for KFC points. Nominations can be for Team efforts, Individual achievements, or Growth & Development.
                   </p>
                 </div>
@@ -198,7 +182,7 @@ export function KfcManagementPage() {
               <div>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold mb-2">KFC Points Manager</h2>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-powder_blue-400">
                     View and manage KFC points for all employees. Add new employees and track their points and events.
                   </p>
                 </div>
@@ -210,7 +194,7 @@ export function KfcManagementPage() {
               <div>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold mb-2">Database Management</h2>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-mint-cream-600">
                     Admin-only database operations and management tools.
                   </p>
                 </div>
@@ -223,11 +207,11 @@ export function KfcManagementPage() {
         {/* Admin Access Required Message */}
         {activeTab === 'database' && !isAdmin && (
           <div className="text-center py-12">
-            <Shield className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <Shield className="w-12 h-12 mx-auto mb-4 text-mint-cream-700" />
+            <h3 className="text-lg font-medium text-oxford_blue-500 mb-2">
               Admin Access Required
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-mint-cream-600">
               You need admin privileges to access the database management section.
             </p>
           </div>
@@ -235,9 +219,9 @@ export function KfcManagementPage() {
       </div>
 
       {/* Footer */}
-      <div className={`border-t ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+      <div className={`border-t ${theme === 'dark' ? 'bg-berkeley-blue-DEFAULT' : 'border-yale-blue-300 bg-berkeley-blue-DEFAULT'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center text-sm text-gray-500">
+          <div className="flex justify-between items-center text-sm text-mint-cream-700">
             <div>
               <span>Powered by Convex • Real-time updates enabled</span>
             </div>

@@ -1,0 +1,871 @@
+---
+
+# Government Link Hub - System Card
+
+## 1. Executive Summary
+
+The **Government Link Hub** is an interactive, map-based web application for aggregating, organizing, and managing links to government resources across U.S. states. Users can click on a state to view curated links to official government services (health, education, DMV, etc.) with real-time data synchronization and an admin interface for content management.
+
+---
+
+## 2. Technology Stack
+
+| Layer | Technology | Rationale |
+|-------|------------|-----------|
+| **Framework** | React 19 + Vite | Modern JSX transform, fast HMR, improved hydration and ref handling |
+| **Language** | TypeScript 5.x | Type safety across frontend and backend |
+| **Backend/Database** | Convex | Real-time sync, type-safe queries/mutations, serverless functions |
+| **Mapping** | `@vnedyalk0v/react19-simple-maps` | React 19-compatible fork with SVG-based maps, CSS-styleable, declarative API |
+| **Styling** | Tailwind CSS 4.x | Utility-first, rapid prototyping, consistent design system |
+| **State Management** | React 19 built-ins + Convex hooks | `useTransition`, `useOptimistic` for responsive UX |
+| **Deployment** | Convex hosting + Vercel/Netlify | Seamless CI/CD integration |
+
+> **Note**: The original `react-simple-maps` library is not compatible with React 19. Use the community fork `@vnedyalk0v/react19-simple-maps` which provides full React 19 support with TypeScript.
+
+---
+
+## 3. Architecture Overview
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                         Client (React 19)                       │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
+│  │   USAMap     │  │  LinkPanel   │  │   AdminDashboard       │ │
+│  │  Component   │  │  Component   │  │   (CRUD Operations)    │ │
+│  └──────┬───────┘  └──────┬───────┘  └───────────┬────────────┘ │
+│         │                 │                      │              │
+│         └─────────────────┼──────────────────────┘              │
+│                           │                                     │
+│                    useQuery / useMutation                       │
+│                           │                                     │
+└───────────────────────────┼─────────────────────────────────────┘
+                            │ Real-time WebSocket
+┌───────────────────────────▼─────────────────────────────────────┐
+│                      Convex Backend                             │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
+│  │   Queries    │  │  Mutations   │  │   Scheduled Jobs       │ │
+│  │ (getByState) │  │  (addLink)   │  │   (link validation)    │ │
+│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
+│                           │                                     │
+│                    ┌──────▼──────┐                              │
+│                    │  govLinks   │                              │
+│                    │   Table     │                              │
+│                    └─────────────┘                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Data Model
+
+### 4.1 Schema Definition
+
+```ts
+// convex/schema.ts
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  govLinks: defineTable({
+    title: v.string(),
+    url: v.string(),
+    stateCode: v.string(), // ISO 3166-2 code: "CA", "NY", "TX"
+    stateName: v.string(), // Full name: "California", "New York"
+    category: v.string(), // "Health", "Education", "Transportation", etc.
+    description: v.optional(v.string()),
+    iconUrl: v.optional(v.string()),
+    priority: v.optional(v.number()), // For ordering within a state
+    isActive: v.boolean(),
+    lastVerified: v.optional(v.number()), // Timestamp of last link check
+  })
+    .index("by_state", ["stateCode"])
+    .index("by_category", ["category"])
+    .index("by_state_category", ["stateCode", "category"])
+    .index("by_active", ["isActive"]),
+
+  categories: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    icon: v.string(), // Emoji or icon class
+    color: v.string(), // Tailwind color class
+  }).index("by_slug", ["slug"]),
+
+  auditLog: defineTable({
+    action: v.string(), // "create", "update", "delete"
+    linkId: v.optional(v.id("govLinks")),
+    userId: v.optional(v.string()),
+    timestamp: v.number(),
+    details: v.optional(v.string()),
+  }).index("by_timestamp", ["timestamp"]),
+});
+```
+
+### 4.2 Category Taxonomy
+
+| Category | Icon | Use Cases |
+|----------|------|-----------|
+| Health | 🏥 | State health departments, COVID resources, Medicaid |
+| Education | 🎓 | Public school systems, higher education, scholarships |
+| Transportation | 🚗 | DMV, public transit, road conditions |
+| Legal | ⚖️ | Courts, attorney general, legal aid |
+| Employment | 💼 | Unemployment, job services, labor laws |
+| Environment | 🌲 | Parks, EPA, environmental permits |
+| Housing | 🏠 | Housing assistance, tenant rights |
+| Taxes | 💰 | State tax portals, refund status |
+
+---
+
+## 5. Backend Implementation
+
+### 5.1 Queries
+
+```ts
+// convex/links.ts
+import { query } from "./_generated/server";
+import { v } from "convex/values";
+
+export const getByState = query({
+  args: { stateCode: v.string() },
+  returns: v.array(
+    v.object({
+      _id: v.id("govLinks"),
+      _creationTime: v.number(),
+      title: v.string(),
+      url: v.string(),
+      stateCode: v.string(),
+      stateName: v.string(),
+      category: v.string(),
+      description: v.optional(v.string()),
+      iconUrl: v.optional(v.string()),
+      priority: v.optional(v.number()),
+      isActive: v.boolean(),
+      lastVerified: v.optional(v.number()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("govLinks")
+      .withIndex("by_state", (q) => q.eq("stateCode", args.stateCode))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+  },
+});
+
+export const getByStateAndCategory = query({
+  args: {
+    stateCode: v.string(),
+    category: v.string(),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("govLinks")
+      .withIndex("by_state_category", (q) =>
+        q.eq("stateCode", args.stateCode).eq("category", args.category)
+      )
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+  },
+});
+
+export const getAllCategories = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("categories"),
+      name: v.string(),
+      slug: v.string(),
+      icon: v.string(),
+      color: v.string(),
+    })
+  ),
+  handler: async (ctx) => {
+    return await ctx.db.query("categories").collect();
+  },
+});
+
+export const getStateStats = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      stateCode: v.string(),
+      count: v.number(),
+    })
+  ),
+  handler: async (ctx) => {
+    const links = await ctx.db
+      .query("govLinks")
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const stats = links.reduce(
+      (acc, link) => {
+        acc[link.stateCode] = (acc[link.stateCode] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
+    return Object.entries(stats).map(([stateCode, count]) => ({
+      stateCode,
+      count,
+    }));
+  },
+});
+```
+
+### 5.2 Mutations
+
+```ts
+// convex/links.ts (continued)
+import { mutation } from "./_generated/server";
+
+export const addLink = mutation({
+  args: {
+    title: v.string(),
+    url: v.string(),
+    stateCode: v.string(),
+    stateName: v.string(),
+    category: v.string(),
+    description: v.optional(v.string()),
+    priority: v.optional(v.number()),
+  },
+  returns: v.id("govLinks"),
+  handler: async (ctx, args) => {
+    const linkId = await ctx.db.insert("govLinks", {
+      ...args,
+      isActive: true,
+      lastVerified: Date.now(),
+    });
+
+    await ctx.db.insert("auditLog", {
+      action: "create",
+      linkId,
+      timestamp: Date.now(),
+      details: `Created link: ${args.title}`,
+    });
+
+    return linkId;
+  },
+});
+
+export const updateLink = mutation({
+  args: {
+    id: v.id("govLinks"),
+    title: v.optional(v.string()),
+    url: v.optional(v.string()),
+    category: v.optional(v.string()),
+    description: v.optional(v.string()),
+    priority: v.optional(v.number()),
+    isActive: v.optional(v.boolean()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { id, ...updates } = args;
+    await ctx.db.patch(id, updates);
+
+    await ctx.db.insert("auditLog", {
+      action: "update",
+      linkId: id,
+      timestamp: Date.now(),
+      details: `Updated fields: ${Object.keys(updates).join(", ")}`,
+    });
+  },
+});
+
+export const deleteLink = mutation({
+  args: { id: v.id("govLinks") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const link = await ctx.db.get(args.id);
+    await ctx.db.delete(args.id);
+
+    await ctx.db.insert("auditLog", {
+      action: "delete",
+      timestamp: Date.now(),
+      details: `Deleted link: ${link?.title}`,
+    });
+  },
+});
+```
+
+---
+
+## 6. Frontend Components
+
+### 6.1 Installation
+
+```bash
+bun install @vnedyalk0v/react19-simple-maps d3-geo
+bun install -D @types/d3-geo
+```
+
+### 6.2 Main Map Component
+
+```tsx
+// src/components/USAMap.tsx
+import { useState, useTransition } from "react";
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  ZoomableGroup,
+} from "@vnedyalk0v/react19-simple-maps";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { LinkPanel } from "./LinkPanel";
+import { StateTooltip } from "./StateTooltip";
+
+const GEO_URL = "https://cdn.jsdelivr.net/bun/us-atlas@3/states-10m.json";
+
+// Map state names to ISO codes
+const stateNameToCode: Record<string, string> = {
+  Alabama: "AL",
+  Alaska: "AK",
+  Arizona: "AZ",
+  Arkansas: "AR",
+  California: "CA",
+  // ... complete mapping
+};
+
+interface MapState {
+  selectedState: string | null;
+  hoveredState: string | null;
+  tooltipPosition: { x: number; y: number } | null;
+}
+
+export function USAMap() {
+  const [mapState, setMapState] = useState<MapState>({
+    selectedState: null,
+    hoveredState: null,
+    tooltipPosition: null,
+  });
+  const [isPending, startTransition] = useTransition();
+
+  const stateStats = useQuery(api.links.getStateStats);
+
+  const links = useQuery(
+    api.links.getByState,
+    mapState.selectedState ? { stateCode: mapState.selectedState } : "skip"
+  );
+
+  const handleStateClick = (stateName: string) => {
+    const stateCode = stateNameToCode[stateName];
+    startTransition(() => {
+      setMapState((prev) => ({
+        ...prev,
+        selectedState: stateCode,
+      }));
+    });
+  };
+
+  const handleStateHover = (
+    stateName: string | null,
+    event?: React.MouseEvent
+  ) => {
+    setMapState((prev) => ({
+      ...prev,
+      hoveredState: stateName ? stateNameToCode[stateName] : null,
+      tooltipPosition: event ? { x: event.clientX, y: event.clientY } : null,
+    }));
+  };
+
+  const getLinkCount = (stateCode: string): number => {
+    return stateStats?.find((s) => s.stateCode === stateCode)?.count ?? 0;
+  };
+
+  const getFillColor = (stateCode: string): string => {
+    const count = getLinkCount(stateCode);
+    if (count === 0) return "#E5E7EB"; // gray-200
+    if (count < 5) return "#BFDBFE"; // blue-200
+    if (count < 10) return "#60A5FA"; // blue-400
+    return "#2563EB"; // blue-600
+  };
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-6 p-6 min-h-screen bg-slate-50">
+      {/* Map Container */}
+      <div className="flex-1 bg-white rounded-2xl shadow-lg p-6 relative">
+        <h1 className="text-2xl font-bold text-slate-800 mb-4">
+          Government Link Hub
+        </h1>
+
+        <ComposableMap
+          projection="geoAlbersUsa"
+          className="w-full h-[500px]"
+        >
+          <ZoomableGroup>
+            <Geographies geography={GEO_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const stateName = geo.properties.name;
+                  const stateCode = stateNameToCode[stateName];
+                  const isSelected = mapState.selectedState === stateCode;
+                  const isHovered = mapState.hoveredState === stateCode;
+
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      onClick={() => handleStateClick(stateName)}
+                      onMouseEnter={(e) => handleStateHover(stateName, e)}
+                      onMouseLeave={() => handleStateHover(null)}
+                      style={{
+                        default: {
+                          fill: isSelected
+                            ? "#1D4ED8"
+                            : getFillColor(stateCode),
+                          stroke: "#FFFFFF",
+                          strokeWidth: 0.75,
+                          outline: "none",
+                        },
+                        hover: {
+                          fill: "#3B82F6",
+                          stroke: "#FFFFFF",
+                          strokeWidth: 1,
+                          outline: "none",
+                          cursor: "pointer",
+                        },
+                        pressed: {
+                          fill: "#1E40AF",
+                          outline: "none",
+                        },
+                      }}
+                      className="transition-colors duration-150"
+                    />
+                  );
+                })
+              }
+            </Geographies>
+          </ZoomableGroup>
+        </ComposableMap>
+
+        {/* Legend */}
+        <div className="absolute bottom-6 left-6 bg-white/90 p-3 rounded-lg shadow">
+          <p className="text-xs font-medium text-slate-600 mb-2">
+            Links per State
+          </p>
+          <div className="flex gap-2">
+            {[
+              { color: "#E5E7EB", label: "0" },
+              { color: "#BFDBFE", label: "1-4" },
+              { color: "#60A5FA", label: "5-9" },
+              { color: "#2563EB", label: "10+" },
+            ].map(({ color, label }) => (
+              <div key={label} className="flex items-center gap-1">
+                <div
+                  className="w-4 h-4 rounded"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="text-xs text-slate-500">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {isPending && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+          </div>
+        )}
+      </div>
+
+      {/* Tooltip */}
+      {mapState.hoveredState && mapState.tooltipPosition && (
+        <StateTooltip
+          stateCode={mapState.hoveredState}
+          linkCount={getLinkCount(mapState.hoveredState)}
+          position={mapState.tooltipPosition}
+        />
+      )}
+
+      {/* Link Panel */}
+      <LinkPanel
+        selectedState={mapState.selectedState}
+        links={links ?? []}
+        isLoading={links === undefined && mapState.selectedState !== null}
+        onClose={() =>
+          setMapState((prev) => ({ ...prev, selectedState: null }))
+        }
+      />
+    </div>
+  );
+}
+```
+
+### 6.3 Link Panel Component
+
+```tsx
+// src/components/LinkPanel.tsx
+import { useState } from "react";
+import type { Doc } from "../../convex/_generated/dataModel";
+
+interface LinkPanelProps {
+  selectedState: string | null;
+  links: Doc<"govLinks">[];
+  isLoading: boolean;
+  onClose: () => void;
+}
+
+const categoryIcons: Record<string, string> = {
+  Health: "🏥",
+  Education: "🎓",
+  Transportation: "🚗",
+  Legal: "⚖️",
+  Employment: "💼",
+  Environment: "🌲",
+  Housing: "🏠",
+  Taxes: "💰",
+};
+
+export function LinkPanel({
+  selectedState,
+  links,
+  isLoading,
+  onClose,
+}: LinkPanelProps) {
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+
+  const filteredLinks = filterCategory
+    ? links.filter((link) => link.category === filterCategory)
+    : links;
+
+  const categories = [...new Set(links.map((link) => link.category))];
+
+  if (!selectedState) {
+    return (
+      <div className="w-full lg:w-96 bg-white rounded-2xl shadow-lg p-6">
+        <div className="text-center text-slate-400 py-12">
+          <div className="text-6xl mb-4">🗺️</div>
+          <h2 className="text-xl font-semibold text-slate-600">
+            Select a State
+          </h2>
+          <p className="text-sm mt-2">
+            Click on any state to view government resources
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full lg:w-96 bg-white rounded-2xl shadow-lg overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">{selectedState}</h2>
+            <p className="text-blue-100 text-sm mt-1">
+              {links.length} resource{links.length !== 1 ? "s" : ""} available
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/20 rounded-full transition"
+            aria-label="Close panel"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Category Filter */}
+        {categories.length > 1 && (
+          <div className="flex gap-2 mt-4 flex-wrap">
+            <button
+              onClick={() => setFilterCategory(null)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                filterCategory === null
+                  ? "bg-white text-blue-600"
+                  : "bg-white/20 hover:bg-white/30"
+              }`}
+            >
+              All
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setFilterCategory(cat)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                  filterCategory === cat
+                    ? "bg-white text-blue-600"
+                    : "bg-white/20 hover:bg-white/30"
+                }`}
+              >
+                {categoryIcons[cat]} {cat}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Links List */}
+      <div className="p-4 max-h-[500px] overflow-y-auto">
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-slate-100 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : filteredLinks.length === 0 ? (
+          <div className="text-center py-8 text-slate-400">
+            <p>No resources found for this category.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredLinks.map((link) => (
+              <a
+                key={link._id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-4 border border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50/50 transition group"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">
+                    {categoryIcons[link.category] ?? "🔗"}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-800 group-hover:text-blue-600 transition truncate">
+                      {link.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {link.category}
+                    </p>
+                    {link.description && (
+                      <p className="text-sm text-slate-600 mt-2 line-clamp-2">
+                        {link.description}
+                      </p>
+                    )}
+                  </div>
+                  <svg
+                    className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+### 6.4 Admin Form Component
+
+```tsx
+// src/components/admin/AddLinkForm.tsx
+import { useActionState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+
+const US_STATES = [
+  { code: "AL", name: "Alabama" },
+  { code: "AK", name: "Alaska" },
+  // ... all 50 states
+];
+
+const CATEGORIES = [
+  "Health",
+  "Education",
+  "Transportation",
+  "Legal",
+  "Employment",
+  "Environment",
+  "Housing",
+  "Taxes",
+];
+
+export function AddLinkForm() {
+  const addLink = useMutation(api.links.addLink);
+
+  const [state, formAction, isPending] = useActionState(
+    async (_prevState: { message: string } | null, formData: FormData) => {
+      const stateCode = formData.get("stateCode") as string;
+      const stateName =
+        US_STATES.find((s) => s.code === stateCode)?.name ?? "";
+
+      try {
+        await addLink({
+          title: formData.get("title") as string,
+          url: formData.get("url") as string,
+          stateCode,
+          stateName,
+          category: formData.get("category") as string,
+          description: (formData.get("description") as string) || undefined,
+        });
+        return { message: "Link added successfully!" };
+      } catch {
+        return { message: "Failed to add link. Please try again." };
+      }
+    },
+    null
+  );
+
+  return (
+    <form action={formAction} className="space-y-4 max-w-md">
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          Title *
+        </label>
+        <input
+          name="title"
+          type="text"
+          required
+          disabled={isPending}
+          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          placeholder="e.g., California DMV"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          URL *
+        </label>
+        <input
+          name="url"
+          type="url"
+          required
+          disabled={isPending}
+          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          placeholder="https://..."
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            State *
+          </label>
+          <select
+            name="stateCode"
+            required
+            disabled={isPending}
+            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            <option value="">Select...</option>
+            {US_STATES.map((state) => (
+              <option key={state.code} value={state.code}>
+                {state.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Category *
+          </label>
+          <select
+            name="category"
+            required
+            disabled={isPending}
+            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            <option value="">Select...</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          Description
+        </label>
+        <textarea
+          name="description"
+          disabled={isPending}
+          rows={3}
+          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          placeholder="Brief description of this resource..."
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={isPending}
+        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+      >
+        {isPending ? "Adding..." : "Add Link"}
+      </button>
+
+      {state?.message && (
+        <p
+          className={`text-sm ${state.message.includes("success") ? "text-green-600" : "text-red-600"}`}
+        >
+          {state.message}
+        </p>
+      )}
+    </form>
+  );
+}
+```
+
+---
+
+## 7. React 19 Features Utilized
+
+| Feature | Usage | Benefit |
+|---------|-------|---------|
+| `useTransition` | State selection transitions | Non-blocking UI updates during data fetch |
+| `useActionState` | Form submissions | Automatic pending/error state management |
+| `useOptimistic` | Admin CRUD operations | Instant UI feedback before server confirmation |
+| `use` API | Resource loading | Simplified async data handling in render |
+| Ref as prop | Map geography refs | Cleaner ref forwarding without `forwardRef` |
+
+---
+
+## 8. Performance Optimizations
+
+1. **Query Caching**: Convex automatically caches query results; revisiting a state shows instant data
+2. **Index-Based Queries**: All queries use database indexes for O(log n) lookup
+3. **Conditional Fetching**: `useQuery` with `"skip"` prevents unnecessary network requests
+4. **SVG Rendering**: `react19-simple-maps` uses lightweight SVG paths instead of raster tiles
+5. **Transition Priorities**: `startTransition` keeps UI responsive during heavy operations
+6. **Code Splitting**: Lazy load admin components for smaller initial bundle
+
+---
+
+## 9. Security Considerations
+
+- **URL Validation**: Validate URLs server-side before insertion
+- **XSS Prevention**: React's JSX escaping + Convex's built-in sanitization
+- **Rate Limiting**: Consider `convex-helpers` rate limiting for mutations
+- **Authentication**: Add Convex auth for admin operations
+- **Audit Logging**: Track all CRUD operations for accountability
+
+---
+
+## 10. Future Enhancements
+
+| Phase | Feature | Description |
+|-------|---------|-------------|
+| v1.1 | Search | Full-text search across all links |
+| v1.2 | Link Validation | Scheduled jobs to verify link availability |
+| v1.3 | User Bookmarks | Let users save favorite resources |
+| v1.4 | Analytics | Track popular states/categories |
+| v2.0 | Multi-region | Expand to county-level maps |
+
+---
+\

@@ -145,13 +145,13 @@ class NominationService {
   static getStatusBadgeColor(status: 'pending' | 'approved' | 'declined'): string {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
+        return 'bg-yellow-100  text-yellow-800 
       case 'approved':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
+        return 'bg-green-100  text-green-800 
       case 'declined':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300';
+        return 'bg-red-100  text-red-800 
       default:
-        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300';
+        return 'bg-mint-cream-800 bg-oxford-blue-DEFAULT/30 text-mint-cream-DEFAULT 
     }
   }
 
@@ -159,13 +159,13 @@ class NominationService {
   static getNominationTypeBadgeColor(type: 'Team' | 'Individual' | 'Growth'): string {
     switch (type) {
       case 'Team':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
+        return 'bg-yale-blue-500 bg-yale-blue-500/30 text-blue-800 text-mint-cream-DEFAULT';
       case 'Individual':
-        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300';
+        return 'bg-purple-100  text-purple-800 
       case 'Growth':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
+        return 'bg-green-100  text-green-800 
       default:
-        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300';
+        return 'bg-mint-cream-800 bg-oxford-blue-DEFAULT/30 text-mint-cream-DEFAULT 
     }
   }
 }
