@@ -35,12 +35,12 @@ body {
 
 /* only use this to update the style of the auth input fields. use a different class for all other input fields */
 .auth-input-field {
-  @apply w-full px-4 py-3 rounded-container bg-berkeley_blue-500 border border-powder_blue-400 focus:border-mint_cream-500 focus:ring-1 focus:ring-mint_cream-500 outline-none transition-shadow shadow-sm hover:shadow text-mint_cream-500;
+  @apply w-full px-4 py-3 rounded-container bg-tron-bg-card border border-tron-cyan/20 focus:border-tron-cyan focus:ring-1 focus:ring-tron-cyan/50 outline-none transition-all shadow-sm hover:shadow-tron-glow text-tron-white;
 }
 
 /* only use this to update the style of the auth buttons. use the button class for all other buttons */
 .auth-button {
-  @apply w-full px-4 py-3 rounded bg-yale_blue-500 text-mint_cream-500 font-semibold hover:bg-yale_blue-600 transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply w-full px-4 py-3 rounded bg-tron-cyan text-tron-bg-deep font-semibold hover:bg-tron-cyan-dim transition-all shadow-sm hover:shadow-tron-glow disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 /* Clerk component dark mode overrides */
@@ -194,11 +194,11 @@ body {
 
 /* Theme toggle button styles */
 .theme-toggle-button {
-  @apply fixed top-4 right-4 p-2 rounded-lg bg-berkeley_blue-500 border border-powder_blue-400 shadow-sm hover:shadow-md transition-all duration-200 text-mint_cream-500 hover:text-mint_cream-600;
+  @apply fixed top-4 right-4 p-2 rounded-lg bg-tron-bg-panel border border-tron-cyan/20 shadow-sm hover:shadow-tron-glow transition-all duration-200 text-tron-cyan hover:text-tron-cyan-dim hover:bg-tron-cyan/10;
 }
 
 .theme-toggle-button:focus {
-  @apply outline-none ring-2 ring-mint_cream-500 ring-offset-2 ring-offset-berkeley_blue-500;
+  @apply outline-none ring-2 ring-tron-cyan ring-offset-2 ring-offset-tron-bg-panel;
 }
 
 /* ==========================================

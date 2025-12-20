@@ -19,7 +19,9 @@ import {
   Trash2, 
   ChevronLeft, 
   ChevronRight,
-  Clock
+  Clock,
+  RefreshCw,
+  Wrench
 } from 'lucide-react';
 
 interface ProcurementLink {
@@ -57,6 +59,7 @@ export function ProcurementChat() {
   const [error, setError] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<Id<"procurementChatSessions"> | null>(null);
   const [showHistory, setShowHistory] = useState(true);
+  const [retryingMessageId, setRetryingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Convex queries and mutations
@@ -68,7 +71,10 @@ export function ProcurementChat() {
   const createSession = useMutation(api.procurementChatSessions.create);
   const deleteSession = useMutation(api.procurementChatSessions.deleteSession);
   const addUserMessage = useMutation(api.procurementChatMessages.addUserMessage);
-  const fetchAndSaveLinks = useAction(api.procurementChat.fetchAndSaveProcurementLinks);
+  const deleteMessagePair = useMutation(api.procurementChatMessages.deleteMessagePair);
+  const clearCorruptedThreadIds = useMutation(api.procurementChatSessions.clearCorruptedThreadIds);
+  const sendChatMessage = useAction(api.simpleChat.sendMessage);
+  const [isClearing, setIsClearing] = useState(false);
   
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -158,20 +164,20 @@ export function ProcurementChat() {
           content: userPrompt 
         });
         
-        // Fetch and save procurement links (this also saves the assistant response)
-        await fetchAndSaveLinks({ 
+        // Send chat message (this also saves the assistant response)
+        await sendChatMessage({ 
           prompt: userPrompt,
           sessionId: sessionId!,
         });
         
         // The response will be loaded via the sessionMessages query
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch links');
+        setError(err instanceof Error ? err.message : 'Failed to send message');
         // Add error message locally
         const errorMessage: ChatMessage = {
           id: `error-${Date.now()}`,
           role: 'assistant',
-          content: `Error: ${err instanceof Error ? err.message : 'Failed to fetch links'}`,
+          content: `Error: ${err instanceof Error ? err.message : 'Failed to send message'}`,
           timestamp: Date.now(),
           isError: true,
         };
@@ -200,6 +206,75 @@ export function ProcurementChat() {
     a.download = `procurement-links-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleRetryMessage = async (messageId: string, content: string) => {
+    if (!currentSessionId || retryingMessageId) return;
+    
+    setRetryingMessageId(messageId);
+    setError(null);
+    
+    try {
+      // First, delete the old message pair if this is a database message (not a local temp message)
+      // Database IDs from Convex don't start with "user-" or "error-" prefixes
+      const isLocalMessage = messageId.startsWith('user-') || messageId.startsWith('error-');
+      
+      if (!isLocalMessage) {
+        // Delete the old message pair from the database
+        // This will remove the user message and its associated assistant response
+        await deleteMessagePair({ 
+          messageId: messageId as Id<"procurementChatMessages">
+        });
+      }
+      
+      // Add the new user message to database
+      await addUserMessage({ 
+        sessionId: currentSessionId, 
+        content: content 
+      });
+      
+      // Send new chat message
+      await sendChatMessage({ 
+        prompt: content,
+        sessionId: currentSessionId,
+      });
+      
+      // The response will be loaded via the sessionMessages query which will
+      // automatically update the UI with the new message pair
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to retry request');
+      // Add error message locally
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: `Error: ${err instanceof Error ? err.message : 'Failed to retry request'}`,
+        timestamp: Date.now(),
+        isError: true,
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setRetryingMessageId(null);
+    }
+  };
+
+  const handleClearCorruptedThreadIds = async () => {
+    setIsClearing(true);
+    try {
+      const result = await clearCorruptedThreadIds({});
+      if (result.cleared > 0) {
+        setError(null);
+        // Show success message briefly
+        setError(`Cleared ${result.cleared} corrupted thread ID(s). Try your request again.`);
+        setTimeout(() => setError(null), 3000);
+      } else {
+        setError('No corrupted thread IDs found.');
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clear thread IDs');
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   const formatTimestamp = (timestamp: number) => {
@@ -240,6 +315,17 @@ export function ProcurementChat() {
               className="w-full"
             >
               New Chat
+            </TronButton>
+            <TronButton
+              onClick={handleClearCorruptedThreadIds}
+              variant="outline"
+              color="orange"
+              size="sm"
+              icon={isClearing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wrench className="w-3 h-3" />}
+              className="w-full mt-2"
+              disabled={isClearing}
+            >
+              {isClearing ? 'Clearing...' : 'Fix Thread Errors'}
             </TronButton>
           </div>
           
@@ -354,7 +440,25 @@ export function ProcurementChat() {
                   }`}
                 >
                   {/* Message Content */}
-                  <p className="text-sm whitespace-pre-wrap mb-2">{message.content}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm whitespace-pre-wrap flex-1">{message.content}</p>
+                    {message.role === 'user' && (
+                      <button
+                        onClick={() => handleRetryMessage(message.id, message.content)}
+                        disabled={retryingMessageId === message.id || isPending}
+                        className="flex-shrink-0 p-1.5 rounded-full hover:bg-tron-cyan/30 
+                                   transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                                   text-tron-cyan hover:text-tron-cyan-bright"
+                        title="Retry this request"
+                      >
+                        {retryingMessageId === message.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
                   
                   {/* Assistant Response with Links */}
                   {message.role === 'assistant' && message.response && !message.isError && (
@@ -437,7 +541,7 @@ export function ProcurementChat() {
                 <div className="max-w-[85%] lg:max-w-[75%] rounded-lg p-4 bg-tron-bg-card border border-tron-cyan/10">
                   <div className="flex items-center gap-2 text-tron-gray">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Searching for procurement links...</span>
+                    <span className="text-sm">Thinking...</span>
                   </div>
                 </div>
               </div>
@@ -459,12 +563,12 @@ export function ProcurementChat() {
             
             <div>
               <label className="block text-sm text-tron-gray mb-2">
-                Describe the regions you need procurement links for:
+                Ask about procurement links or portals:
               </label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="e.g., 'Get me procurement links for all Texas cities with population over 500k' or 'Find RFP portals for the Pacific Northwest states'"
+                placeholder="e.g., 'How do I find procurement links for Texas cities?' or 'What are common patterns for government procurement portals?'"
                 className="w-full px-4 py-3 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg 
                            text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 
                            focus:ring-tron-cyan focus:border-tron-cyan resize-none"
@@ -480,7 +584,7 @@ export function ProcurementChat() {
               disabled={isPending || !prompt.trim()}
               icon={isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             >
-              {isPending ? 'Searching...' : 'Find Procurement Links'}
+              {isPending ? 'Sending...' : 'Send Message'}
             </TronButton>
           </form>
         </TronPanel>

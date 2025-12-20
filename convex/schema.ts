@@ -503,6 +503,7 @@ const applicationTables = {
     userId: v.string(), // Clerk user ID
     title: v.string(), // Auto-generated or user-provided title
     isArchived: v.optional(v.boolean()),
+    threadId: v.optional(v.string()), // Agent component thread ID
     createdAt: v.number(),
     updatedAt: v.number(),
     lastMessageAt: v.optional(v.number()),

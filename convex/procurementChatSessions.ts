@@ -1,6 +1,7 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUserId } from "./auth";
+import { components } from "./_generated/api";
 
 // List all chat sessions for the current user
 export const list = query({
@@ -125,5 +126,57 @@ export const deleteSession = mutation({
     
     // Delete the session
     await ctx.db.delete(args.id);
+  },
+});
+
+// Internal query to get session with threadId
+export const getSessionInternal = internalQuery({
+  args: { sessionId: v.id("procurementChatSessions") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.sessionId);
+  },
+});
+
+// Internal mutation to update threadId in session
+export const updateThreadId = internalMutation({
+  args: {
+    sessionId: v.id("procurementChatSessions"),
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // If threadId is empty, clear it by setting to undefined
+    await ctx.db.patch(args.sessionId, {
+      threadId: args.threadId || undefined,
+    });
+  },
+});
+
+// Utility mutation to clear all corrupted threadIds from sessions
+// Call this once to clean up any sessions with invalid thread IDs
+export const clearCorruptedThreadIds = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getCurrentUserId(ctx);
+    
+    // Get all sessions for the current user
+    const sessions = await ctx.db
+      .query("procurementChatSessions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    
+    let cleared = 0;
+    
+    for (const session of sessions) {
+      // Clear threadId for all sessions - this forces creation of new threads
+      // You could add more specific checks here if needed
+      if (session.threadId) {
+        await ctx.db.patch(session._id, {
+          threadId: undefined,
+        });
+        cleared++;
+      }
+    }
+    
+    return { cleared };
   },
 });

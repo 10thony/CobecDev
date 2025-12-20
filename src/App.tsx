@@ -28,7 +28,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <Router>
-        <div className="min-h-screen bg-oxford_blue-500">
+        <div className="min-h-screen bg-tron-bg-deep">
           <Routes>
             <Route path="/temp-chat" element={<TempChatPage />} />
             <Route path="/*" element={<AppContent />} />
@@ -46,8 +46,8 @@ function AppContent() {
   
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mint_cream-500"></div>
+      <div className="min-h-screen bg-tron-bg-deep flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tron-cyan"></div>
       </div>
     );
   }
@@ -71,8 +71,8 @@ function AuthenticatedApp() {
   
   if (userRole === undefined) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mint_cream-500"></div>
+      <div className="min-h-screen bg-tron-bg-deep flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tron-cyan"></div>
       </div>
     );
   }
@@ -104,11 +104,11 @@ function AuthenticatedApp() {
 
 function UnauthenticatedApp() {
   return (
-    <div className="min-h-screen flex items-center justify-center p-8">
+    <div className="min-h-screen bg-tron-bg-deep tron-grid-bg flex items-center justify-center p-8">
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-mint_cream-500 mb-4">Cobecium</h1>
-          <p className="text-xl text-powder_blue-700">Sign in to start chatting with AI</p>
+          <h1 className="text-4xl font-bold text-tron-white mb-4 tron-glow-text">Cobecium</h1>
+          <p className="text-xl text-tron-gray">Sign in to start chatting with AI</p>
         </div>
         <SignInForm />
       </div>

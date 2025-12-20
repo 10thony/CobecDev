@@ -106,10 +106,11 @@ export function Layout({ children }: LayoutProps) {
 
         {/* Bottom Controls */}
         <div className="p-4 border-t border-tron-cyan/20">
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-3 py-2 rounded-md text-sm font-medium transition-colors text-tron-gray hover:text-tron-white hover:bg-tron-cyan/10`} title={isCollapsed ? "Sign Out" : undefined}>
-            <SignOutButton iconOnly={true} />
-            {!isCollapsed && <span>Sign Out</span>}
-          </div>
+          <SignOutButton 
+            iconOnly={true} 
+            showText={!isCollapsed}
+            className={isCollapsed ? 'justify-center' : ''}
+          />
         </div>
         </div>
       )}

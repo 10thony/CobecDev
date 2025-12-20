@@ -143,6 +143,99 @@ export const addAssistantMessageInternal = internalMutation({
   },
 });
 
+// Internal mutation to delete a message and its following response (for retry functionality)
+export const deleteMessagePairInternal = internalMutation({
+  args: {
+    messageId: v.id("procurementChatMessages"),
+    sessionId: v.id("procurementChatSessions"),
+  },
+  handler: async (ctx, args) => {
+    // Get the message to delete
+    const message = await ctx.db.get(args.messageId);
+    if (!message || message.sessionId !== args.sessionId) {
+      return { deleted: 0 };
+    }
+    
+    // Get all messages in the session
+    const allMessages = await ctx.db
+      .query("procurementChatMessages")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .order("asc")
+      .collect();
+    
+    // Find the index of the message to delete
+    const messageIndex = allMessages.findIndex((m) => m._id === args.messageId);
+    if (messageIndex === -1) {
+      return { deleted: 0 };
+    }
+    
+    // Delete the message
+    await ctx.db.delete(args.messageId);
+    let deleted = 1;
+    
+    // If this was a user message, also delete the next message if it's an assistant response
+    if (message.role === "user" && messageIndex + 1 < allMessages.length) {
+      const nextMessage = allMessages[messageIndex + 1];
+      if (nextMessage.role === "assistant") {
+        await ctx.db.delete(nextMessage._id);
+        deleted++;
+      }
+    }
+    
+    return { deleted };
+  },
+});
+
+// Public mutation to delete a message pair (for retry functionality)
+export const deleteMessagePair = mutation({
+  args: {
+    messageId: v.id("procurementChatMessages"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx);
+    
+    // Get the message
+    const message = await ctx.db.get(args.messageId);
+    if (!message) {
+      throw new Error("Message not found");
+    }
+    
+    // Verify user owns the session
+    const session = await ctx.db.get(message.sessionId);
+    if (!session || session.userId !== userId) {
+      throw new Error("Message not found");
+    }
+    
+    // Get all messages in the session
+    const allMessages = await ctx.db
+      .query("procurementChatMessages")
+      .withIndex("by_session", (q) => q.eq("sessionId", message.sessionId))
+      .order("asc")
+      .collect();
+    
+    // Find the index of the message to delete
+    const messageIndex = allMessages.findIndex((m) => m._id === args.messageId);
+    if (messageIndex === -1) {
+      return { deleted: 0 };
+    }
+    
+    // Delete the message
+    await ctx.db.delete(args.messageId);
+    let deleted = 1;
+    
+    // If this was a user message, also delete the next message if it's an assistant response
+    if (message.role === "user" && messageIndex + 1 < allMessages.length) {
+      const nextMessage = allMessages[messageIndex + 1];
+      if (nextMessage.role === "assistant") {
+        await ctx.db.delete(nextMessage._id);
+        deleted++;
+      }
+    }
+    
+    return { deleted };
+  },
+});
+
 // Get session with recent message preview (for sidebar)
 export const getSessionPreview = query({
   args: { sessionId: v.id("procurementChatSessions") },

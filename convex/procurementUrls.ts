@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 // Type for procurement link from JSON
@@ -147,6 +147,59 @@ export const getStats = query({
       approved: all.filter((url) => url.status === "approved").length,
       denied: all.filter((url) => url.status === "denied").length,
     };
+  },
+});
+
+/**
+ * Search procurement URLs by state and optionally by city
+ * Used by the procurement agent to find verified URLs
+ */
+export const searchByStateCity = query({
+  args: {
+    state: v.string(),
+    city: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("denied"))),
+  },
+  returns: v.array(v.object({
+    _id: v.id("procurementUrls"),
+    _creationTime: v.number(),
+    state: v.string(),
+    capital: v.string(),
+    officialWebsite: v.string(),
+    procurementLink: v.string(),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("denied")),
+    verifiedBy: v.optional(v.string()),
+    verifiedAt: v.optional(v.number()),
+    denialReason: v.optional(v.string()),
+    importedAt: v.number(),
+    sourceFile: v.optional(v.string()),
+    requiresRegistration: v.optional(v.boolean()),
+  })),
+  handler: async (ctx, args) => {
+    let results;
+    
+    if (args.status) {
+      results = await ctx.db
+        .query("procurementUrls")
+        .withIndex("by_state_status", (q) => 
+          q.eq("state", args.state).eq("status", args.status!)
+        )
+        .collect();
+    } else {
+      results = await ctx.db
+        .query("procurementUrls")
+        .withIndex("by_state", (q) => q.eq("state", args.state))
+        .collect();
+    }
+    
+    // Filter by city if provided
+    if (args.city) {
+      return results.filter(r => 
+        r.capital.toLowerCase().includes(args.city!.toLowerCase())
+      );
+    }
+    
+    return results;
   },
 });
 
@@ -405,6 +458,28 @@ export const addManual = mutation({
     const id = await ctx.db.insert("procurementUrls", insertData);
 
     return id;
+  },
+});
+
+/**
+ * Internal mutation to add a pending URL (used by the agent)
+ */
+export const addPendingUrl = internalMutation({
+  args: {
+    state: v.string(),
+    capital: v.string(),
+    officialWebsite: v.string(),
+    procurementLink: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("procurementUrls", {
+      state: args.state,
+      capital: args.capital,
+      officialWebsite: args.officialWebsite,
+      procurementLink: args.procurementLink,
+      status: "pending",
+      importedAt: Date.now(),
+    });
   },
 });
 
