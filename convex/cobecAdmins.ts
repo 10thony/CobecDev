@@ -393,23 +393,70 @@ export const getClerkUsers = action({
         throw new Error("CLERK_SECRET_KEY not configured");
       }
 
-      // Fetch users from Clerk Admin API
-      const response = await fetch("https://api.clerk.com/v1/users", {
-        headers: {
-          "Authorization": `Bearer ${clerkSecretKey}`,
-          "Content-Type": "application/json",
-        },
-      });
+      // Fetch all users from Clerk Admin API with pagination
+      const allUsers: any[] = [];
+      let offset = 0;
+      const limit = 500; // Clerk's maximum limit per page
+      let hasMore = true;
+      const maxIterations = 1000; // Safety check to prevent infinite loops
+      let iterationCount = 0;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Clerk API error: ${response.status} - ${errorText}`);
+      while (hasMore && iterationCount < maxIterations) {
+        iterationCount++;
+        
+        // Fetch users with pagination parameters
+        const url = `https://api.clerk.com/v1/users?limit=${limit}&offset=${offset}`;
+        const response = await fetch(url, {
+          headers: {
+            "Authorization": `Bearer ${clerkSecretKey}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Clerk API error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        // Handle both response formats:
+        // 1. Direct array: [{user1}, {user2}, ...]
+        // 2. Paginated object: {data: [{user1}, ...], total_count: 15}
+        let users: any[] = [];
+        if (Array.isArray(data)) {
+          // Direct array response
+          users = data;
+        } else if (data.data && Array.isArray(data.data)) {
+          // Paginated object response
+          users = data.data;
+        } else {
+          // Unexpected format, log and break
+          console.warn("Unexpected Clerk API response format:", data);
+          break;
+        }
+
+        // Add users from this page to the collection
+        allUsers.push(...users);
+
+        // Check if there are more users to fetch
+        // If we got fewer users than the limit, we've reached the end
+        if (users.length < limit) {
+          hasMore = false;
+        } else {
+          // Move to next page
+          offset += limit;
+        }
       }
 
-      const data = await response.json();
+      if (iterationCount >= maxIterations) {
+        console.warn(`Reached maximum iterations (${maxIterations}) while fetching Clerk users. Total fetched: ${allUsers.length}`);
+      }
+
+      console.log(`✅ Fetched ${allUsers.length} total users from Clerk API`);
       
       // Transform Clerk user data to our format
-      const users = data.map((user: any) => ({
+      const transformedUsers = allUsers.map((user: any) => ({
         id: user.id,
         fullName: user.first_name && user.last_name 
           ? `${user.first_name} ${user.last_name}` 
@@ -419,7 +466,7 @@ export const getClerkUsers = action({
         lastSignInAt: user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : undefined,
       }));
 
-      return users;
+      return transformedUsers;
     } catch (error) {
       console.error("Error fetching Clerk users:", error);
       throw error;
