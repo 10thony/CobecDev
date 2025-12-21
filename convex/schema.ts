@@ -538,6 +538,60 @@ const applicationTables = {
   }).index("by_session", ["sessionId"])
     .index("by_creation", ["createdAt"]),
 
+  // Procurement Chat Analytics for tracking AI usage and costs
+  procurementChatAnalytics: defineTable({
+    // Request identification
+    sessionId: v.id("procurementChatSessions"),
+    messageId: v.optional(v.id("procurementChatMessages")),
+    userId: v.string(), // Clerk user ID
+    
+    // Message content
+    userPrompt: v.string(), // The user's input
+    assistantResponse: v.string(), // AI response (summary or full)
+    
+    // Model information
+    model: v.string(), // e.g., "gpt-4o-mini"
+    provider: v.string(), // e.g., "openai"
+    
+    // Token usage
+    requestTokens: v.number(), // Input/prompt tokens
+    responseTokens: v.number(), // Output/completion tokens
+    totalTokens: v.number(), // Combined total
+    
+    // Cost tracking (in USD, stored as cents for precision)
+    requestCostCents: v.number(), // Cost of input tokens in cents
+    responseCostCents: v.number(), // Cost of output tokens in cents
+    totalCostCents: v.number(), // Total cost in cents
+    
+    // Request metadata
+    toolCallsCount: v.optional(v.number()), // Number of tool calls made
+    isError: v.optional(v.boolean()), // Whether request failed
+    errorMessage: v.optional(v.string()), // Error details if failed
+    latencyMs: v.optional(v.number()), // Response time in milliseconds
+    
+    // Timestamps
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_session", ["sessionId"])
+    .index("by_provider", ["provider"])
+    .index("by_model", ["model"])
+    .index("by_creation", ["createdAt"])
+    .index("by_user_creation", ["userId", "createdAt"]),
+
+  // Procurement Chat System Prompts - configurable system prompts for procurement chat
+  procurementChatSystemPrompts: defineTable({
+    systemPromptText: v.string(), // The full system prompt text
+    isPrimarySystemPrompt: v.boolean(), // Whether this is the active/primary prompt
+    title: v.string(), // A descriptive title for this prompt
+    description: v.optional(v.string()), // Optional description
+    createdBy: v.optional(v.string()), // Clerk user ID who created this
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_primary", ["isPrimarySystemPrompt"])
+    .index("by_creation", ["createdAt"]),
+
   // Procurement URLs - for ingesting and verifying procurement links before they become available for pins
   procurementUrls: defineTable({
     state: v.string(), // Full state name: "Alabama", "Alaska"

@@ -21,7 +21,14 @@ import {
   ChevronRight,
   Clock,
   RefreshCw,
-  Wrench
+  Wrench,
+  Upload,
+  CheckCircle,
+  Settings,
+  X,
+  Edit2,
+  Star,
+  Save
 } from 'lucide-react';
 
 interface ProcurementLink {
@@ -52,7 +59,21 @@ interface ChatMessage {
   isError?: boolean;
 }
 
-export function ProcurementChat() {
+interface SystemPrompt {
+  _id: Id<"procurementChatSystemPrompts">;
+  systemPromptText: string;
+  isPrimarySystemPrompt: boolean;
+  title: string;
+  description?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface ProcurementChatProps {
+  onExportToVerifier?: () => void;
+}
+
+export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {}) {
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -61,6 +82,18 @@ export function ProcurementChat() {
   const [showHistory, setShowHistory] = useState(true);
   const [retryingMessageId, setRetryingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // System Prompt Management State
+  const [showPromptSettings, setShowPromptSettings] = useState(false);
+  const [editingPrompt, setEditingPrompt] = useState<SystemPrompt | null>(null);
+  const [isCreatingPrompt, setIsCreatingPrompt] = useState(false);
+  const [promptFormData, setPromptFormData] = useState({
+    title: '',
+    description: '',
+    systemPromptText: '',
+    isPrimarySystemPrompt: false,
+  });
+  const [savingPrompt, setSavingPrompt] = useState(false);
   
   // Convex queries and mutations
   const sessions = useQuery(api.procurementChatSessions.list, { includeArchived: false });
@@ -74,7 +107,18 @@ export function ProcurementChat() {
   const deleteMessagePair = useMutation(api.procurementChatMessages.deleteMessagePair);
   const clearCorruptedThreadIds = useMutation(api.procurementChatSessions.clearCorruptedThreadIds);
   const sendChatMessage = useAction(api.simpleChat.sendMessage);
+  const importToVerifier = useMutation(api.procurementUrls.importFromChatResponse);
   const [isClearing, setIsClearing] = useState(false);
+  const [exportingMessageId, setExportingMessageId] = useState<string | null>(null);
+  const [exportResult, setExportResult] = useState<{ messageId: string; result: { imported: number; skipped: number } } | null>(null);
+  
+  // System Prompt queries and mutations
+  const systemPrompts = useQuery(api.procurementChatSystemPrompts.list, {});
+  const createSystemPrompt = useMutation(api.procurementChatSystemPrompts.create);
+  const updateSystemPrompt = useMutation(api.procurementChatSystemPrompts.update);
+  const deleteSystemPrompt = useMutation(api.procurementChatSystemPrompts.remove);
+  const setPromptAsPrimary = useMutation(api.procurementChatSystemPrompts.setPrimary);
+  const initializeDefaultPrompt = useMutation(api.procurementChatSystemPrompts.initializeDefault);
   
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -186,7 +230,7 @@ export function ProcurementChat() {
     });
   };
 
-  const handleExportToVerifier = (response: ChatResponse) => {
+  const handleDownloadJson = (response: ChatResponse) => {
     if (!response?.procurement_links) return;
     
     // Create downloadable JSON file
@@ -206,6 +250,39 @@ export function ProcurementChat() {
     a.download = `procurement-links-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportToVerifier = async (messageId: string, response: ChatResponse) => {
+    if (!response?.procurement_links || response.procurement_links.length === 0) return;
+    
+    setExportingMessageId(messageId);
+    setExportResult(null);
+    
+    try {
+      const result = await importToVerifier({
+        links: response.procurement_links,
+        sessionId: currentSessionId || undefined,
+      });
+      
+      setExportResult({
+        messageId,
+        result: { imported: result.imported, skipped: result.skipped },
+      });
+      
+      // Notify parent component to switch to verifier tab if callback provided
+      if (onExportToVerifier && result.imported > 0) {
+        onExportToVerifier();
+      }
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setExportResult(null);
+      }, 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export links to verifier');
+    } finally {
+      setExportingMessageId(null);
+    }
   };
 
   const handleRetryMessage = async (messageId: string, content: string) => {
@@ -293,6 +370,102 @@ export function ProcurementChat() {
     }
   };
 
+  // System Prompt Handlers
+  const handleOpenPromptSettings = async () => {
+    setShowPromptSettings(true);
+    // Initialize default prompt if none exists
+    if (systemPrompts && systemPrompts.length === 0) {
+      try {
+        await initializeDefaultPrompt({});
+      } catch (err) {
+        console.error("Failed to initialize default prompt:", err);
+      }
+    }
+  };
+
+  const handleStartCreatePrompt = () => {
+    setIsCreatingPrompt(true);
+    setEditingPrompt(null);
+    setPromptFormData({
+      title: '',
+      description: '',
+      systemPromptText: '',
+      isPrimarySystemPrompt: false,
+    });
+  };
+
+  const handleStartEditPrompt = (prompt: SystemPrompt) => {
+    setIsCreatingPrompt(false);
+    setEditingPrompt(prompt);
+    setPromptFormData({
+      title: prompt.title,
+      description: prompt.description || '',
+      systemPromptText: prompt.systemPromptText,
+      isPrimarySystemPrompt: prompt.isPrimarySystemPrompt,
+    });
+  };
+
+  const handleCancelPromptForm = () => {
+    setIsCreatingPrompt(false);
+    setEditingPrompt(null);
+    setPromptFormData({
+      title: '',
+      description: '',
+      systemPromptText: '',
+      isPrimarySystemPrompt: false,
+    });
+  };
+
+  const handleSavePrompt = async () => {
+    if (!promptFormData.title.trim() || !promptFormData.systemPromptText.trim()) {
+      setError("Title and System Prompt Text are required");
+      return;
+    }
+
+    setSavingPrompt(true);
+    try {
+      if (editingPrompt) {
+        // Update existing prompt
+        await updateSystemPrompt({
+          id: editingPrompt._id,
+          title: promptFormData.title,
+          description: promptFormData.description || undefined,
+          systemPromptText: promptFormData.systemPromptText,
+          isPrimarySystemPrompt: promptFormData.isPrimarySystemPrompt,
+        });
+      } else {
+        // Create new prompt
+        await createSystemPrompt({
+          title: promptFormData.title,
+          description: promptFormData.description || undefined,
+          systemPromptText: promptFormData.systemPromptText,
+          isPrimarySystemPrompt: promptFormData.isPrimarySystemPrompt,
+        });
+      }
+      handleCancelPromptForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save prompt');
+    } finally {
+      setSavingPrompt(false);
+    }
+  };
+
+  const handleDeletePrompt = async (id: Id<"procurementChatSystemPrompts">) => {
+    try {
+      await deleteSystemPrompt({ id });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete prompt');
+    }
+  };
+
+  const handleSetPrimary = async (id: Id<"procurementChatSystemPrompts">) => {
+    try {
+      await setPromptAsPrimary({ id });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to set primary prompt');
+    }
+  };
+
   return (
     <div className="flex h-full">
       {/* History Sidebar */}
@@ -326,6 +499,16 @@ export function ProcurementChat() {
               disabled={isClearing}
             >
               {isClearing ? 'Clearing...' : 'Fix Thread Errors'}
+            </TronButton>
+            <TronButton
+              onClick={handleOpenPromptSettings}
+              variant="outline"
+              color="purple"
+              size="sm"
+              icon={<Settings className="w-3 h-3" />}
+              className="w-full mt-2"
+            >
+              System Prompts
             </TronButton>
           </div>
           
@@ -464,20 +647,47 @@ export function ProcurementChat() {
                   {message.role === 'assistant' && message.response && !message.isError && (
                     <div className="mt-4 space-y-3 pt-4 border-t border-tron-cyan/10">
                       {/* Metadata */}
-                      <div className="flex items-center justify-between text-xs text-tron-gray">
+                      <div className="flex items-center justify-between text-xs text-tron-gray flex-wrap gap-2">
                         <span>
                           Found {message.response.search_metadata.count_found} links for: {message.response.search_metadata.target_regions.join(', ')}
                         </span>
-                        <TronButton
-                          onClick={() => handleExportToVerifier(message.response!)}
-                          variant="outline"
-                          color="cyan"
-                          size="sm"
-                          icon={<Download className="w-3 h-3" />}
-                        >
-                          Export
-                        </TronButton>
+                        <div className="flex gap-2">
+                          <TronButton
+                            onClick={() => handleDownloadJson(message.response!)}
+                            variant="outline"
+                            color="cyan"
+                            size="sm"
+                            icon={<Download className="w-3 h-3" />}
+                          >
+                            JSON
+                          </TronButton>
+                          <TronButton
+                            onClick={() => handleExportToVerifier(message.id, message.response!)}
+                            variant="primary"
+                            color="cyan"
+                            size="sm"
+                            disabled={exportingMessageId === message.id}
+                            icon={exportingMessageId === message.id 
+                              ? <Loader2 className="w-3 h-3 animate-spin" /> 
+                              : <Upload className="w-3 h-3" />}
+                          >
+                            {exportingMessageId === message.id ? 'Exporting...' : 'To Verifier'}
+                          </TronButton>
+                        </div>
                       </div>
+                      
+                      {/* Export Success Message */}
+                      {exportResult && exportResult.messageId === message.id && (
+                        <div className="p-2 bg-neon-success/20 border border-neon-success/40 rounded-lg">
+                          <div className="flex items-center gap-2 text-xs text-neon-success">
+                            <CheckCircle className="w-3 h-3" />
+                            <span>
+                              Exported to Link Verifier: {exportResult.result.imported} imported
+                              {exportResult.result.skipped > 0 && `, ${exportResult.result.skipped} skipped (duplicates)`}
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Links Preview */}
                       <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -589,6 +799,226 @@ export function ProcurementChat() {
           </form>
         </TronPanel>
       </div>
+
+      {/* System Prompt Settings Modal */}
+      {showPromptSettings && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-tron-bg-card border border-tron-cyan/30 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-tron-cyan/20">
+              <div className="flex items-center gap-3">
+                <Settings className="w-5 h-5 text-tron-cyan" />
+                <h2 className="text-lg font-semibold text-tron-white">System Prompt Management</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setShowPromptSettings(false);
+                  handleCancelPromptForm();
+                }}
+                className="p-2 hover:bg-tron-cyan/10 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-tron-gray" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* Create/Edit Form */}
+              {(isCreatingPrompt || editingPrompt) ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-md font-medium text-tron-cyan">
+                      {editingPrompt ? 'Edit System Prompt' : 'Create New System Prompt'}
+                    </h3>
+                    <TronButton
+                      onClick={handleCancelPromptForm}
+                      variant="outline"
+                      color="gray"
+                      size="sm"
+                    >
+                      Cancel
+                    </TronButton>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Title *</label>
+                    <input
+                      type="text"
+                      value={promptFormData.title}
+                      onChange={(e) => setPromptFormData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g., Default Procurement Agent Prompt"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg 
+                                 text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 
+                                 focus:ring-tron-cyan focus:border-tron-cyan"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Description (optional)</label>
+                    <input
+                      type="text"
+                      value={promptFormData.description}
+                      onChange={(e) => setPromptFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Brief description of this prompt's purpose"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg 
+                                 text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 
+                                 focus:ring-tron-cyan focus:border-tron-cyan"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">System Prompt Text *</label>
+                    <textarea
+                      value={promptFormData.systemPromptText}
+                      onChange={(e) => setPromptFormData(prev => ({ ...prev, systemPromptText: e.target.value }))}
+                      placeholder="Enter the full system prompt text..."
+                      className="w-full px-4 py-3 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg 
+                                 text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 
+                                 focus:ring-tron-cyan focus:border-tron-cyan resize-none font-mono text-sm"
+                      rows={12}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isPrimary"
+                      checked={promptFormData.isPrimarySystemPrompt}
+                      onChange={(e) => setPromptFormData(prev => ({ ...prev, isPrimarySystemPrompt: e.target.checked }))}
+                      className="w-4 h-4 rounded border-tron-cyan/30 bg-tron-bg-deep text-tron-cyan 
+                                 focus:ring-tron-cyan focus:ring-offset-0"
+                    />
+                    <label htmlFor="isPrimary" className="text-sm text-tron-white">
+                      Set as Primary Prompt (will be used for all new chats)
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-tron-cyan/10">
+                    <TronButton
+                      onClick={handleCancelPromptForm}
+                      variant="outline"
+                      color="gray"
+                    >
+                      Cancel
+                    </TronButton>
+                    <TronButton
+                      onClick={handleSavePrompt}
+                      variant="primary"
+                      color="cyan"
+                      disabled={savingPrompt || !promptFormData.title.trim() || !promptFormData.systemPromptText.trim()}
+                      icon={savingPrompt ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    >
+                      {savingPrompt ? 'Saving...' : 'Save Prompt'}
+                    </TronButton>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Prompt List Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm text-tron-gray">
+                      Manage system prompts for the Procurement Chat AI. The primary prompt will be used for all conversations.
+                    </p>
+                    <TronButton
+                      onClick={handleStartCreatePrompt}
+                      variant="primary"
+                      color="cyan"
+                      size="sm"
+                      icon={<Plus className="w-4 h-4" />}
+                    >
+                      New Prompt
+                    </TronButton>
+                  </div>
+
+                  {/* Prompts List */}
+                  <div className="space-y-3">
+                    {systemPrompts === undefined ? (
+                      <div className="flex items-center justify-center py-8 text-tron-gray">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      </div>
+                    ) : systemPrompts.length === 0 ? (
+                      <div className="text-center py-8 text-tron-gray">
+                        <Settings className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>No system prompts found.</p>
+                        <p className="text-sm mt-1">Click "New Prompt" to create one, or it will be initialized with defaults.</p>
+                      </div>
+                    ) : (
+                      systemPrompts.map((prompt) => (
+                        <div
+                          key={prompt._id}
+                          className={`p-4 rounded-lg border transition-colors ${
+                            prompt.isPrimarySystemPrompt
+                              ? 'bg-tron-cyan/10 border-tron-cyan/40'
+                              : 'bg-tron-bg-deep border-tron-cyan/10 hover:border-tron-cyan/30'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-medium text-tron-white truncate">{prompt.title}</h4>
+                                {prompt.isPrimarySystemPrompt && (
+                                  <span className="flex items-center gap-1 px-2 py-0.5 bg-tron-cyan/20 text-tron-cyan text-xs rounded-full">
+                                    <Star className="w-3 h-3" />
+                                    Primary
+                                  </span>
+                                )}
+                              </div>
+                              {prompt.description && (
+                                <p className="text-sm text-tron-gray mb-2">{prompt.description}</p>
+                              )}
+                              <p className="text-xs text-tron-gray/70">
+                                Updated: {new Date(prompt.updatedAt).toLocaleDateString()} • 
+                                {prompt.systemPromptText.length.toLocaleString()} characters
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {!prompt.isPrimarySystemPrompt && (
+                                <TronButton
+                                  onClick={() => handleSetPrimary(prompt._id)}
+                                  variant="outline"
+                                  color="cyan"
+                                  size="sm"
+                                  icon={<Star className="w-3 h-3" />}
+                                  title="Set as Primary"
+                                >
+                                  Set Primary
+                                </TronButton>
+                              )}
+                              <TronButton
+                                onClick={() => handleStartEditPrompt(prompt as SystemPrompt)}
+                                variant="outline"
+                                color="cyan"
+                                size="sm"
+                                icon={<Edit2 className="w-3 h-3" />}
+                              >
+                                Edit
+                              </TronButton>
+                              <button
+                                onClick={() => handleDeletePrompt(prompt._id)}
+                                className="p-2 hover:bg-neon-error/20 rounded-lg transition-colors"
+                                title="Delete Prompt"
+                              >
+                                <Trash2 className="w-4 h-4 text-neon-error" />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* Preview of prompt text */}
+                          <div className="mt-3 p-3 bg-tron-bg-card rounded border border-tron-cyan/10">
+                            <p className="text-xs text-tron-gray font-mono line-clamp-3">
+                              {prompt.systemPromptText}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

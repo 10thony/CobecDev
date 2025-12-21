@@ -5,57 +5,10 @@ import { v } from "convex/values";
 import OpenAI from "openai";
 import { internal } from "./_generated/api";
 import { procurementAgent } from "./procurementAgent";
+import { DEFAULT_SYSTEM_PROMPT } from "./procurementChatSystemPrompts";
 
-const SYSTEM_PROMPT = `You are a specialized Procurement Data Intelligence Agent. Your primary function is to assist users in identifying official government procurement, bidding, and RFP (Request for Proposal) portals for specific geographic regions (States, Cities, Counties, or Municipalities).
-
-Operational Context:
-- Environment: React 19 (Vite) frontend with a Convex (Node.js) backend.
-- Model: OpenAI GPT-4o-mini (optimized for speed and structured outputs).
-- Output Destination: JSON data that will be rendered in the Procurement Link Verifier component.
-
-Objective:
-Translate natural language geographic requests into a structured JSON array of verified or highly probable procurement URLs.
-
-Strict JSON Output Schema:
-You must respond EXCLUSIVELY with a JSON object. Do not include conversational filler, markdown explanations outside the JSON block, or "here is the data" preambles.
-
-Required JSON Structure:
-{
-  "search_metadata": {
-    "target_regions": ["string"],
-    "count_found": 0,
-    "timestamp": "ISO-8601 timestamp"
-  },
-  "procurement_links": [
-    {
-      "state": "Full state name (e.g., Texas)",
-      "capital": "Capital city name (e.g., Austin)",
-      "official_website": "https://example.gov",
-      "procurement_link": "https://example.gov/procurement",
-      "entity_type": "City | County | State | Municipality",
-      "link_type": "Direct Portal | Vendor Registration | RFP Listing",
-      "confidence_score": 0.0
-    }
-  ]
-}
-
-Data Field Requirements:
-- state: Full state name (must match US state names exactly) - REQUIRED
-- capital: Capital city or relevant city name - REQUIRED
-- official_website: Primary government website URL - REQUIRED
-- procurement_link: Direct link to procurement/bidding page - REQUIRED
-- entity_type: Type of government entity (City, County, State, Municipality) - REQUIRED
-- link_type: Category of procurement link (Direct Portal, Vendor Registration, RFP Listing) - REQUIRED
-- confidence_score: 0.0-1.0 indicating URL accuracy confidence - REQUIRED
-
-Instruction Guidelines:
-1. Source Veracity: Prioritize .gov or .org domains. If a direct procurement link is unknown, provide the main finance or administrative URL for that entity.
-2. Entity Resolution: If a user says "Bay Area," resolve this to the major constituent cities (San Francisco, Oakland, San Jose) and counties (Alameda, Santa Clara, etc.).
-3. Data Integrity: Ensure URLs are well-formed. Do not hallucinate URLs; if a specific link cannot be determined with >0.7 confidence, omit it or flag it clearly.
-4. Approval Workflow Reminder: Include a note in search_metadata that links are "Pending Review" and require verification via the ProcurementLinkVerifier component.
-5. Capital City Focus: When generating state-level links, prioritize the state capital's procurement office as this is the primary use case for the Government Link Hub.
-
-Remember: Respond ONLY with valid JSON. No markdown code blocks, no explanations, just the JSON object.`;
+// Model to use for procurement chat
+const PROCUREMENT_CHAT_MODEL = "gpt-5-mini";
 
 export const fetchProcurementLinks = action({
   args: { 
@@ -74,10 +27,14 @@ export const fetchProcurementLinks = action({
     });
     
     try {
+      // Fetch the primary system prompt from the database
+      const primaryPrompt = await ctx.runQuery(internal.procurementChatSystemPrompts.getPrimaryInternal, {});
+      const systemPromptText = primaryPrompt?.systemPromptText || DEFAULT_SYSTEM_PROMPT;
+      
       const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: PROCUREMENT_CHAT_MODEL,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPromptText },
           { role: "user", content: args.prompt }
         ],
         response_format: { type: "json_object" },
@@ -118,6 +75,8 @@ export const fetchAndSaveProcurementLinks = action({
     targetRegions: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    const startTime = Date.now();
+    
     try {
       // Get or create a thread ID for this session
       // First, check if the session has a threadId stored
@@ -187,6 +146,25 @@ export const fetchAndSaveProcurementLinks = action({
             sessionId: args.sessionId,
             content: summaryContent,
             responseData: parsed,
+          });
+
+          // Record analytics for successful response
+          const latencyMs = Date.now() - startTime;
+          // AI SDK uses inputTokens/outputTokens, fallback for safety
+          const usage = result.usage as { inputTokens?: number; outputTokens?: number; promptTokens?: number; completionTokens?: number } | undefined;
+          const requestTokens = usage?.inputTokens ?? usage?.promptTokens ?? 0;
+          const responseTokens = usage?.outputTokens ?? usage?.completionTokens ?? 0;
+          await ctx.runMutation(internal.procurementChatAnalytics.recordAnalytics, {
+            sessionId: args.sessionId,
+            userId: session.userId,
+            userPrompt: args.prompt,
+            assistantResponse: summaryContent,
+            model: PROCUREMENT_CHAT_MODEL,
+            provider: "openai",
+            requestTokens,
+            responseTokens,
+            latencyMs,
+            isError: false,
           });
 
           return parsed;
@@ -285,9 +263,29 @@ export const fetchAndSaveProcurementLinks = action({
         responseData: parsed,
       });
 
+      // Record analytics for successful response
+      const latencyMs = Date.now() - startTime;
+      // AI SDK uses inputTokens/outputTokens, fallback for safety
+      const usage = result.usage as { inputTokens?: number; outputTokens?: number; promptTokens?: number; completionTokens?: number } | undefined;
+      const requestTokens = usage?.inputTokens ?? usage?.promptTokens ?? 0;
+      const responseTokens = usage?.outputTokens ?? usage?.completionTokens ?? 0;
+      await ctx.runMutation(internal.procurementChatAnalytics.recordAnalytics, {
+        sessionId: args.sessionId,
+        userId: session.userId,
+        userPrompt: args.prompt,
+        assistantResponse: summaryContent,
+        model: PROCUREMENT_CHAT_MODEL,
+        provider: "openai",
+        requestTokens,
+        responseTokens,
+        latencyMs,
+        isError: false,
+      });
+
       return parsed;
     } catch (error) {
       console.error("Error in fetchAndSaveProcurementLinks:", error);
+      const latencyMs = Date.now() - startTime;
       const errorMessage = `Failed to fetch procurement links: ${error instanceof Error ? error.message : 'Unknown error'}`;
       
       // Save error message to session
@@ -296,6 +294,32 @@ export const fetchAndSaveProcurementLinks = action({
         content: errorMessage,
         isError: true,
       });
+
+      // Record error analytics
+      // Try to get session for userId
+      try {
+        const session = await ctx.runQuery(internal.procurementChatSessions.getSessionInternal, {
+          sessionId: args.sessionId,
+        });
+        
+        if (session) {
+          await ctx.runMutation(internal.procurementChatAnalytics.recordAnalytics, {
+            sessionId: args.sessionId,
+            userId: session.userId,
+            userPrompt: args.prompt,
+            assistantResponse: "",
+            model: PROCUREMENT_CHAT_MODEL,
+            provider: "openai",
+            requestTokens: 0,
+            responseTokens: 0,
+            latencyMs,
+            isError: true,
+            errorMessage: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      } catch (analyticsError) {
+        console.error("Failed to record error analytics:", analyticsError);
+      }
       
       throw new Error(errorMessage);
     }

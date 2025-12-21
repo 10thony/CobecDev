@@ -483,3 +483,66 @@ export const addPendingUrl = internalMutation({
   },
 });
 
+/**
+ * Import procurement links from AI chat response.
+ * This is used to export links from the chat component to the link verifier.
+ * Links are imported as "pending" status for human verification.
+ */
+export const importFromChatResponse = mutation({
+  args: {
+    links: v.array(v.object({
+      state: v.string(),
+      capital: v.string(),
+      official_website: v.string(),
+      procurement_link: v.string(),
+      entity_type: v.optional(v.string()),
+      link_type: v.optional(v.string()),
+      confidence_score: v.optional(v.number()),
+    })),
+    sessionId: v.optional(v.id("procurementChatSessions")),
+  },
+  returns: v.object({
+    imported: v.number(),
+    skipped: v.number(),
+    duplicates: v.array(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const importedAt = Date.now();
+    let imported = 0;
+    let skipped = 0;
+    const duplicates: string[] = [];
+
+    for (const link of args.links) {
+      // Check if this state + capital combination already exists
+      const existingByState = await ctx.db
+        .query("procurementUrls")
+        .withIndex("by_state", (q) => q.eq("state", link.state))
+        .collect();
+      
+      // Check for exact match (same state and capital)
+      const exactMatch = existingByState.find(
+        (existing) => existing.capital.toLowerCase() === link.capital.toLowerCase()
+      );
+
+      if (exactMatch) {
+        skipped++;
+        duplicates.push(`${link.state} - ${link.capital}`);
+        continue;
+      }
+
+      await ctx.db.insert("procurementUrls", {
+        state: link.state,
+        capital: link.capital,
+        officialWebsite: link.official_website,
+        procurementLink: link.procurement_link,
+        status: "pending",
+        importedAt,
+        sourceFile: args.sessionId ? `chat-export-${args.sessionId}` : "chat-export",
+      });
+      imported++;
+    }
+
+    return { imported, skipped, duplicates };
+  },
+});
+

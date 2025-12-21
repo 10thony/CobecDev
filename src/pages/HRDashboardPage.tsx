@@ -774,7 +774,11 @@ export function HRDashboardPage() {
                 </button>
               </nav>
             </div>
-            {procurementSubTab === 'chat' && <ProcurementChat />}
+            {procurementSubTab === 'chat' && (
+              <ProcurementChat 
+                onExportToVerifier={() => setProcurementSubTab('verifier')}
+              />
+            )}
             {procurementSubTab === 'verifier' && <ProcurementLinkVerifier />}
           </div>
         );

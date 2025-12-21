@@ -12,10 +12,12 @@ import {
   XCircle,
   AlertCircle,
   Copy,
-  Check
+  Check,
+  BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from "@clerk/clerk-react";
+import { ProcurementChatAnalytics } from '../components/admin/ProcurementChatAnalytics';
 
 export function AdminPanelPage() {
   const { userId: currentUserId } = useAuth();
@@ -23,6 +25,7 @@ export function AdminPanelPage() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [activeTab, setActiveTab] = useState<'users' | 'analytics'>('users');
 
   // Check if current user is admin
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
@@ -209,20 +212,57 @@ export function AdminPanelPage() {
                 <span>Admin Panel</span>
               </h1>
               <p className="mt-2 text-lg text-tron-gray">
-                Manage user roles and admin access
+                Manage user roles, admin access, and view analytics
               </p>
             </div>
+            {activeTab === 'users' && (
+              <button
+                onClick={loadClerkUsers}
+                disabled={isLoadingUsers}
+                className="flex items-center space-x-2 px-4 py-2 bg-tron-cyan/20 text-tron-white rounded-md hover:bg-tron-cyan/30 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoadingUsers ? 'animate-spin' : ''}`} />
+                <span>Refresh Users</span>
+              </button>
+            )}
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex items-center gap-2 border-b border-tron-cyan/20 mt-6">
             <button
-              onClick={loadClerkUsers}
-              disabled={isLoadingUsers}
-              className="flex items-center space-x-2 px-4 py-2 bg-tron-cyan/20 text-tron-white rounded-md hover:bg-tron-cyan/30 transition-colors disabled:opacity-50"
+              onClick={() => setActiveTab('users')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'users'
+                  ? 'text-tron-cyan border-b-2 border-tron-cyan'
+                  : 'text-tron-gray hover:text-tron-white'
+              }`}
             >
-              <RefreshCw className={`h-4 w-4 ${isLoadingUsers ? 'animate-spin' : ''}`} />
-              <span>Refresh Users</span>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                User Management
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'analytics'
+                  ? 'text-tron-cyan border-b-2 border-tron-cyan'
+                  : 'text-tron-gray hover:text-tron-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                AI Chat Analytics
+              </div>
             </button>
           </div>
         </div>
 
+        {/* Tab Content */}
+        {activeTab === 'analytics' ? (
+          <ProcurementChatAnalytics />
+        ) : (
+          <>
         {/* Add User by ID Section */}
         <div className="mb-6 bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6">
           <h2 className="text-xl font-semibold text-tron-white mb-4 flex items-center space-x-2">
@@ -422,6 +462,8 @@ export function AdminPanelPage() {
             </p>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
