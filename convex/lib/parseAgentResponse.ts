@@ -183,7 +183,6 @@ function extractCityFromUrl(url: string): string | null {
       'atlantagov': 'atlanta',
       'denver': 'denver',
       'denvergov': 'denver',
-      'denvergov': 'denver',
       'tallahassee': 'tallahassee',
       'columbia': 'columbia',
       'columbiasc': 'columbia',

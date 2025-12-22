@@ -503,7 +503,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
             <TronButton
               onClick={handleOpenPromptSettings}
               variant="outline"
-              color="purple"
+              color="cyan"
               size="sm"
               icon={<Settings className="w-3 h-3" />}
               className="w-full mt-2"
@@ -833,7 +833,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                     <TronButton
                       onClick={handleCancelPromptForm}
                       variant="outline"
-                      color="gray"
+                      color="cyan"
                       size="sm"
                     >
                       Cancel
@@ -897,7 +897,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                     <TronButton
                       onClick={handleCancelPromptForm}
                       variant="outline"
-                      color="gray"
+                      color="cyan"
                     >
                       Cancel
                     </TronButton>
