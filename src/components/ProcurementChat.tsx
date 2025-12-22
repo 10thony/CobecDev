@@ -467,9 +467,9 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full relative">
       {/* History Sidebar */}
-      <div className={`${showHistory ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden flex-shrink-0`}>
+      <div className={`${showHistory ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden flex-shrink-0 relative`}>
         <div className="h-full bg-tron-bg-card border-r border-tron-cyan/20 flex flex-col w-64">
           {/* Sidebar Header */}
           <div className="p-3 border-b border-tron-cyan/20">
@@ -557,20 +557,21 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
             )}
           </div>
         </div>
+        
+        {/* Toggle History Button - positioned relative to sidebar */}
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className={`absolute top-1/2 -translate-y-1/2 z-10 bg-tron-bg-card border border-tron-cyan/30 rounded-r-lg p-1 hover:bg-tron-cyan/10 transition-all ${
+            showHistory ? 'right-0 translate-x-full' : 'left-0'
+          }`}
+        >
+          {showHistory ? (
+            <ChevronLeft className="w-4 h-4 text-tron-cyan" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-tron-cyan" />
+          )}
+        </button>
       </div>
-      
-      {/* Toggle History Button */}
-      <button
-        onClick={() => setShowHistory(!showHistory)}
-        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-tron-bg-card border border-tron-cyan/30 rounded-r-lg p-1 hover:bg-tron-cyan/10 transition-colors"
-        style={{ left: showHistory ? '256px' : '0' }}
-      >
-        {showHistory ? (
-          <ChevronLeft className="w-4 h-4 text-tron-cyan" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-tron-cyan" />
-        )}
-      </button>
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">

@@ -125,6 +125,8 @@ export const generateAIResponse = internalAction({
         provider = "anthropic";
       } else if (args.modelId.startsWith("gemini-")) {
         provider = "google";
+      } else if (args.modelId.startsWith("google/") || args.modelId.startsWith("openrouter/")) {
+        provider = "openrouter";
       } else {
         provider = "huggingface"; // Default for other models
       }
@@ -155,6 +157,16 @@ export const generateAIResponse = internalAction({
             apiKey: args.apiKey
           });
           response = googleResponse.content;
+          break;
+        case "openrouter":
+          const openrouterResponse = await ctx.runAction(internal.nodeActions.sendOpenRouterMessage, {
+            messages: formattedMessages,
+            modelId: args.modelId,
+            apiKey: args.apiKey,
+            // Enable prompt caching for Gemini models
+            enablePromptCaching: args.modelId.includes("gemini"),
+          });
+          response = openrouterResponse.content;
           break;
         case "huggingface":
           response = `[Hugging Face - ${args.modelId}] I received your message. For now, this is a mock response.`;

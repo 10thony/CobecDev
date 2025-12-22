@@ -384,8 +384,8 @@ export function ProcurementChatAnalytics() {
                           </div>
                           <div>
                             <h4 className="text-sm font-medium text-tron-cyan mb-2">AI Response</h4>
-                            <div className="text-sm text-tron-white bg-tron-bg-card p-3 rounded border border-tron-cyan/10 max-h-48 overflow-y-auto">
-                              <pre className="whitespace-pre-wrap font-mono text-xs">
+                            <div className="text-sm text-tron-white bg-tron-bg-card p-3 rounded border border-tron-cyan/10 max-h-96 overflow-y-auto">
+                              <pre className="whitespace-pre-wrap font-mono text-xs break-words">
                                 {entry.assistantResponse || '(No response captured)'}
                               </pre>
                             </div>

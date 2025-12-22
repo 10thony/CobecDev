@@ -513,20 +513,23 @@ export const importFromChatResponse = mutation({
     const duplicates: string[] = [];
 
     for (const link of args.links) {
-      // Check if this state + capital combination already exists
-      const existingByState = await ctx.db
+      // Normalize URLs for comparison (remove trailing slashes, convert to lowercase)
+      const normalizeUrl = (url: string) => url.trim().toLowerCase().replace(/\/$/, '');
+      const normalizedProcurementLink = normalizeUrl(link.procurement_link);
+      
+      // Check if this exact procurement link URL already exists
+      // This allows state and city links for the same location to both be imported
+      const allUrls = await ctx.db
         .query("procurementUrls")
-        .withIndex("by_state", (q) => q.eq("state", link.state))
         .collect();
       
-      // Check for exact match (same state and capital)
-      const exactMatch = existingByState.find(
-        (existing) => existing.capital.toLowerCase() === link.capital.toLowerCase()
+      const exactUrlMatch = allUrls.find(
+        (existing) => normalizeUrl(existing.procurementLink) === normalizedProcurementLink
       );
 
-      if (exactMatch) {
+      if (exactUrlMatch) {
         skipped++;
-        duplicates.push(`${link.state} - ${link.capital}`);
+        duplicates.push(`${link.state} - ${link.capital} (${link.procurement_link})`);
         continue;
       }
 

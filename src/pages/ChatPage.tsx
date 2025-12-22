@@ -30,6 +30,10 @@ type DynamicModel = {
   id: string;
   name: string;
   description?: string;
+  pricing?: {
+    prompt: number;
+    completion: number;
+  };
 };
 
 type GroupedModels = {
@@ -254,6 +258,23 @@ export function ChatPage() {
           title: "Google AI Documentation",
           url: "https://ai.google.dev/docs/gemini_api_overview",
           description: "Learn about Google's Gemini API and models"
+        }
+      ],
+      openrouter: [
+        {
+          title: "Get OpenRouter API Key",
+          url: "https://openrouter.ai/keys",
+          description: "Create an API key to use OpenRouter models (including Google Gemini)"
+        },
+        {
+          title: "OpenRouter Documentation",
+          url: "https://openrouter.ai/docs",
+          description: "Learn about OpenRouter's unified API for multiple AI models"
+        },
+        {
+          title: "OpenRouter Models",
+          url: "https://openrouter.ai/models",
+          description: "Browse available models and pricing on OpenRouter"
         }
       ]
     },
@@ -513,6 +534,7 @@ export function ChatPage() {
                     <option value="anthropic">Anthropic</option>
                     <option value="openai">OpenAI</option>
                     <option value="google">Google</option>
+                    <option value="openrouter">OpenRouter</option>
                     <option value="huggingface">Hugging Face</option>
                   </select>
                 </div>
@@ -553,6 +575,13 @@ export function ChatPage() {
                         </option>
                       ))}
                     </select>
+                  )}
+                  {selectedModelId && dynamicModels[selectedProvider]?.find(m => m.id === selectedModelId)?.pricing && (
+                    <div className="mt-2 p-2 bg-mint-cream-800 rounded text-xs text-mint-cream-600">
+                      <p className="font-semibold">Pricing:</p>
+                      <p>Prompt: ${dynamicModels[selectedProvider].find(m => m.id === selectedModelId)?.pricing?.prompt.toFixed(6)} per 1k tokens</p>
+                      <p>Completion: ${dynamicModels[selectedProvider].find(m => m.id === selectedModelId)?.pricing?.completion.toFixed(6)} per 1k tokens</p>
+                    </div>
                   )}
                   {dynamicModels[selectedProvider] && dynamicModels[selectedProvider].length === 0 && !isLoadingModels && !modelError && (
                     <div className="text-sm text-mint-cream-700">

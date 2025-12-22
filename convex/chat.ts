@@ -48,6 +48,14 @@ export const sendMessageWithVectorSearch = action({
           });
           response = googleResponse.content;
           break;
+        case "openrouter":
+          const openrouterResponse = await ctx.runAction(internal.nodeActions.sendOpenRouterMessage, {
+            messages: [{ role: "user", content: args.message }],
+            modelId: args.modelId,
+            apiKey: process.env.OPENROUTER_API_KEY || ""
+          });
+          response = openrouterResponse.content;
+          break;
         default:
           response = "Sorry, I don't support this model provider yet.";
       }
@@ -70,6 +78,11 @@ export const fetchModelsForProvider = action({
     id: v.string(),
     name: v.string(),
     provider: v.string(),
+    description: v.optional(v.string()),
+    pricing: v.optional(v.object({
+      prompt: v.number(),
+      completion: v.number(),
+    })),
   })),
   handler: async (ctx, args) => {
     try {
@@ -84,6 +97,8 @@ export const fetchModelsForProvider = action({
           return await fetchGoogleModels(apiKey);
         case "huggingface":
           return await fetchHuggingFaceModels(apiKey);
+        case "openrouter":
+          return await fetchOpenRouterModels(apiKey);
         default:
           throw new Error(`Unsupported provider: ${provider}`);
       }
@@ -223,6 +238,55 @@ async function fetchHuggingFaceModels(apiKey: string) {
   }
 }
 
+// Helper function to fetch OpenRouter models
+async function fetchOpenRouterModels(apiKey: string) {
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/models", {
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const models = data.data || [];
+    
+    // Filter for Google Gemini models specifically (google/gemini-*)
+    // Also include other models if needed, but focus on Google models per spec
+    const googleModels = models
+      .filter((model: any) => model.id && model.id.startsWith("google/gemini-"))
+      .map((model: any) => {
+        // Extract pricing information if available
+        const pricing = model.pricing;
+        const promptPrice = pricing?.prompt || 0;
+        const completionPrice = pricing?.completion || 0;
+        
+        // Use clean model name (pricing shown separately in UI)
+        const name = model.name || model.id;
+        
+        return {
+          id: model.id,
+          name: name,
+          provider: "openrouter",
+          description: model.description || undefined,
+          pricing: pricing ? {
+            prompt: promptPrice,
+            completion: completionPrice,
+          } : undefined,
+        };
+      });
+    
+    return googleModels;
+  } catch (error) {
+    console.error("Error fetching OpenRouter models:", error);
+    throw error;
+  }
+}
+
 // Helper function to determine provider from model ID
 function getProviderFromModelId(modelId: string): string {
   if (modelId.startsWith("gpt-") || modelId.startsWith("o1-") || modelId.startsWith("o2-") || modelId.startsWith("o3-")) {
@@ -231,6 +295,8 @@ function getProviderFromModelId(modelId: string): string {
     return "anthropic";
   } else if (modelId.startsWith("gemini-")) {
     return "google";
+  } else if (modelId.startsWith("google/") || modelId.startsWith("openrouter/")) {
+    return "openrouter";
   } else {
     return "huggingface";
   }

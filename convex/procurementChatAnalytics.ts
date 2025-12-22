@@ -10,6 +10,7 @@ interface ModelPricing {
 const MODEL_PRICING: Record<string, Record<string, ModelPricing>> = {
   "openai": {
     "gpt-4o-mini": { input: 0.015, output: 0.060 }, // $0.15/1M in, $0.60/1M out
+    "gpt-5-mini": { input: 0.015, output: 0.060 }, // $0.15/1M in, $0.60/1M out (same as gpt-4o-mini)
     "gpt-4o": { input: 0.250, output: 1.000 }, // $2.50/1M in, $10/1M out
     "gpt-4-turbo": { input: 1.000, output: 3.000 }, // $10/1M in, $30/1M out
   },

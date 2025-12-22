@@ -308,6 +308,123 @@ export const sendGeminiMessageWithKey = internalAction({
   },
 });
 
+// OpenRouter message with API key (supports Google models and others via OpenRouter)
+export const sendOpenRouterMessage = internalAction({
+  args: {
+    messages: v.array(v.object({
+      role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
+      content: v.string(),
+    })),
+    modelId: v.string(),
+    apiKey: v.string(),
+    assistantPrefill: v.optional(v.string()), // For Google models via OpenRouter
+    enablePromptCaching: v.optional(v.boolean()), // For Gemini models
+    fallbackModels: v.optional(v.array(v.string())), // Fallback models if rate limited
+  },
+  returns: v.object({
+    content: v.string(),
+    modelUsed: v.string(),
+    tokensUsed: v.optional(v.number()),
+    finishReason: v.optional(v.string()),
+    totalCost: v.optional(v.number()),
+    latency: v.optional(v.number()),
+  }),
+  handler: async (ctx: any, args: any) => {
+    try {
+      const startTime = Date.now();
+      
+      // Determine if we should use :nitro (speed) or :floor (price) suffix for Google models
+      let modelId = args.modelId;
+      if (modelId.startsWith("google/")) {
+        // For now, use the model as-is. Can add :nitro or :floor suffix based on requirements
+        // modelId = `${modelId}:nitro`; // for speed
+        // modelId = `${modelId}:floor`; // for price
+      }
+
+      // Prepare request body
+      const requestBody: any = {
+        model: modelId,
+        messages: args.messages,
+      };
+
+      // Add assistant prefill for Google models if provided
+      if (args.assistantPrefill) {
+        requestBody.assistant_prefill = args.assistantPrefill;
+      }
+
+      // Add prompt caching for Gemini models if enabled
+      if (args.enablePromptCaching && modelId.includes("gemini")) {
+        requestBody.extra_body = {
+          ...requestBody.extra_body,
+          cached_content: true,
+        };
+      }
+
+      // Add fallback models if provided
+      if (args.fallbackModels && args.fallbackModels.length > 0) {
+        requestBody.extra_body = {
+          ...requestBody.extra_body,
+          fallbacks: args.fallbackModels,
+        };
+      }
+
+      // Get site URL and title from environment or use defaults
+      const siteUrl = process.env.SITE_URL || "https://your-app-url.com";
+      const siteTitle = process.env.SITE_TITLE || "My AI Assistant";
+
+      // Make request to OpenRouter
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${args.apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": siteUrl,
+          "X-Title": siteTitle,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract response content
+      const content = data.choices?.[0]?.message?.content || "";
+      const modelUsed = data.model || modelId;
+      const finishReason = data.choices?.[0]?.finish_reason;
+      
+      // Extract usage information
+      const usage = data.usage;
+      const tokensUsed = usage?.total_tokens;
+      
+      // Calculate cost if pricing information is available
+      let totalCost: number | undefined;
+      if (usage?.prompt_tokens && usage?.completion_tokens) {
+        // Note: Actual cost calculation would require pricing data from OpenRouter
+        // This is a placeholder - in production, you'd fetch pricing from OpenRouter's model list
+        totalCost = undefined; // Will be calculated based on model pricing
+      }
+
+      const latency = Date.now() - startTime;
+
+      return {
+        content,
+        modelUsed,
+        tokensUsed,
+        finishReason,
+        totalCost,
+        latency,
+      };
+    } catch (error) {
+      console.error('Error in OpenRouter message:', error);
+      throw new Error(`API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  },
+});
+
 // Generate embeddings for text
 export const generateEmbeddings = internalAction({
   args: {

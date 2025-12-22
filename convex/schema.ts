@@ -53,6 +53,10 @@ const applicationTables = {
     createdAt: v.number(), // Track when chat was created
     updatedAt: v.number(), // Track when chat was last updated
     lastMessageAt: v.optional(v.number()), // Track when last message was sent
+    openrouterMetadata: v.optional(v.object({
+      totalCost: v.number(),
+      latency: v.number(),
+    })), // OpenRouter-specific metadata for cost and latency tracking
   }).index("by_user", ["userId"])
     .index("by_user_archived", ["userId", "isArchived"])
     .index("by_last_message", ["lastMessageAt"]), // For sorting by recent activity

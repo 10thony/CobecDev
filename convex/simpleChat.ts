@@ -3,7 +3,7 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { simpleChatAgent } from "./simpleChatAgent";
+import { createSimpleChatAgent, getPrimarySystemPrompt } from "./simpleChatAgent";
 import { parseAgentResponse } from "./lib/parseAgentResponse";
 
 // Simple synchronous chat - MVP version
@@ -25,6 +25,12 @@ export const sendMessage = action({
     }
     
     try {
+      // Get the primary system prompt from the database
+      const systemPrompt = await getPrimarySystemPrompt(ctx);
+      
+      // Create agent with the fetched prompt
+      const simpleChatAgent = createSimpleChatAgent(systemPrompt);
+      
       // Create a new thread for each message (stateless for MVP)
       const { threadId } = await simpleChatAgent.createThread(ctx);
       
@@ -40,10 +46,32 @@ export const sendMessage = action({
       // Parse the response to extract structured procurement link data
       const parsed = parseAgentResponse(rawText);
       
+      // If textContent is empty but we have structured data, create a summary message
+      // This happens when the AI response is purely JSON (common for structured responses)
+      let displayContent = parsed.textContent;
+      let analyticsContent = parsed.textContent;
+      
+      if (!displayContent.trim() && parsed.hasStructuredData && parsed.responseData) {
+        const linkCount = parsed.responseData.procurement_links?.length || 0;
+        const regions = parsed.responseData.search_metadata?.target_regions?.join(', ') || 'requested regions';
+        displayContent = `Found ${linkCount} procurement link${linkCount !== 1 ? 's' : ''} for ${regions}.`;
+        // For analytics, include the raw text so we can see what GPT actually returned
+        analyticsContent = rawText.length > 5000 ? rawText.substring(0, 5000) + '...' : rawText;
+      } else if (!displayContent.trim()) {
+        // Fallback: use raw text if parsing resulted in empty content
+        displayContent = rawText.length > 1000 ? rawText.substring(0, 1000) + '...' : rawText;
+        analyticsContent = rawText.length > 5000 ? rawText.substring(0, 5000) + '...' : rawText;
+      } else {
+        // Use parsed content, but for analytics include full raw text if different
+        analyticsContent = parsed.textContent !== rawText 
+          ? `${parsed.textContent}\n\n[Full response: ${rawText.length > 4000 ? rawText.substring(0, 4000) + '...' : rawText}]`
+          : parsed.textContent;
+      }
+      
       // Save the assistant response with parsed structured data
       await ctx.runMutation(internal.procurementChatMessages.addAssistantMessageInternal, {
         sessionId: args.sessionId,
-        content: parsed.textContent,
+        content: displayContent,
         responseData: parsed.responseData,
         isError: false,
       });
@@ -59,8 +87,8 @@ export const sendMessage = action({
         sessionId: args.sessionId,
         userId: session.userId,
         userPrompt: args.prompt,
-        assistantResponse: parsed.textContent,
-        model: "gpt-4o-mini", // From simpleChatAgent config
+        assistantResponse: analyticsContent,
+        model: "gpt-5-mini", // From simpleChatAgent config
         provider: "openai",
         requestTokens,
         responseTokens,
@@ -70,7 +98,7 @@ export const sendMessage = action({
       
       return { 
         success: true, 
-        response: parsed.textContent,
+        response: displayContent,
         hasStructuredData: parsed.hasStructuredData,
         linksCount: parsed.responseData?.procurement_links?.length || 0,
       };
@@ -93,7 +121,7 @@ export const sendMessage = action({
           userId: session.userId,
           userPrompt: args.prompt,
           assistantResponse: "",
-          model: "gpt-4o-mini",
+          model: "gpt-5-mini",
           provider: "openai",
           requestTokens: 0,
           responseTokens: 0,
