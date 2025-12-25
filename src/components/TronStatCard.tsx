@@ -8,6 +8,8 @@ interface TronStatCardProps {
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   color?: 'cyan' | 'blue' | 'orange' | 'green';
+  onClick?: () => void;
+  isActive?: boolean;
 }
 
 export function TronStatCard({
@@ -17,7 +19,9 @@ export function TronStatCard({
   icon,
   trend,
   trendValue,
-  color = 'cyan'
+  color = 'cyan',
+  onClick,
+  isActive = false
 }: TronStatCardProps) {
   const colors = {
     cyan: { accent: '#00d4ff', glow: 'rgba(0, 212, 255, 0.15)' },
@@ -28,8 +32,13 @@ export function TronStatCard({
 
   return (
     <div 
-      className="tron-stat-card group hover:border-opacity-40 transition-all duration-300"
+      className={`tron-stat-card group transition-all duration-300 ${
+        onClick ? 'cursor-pointer hover:scale-105' : ''
+      } ${
+        isActive ? 'ring-2 ring-tron-cyan ring-offset-2 border-opacity-100' : 'hover:border-opacity-40'
+      }`}
       style={{ borderColor: colors[color].accent }}
+      onClick={onClick}
     >
       {/* Gradient overlay */}
       <div 

@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { 
@@ -21,7 +21,14 @@ import {
   Link2,
   Plus,
   UserCheck,
-  UserX
+  UserX,
+  Bot,
+  Loader2,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  GripVertical
 } from 'lucide-react';
 import { TronPanel } from './TronPanel';
 import { TronButton } from './TronButton';
@@ -107,6 +114,107 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   const [editingId, setEditingId] = useState<Id<"procurementUrls"> | null>(null);
   const [correctedLink, setCorrectedLink] = useState('');
   const [requiresRegistration, setRequiresRegistration] = useState<Record<string, boolean>>({});
+  // Track which links have been modified (edited)
+  const [modifiedLinks, setModifiedLinks] = useState<Set<Id<"procurementUrls">>>(new Set());
+  
+  // Track which sections are collapsed
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    stats: false,
+    import: false,
+    manualEntry: false,
+    aiAgent: false,
+    links: false,
+  });
+
+  // Default section order (filter section is now merged into stats)
+  const defaultSectionOrder = ['stats', 'import', 'manualEntry', 'aiAgent', 'links'];
+  
+  // Load section order from localStorage
+  const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('procurementLinkVerifier_sectionOrder');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Filter out 'filter' section if it exists (merged into stats)
+        const filtered = parsed.filter((s: string) => s !== 'filter');
+        // Ensure all sections are present
+        const allSections = [...new Set([...filtered, ...defaultSectionOrder])];
+        return allSections.filter(s => defaultSectionOrder.includes(s));
+      } catch {
+        return defaultSectionOrder;
+      }
+    }
+    return defaultSectionOrder;
+  });
+
+  // Save section order to localStorage
+  useEffect(() => {
+    localStorage.setItem('procurementLinkVerifier_sectionOrder', JSON.stringify(sectionOrder));
+  }, [sectionOrder]);
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  // Drag and drop handlers
+  const [draggedSection, setDraggedSection] = useState<string | null>(null);
+  const [dragOverSection, setDragOverSection] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, sectionId: string) => {
+    setDraggedSection(sectionId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', sectionId);
+    // Add visual feedback
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setDraggedSection(null);
+    setDragOverSection(null);
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, sectionId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedSection && draggedSection !== sectionId) {
+      setDragOverSection(sectionId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverSection(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetSectionId: string) => {
+    e.preventDefault();
+    setDragOverSection(null);
+
+    if (!draggedSection || draggedSection === targetSectionId) {
+      return;
+    }
+
+    const newOrder = [...sectionOrder];
+    const draggedIndex = newOrder.indexOf(draggedSection);
+    const targetIndex = newOrder.indexOf(targetSectionId);
+
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      // Remove dragged section from its current position
+      newOrder.splice(draggedIndex, 1);
+      // Insert at target position
+      newOrder.splice(targetIndex, 0, draggedSection);
+      setSectionOrder(newOrder);
+    }
+
+    setDraggedSection(null);
+  };
 
   // State for manual link entry form
   const [showManualForm, setShowManualForm] = useState(false);
@@ -135,6 +243,16 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   const clearAll = useMutation(api.procurementUrls.clearAll);
   const updateLink = useMutation(api.procurementUrls.update);
   const addManual = useMutation(api.procurementUrls.addManual);
+  
+  // AI Agent Actions
+  const triggerAiVerification = useAction(api.agent.procurementVerifier.triggerVerification);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<{
+    processed: number;
+    approved: number;
+    denied: number;
+    errors: number;
+  } | null>(null);
 
   // Filter URLs based on status
   const filteredUrls = allUrls?.filter((url) => {
@@ -217,18 +335,18 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(false);
     handleFileSelect(e.dataTransfer.files);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleFileDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(true);
   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleFileDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(false);
   };
@@ -250,6 +368,8 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
         if (originalUrl && correctedLink.trim() !== originalUrl.procurementLink) {
           // Save the corrected link before approving
           await updateLink({ id, procurementLink: correctedLink.trim() });
+          // Mark as modified if link changed
+          setModifiedLinks(prev => new Set(prev).add(id));
         }
       }
       
@@ -264,6 +384,12 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
         setEditingId(null);
         setCorrectedLink('');
       }
+      // Clear modified status after approval
+      setModifiedLinks(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       // Clear registration requirement state for this link
       setRequiresRegistration(prev => {
         const next = { ...prev };
@@ -309,7 +435,13 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
       return;
     }
     try {
-      await updateLink({ id, procurementLink: correctedLink.trim() });
+      // Check if the link actually changed
+      const originalUrl = allUrls?.find(url => url._id === id);
+      if (originalUrl && correctedLink.trim() !== originalUrl.procurementLink) {
+        await updateLink({ id, procurementLink: correctedLink.trim() });
+        // Mark this link as modified
+        setModifiedLinks(prev => new Set(prev).add(id));
+      }
       setEditingId(null);
       setCorrectedLink('');
     } catch (err) {
@@ -320,14 +452,46 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   const handleReset = async (id: Id<"procurementUrls">) => {
     try {
       await resetToPending({ id });
+      // Clear modified status when resetting
+      setModifiedLinks(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch (err) {
       console.error('Error resetting URL:', err);
+    }
+  };
+
+  const handleManualApprove = async (id: Id<"procurementUrls">) => {
+    try {
+      // Manually approve the link (this will clear AI decision)
+      await approve({ id });
+      // Clear modified status after approval
+      setModifiedLinks(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      // Clear editing state if this was being edited
+      if (editingId === id) {
+        setEditingId(null);
+        setCorrectedLink('');
+      }
+    } catch (err) {
+      console.error('Error manually approving URL:', err);
     }
   };
 
   const handleRemove = async (id: Id<"procurementUrls">) => {
     try {
       await remove({ id });
+      // Clear modified status when removed
+      setModifiedLinks(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch (err) {
       console.error('Error removing URL:', err);
     }
@@ -416,6 +580,31 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
     }
   };
 
+  const [expandedAiReasoning, setExpandedAiReasoning] = useState<Record<string, boolean>>({});
+
+  const toggleAiReasoning = (id: string) => {
+    setExpandedAiReasoning(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const formatTimestamp = (timestamp?: number) => {
+    if (!timestamp) return null;
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
   const getStatusBadge = (status: 'pending' | 'approved' | 'denied') => {
     switch (status) {
       case 'approved':
@@ -442,41 +631,264 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
     }
   };
 
+  const getAiReviewStatusBadge = (status?: 'idle' | 'processing' | 'completed' | 'failed') => {
+    if (!status) return null;
+    
+    switch (status) {
+      case 'processing':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            AI Processing
+          </span>
+        );
+      case 'completed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-neon-success/20 text-neon-success border border-neon-success/30">
+            <Bot className="w-3 h-3" />
+            AI Reviewed
+          </span>
+        );
+      case 'failed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-neon-error/20 text-neon-error border border-neon-error/30">
+            <AlertTriangle className="w-3 h-3" />
+            AI Failed
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-tron-gray/20 text-tron-gray border border-tron-gray/30">
+            <Clock className="w-3 h-3" />
+            AI Pending
+          </span>
+        );
+    }
+  };
+
+  const getAiDecisionBadge = (decision?: 'approve' | 'deny') => {
+    if (!decision) return null;
+    
+    if (decision === 'approve') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-neon-success/20 text-neon-success border border-neon-success/30">
+          <CheckCircle className="w-3 h-3" />
+          AI Approved
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-neon-error/20 text-neon-error border border-neon-error/30">
+          <XCircle className="w-3 h-3" />
+          AI Denied
+        </span>
+      );
+    }
+  };
+
+  // Helper function to wrap section with drag and drop
+  const wrapDraggableSection = (sectionId: string, content: React.ReactNode) => {
+    return (
+      <div
+        key={sectionId}
+        draggable
+        onDragStart={(e) => handleDragStart(e, sectionId)}
+        onDragEnd={handleDragEnd}
+        onDragOver={(e) => handleDragOver(e, sectionId)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, sectionId)}
+        className={`relative transition-all duration-200 ${
+          draggedSection === sectionId 
+            ? 'opacity-50 scale-95' 
+            : dragOverSection === sectionId 
+            ? 'ring-2 ring-tron-cyan ring-offset-2 scale-[1.02]' 
+            : ''
+        }`}
+        style={{
+          cursor: draggedSection === sectionId ? 'grabbing' : 'grab'
+        }}
+      >
+        {content}
+      </div>
+    );
+  };
+
+  // Helper to add drag handle to header action
+  const addDragHandle = (sectionId: string, existingAction: React.ReactNode) => {
+    return (
+      <div className="flex items-center gap-2">
+        <div
+          className="p-1.5 text-tron-gray hover:text-tron-cyan transition-colors cursor-grab active:cursor-grabbing touch-none"
+          title="Drag to reorder sections"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-5 h-5" />
+        </div>
+        {existingAction}
+      </div>
+    );
+  };
+
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <TronStatCard
-            title="Total Links"
-            value={stats.total}
-            icon={<Globe className="w-6 h-6" />}
-            color="cyan"
-          />
-          <TronStatCard
-            title="Pending"
-            value={stats.pending}
-            icon={<AlertTriangle className="w-6 h-6" />}
-            color="orange"
-          />
-          <TronStatCard
-            title="Approved"
-            value={stats.approved}
-            icon={<CheckCircle className="w-6 h-6" />}
-            color="cyan"
-          />
-          <TronStatCard
-            title="Denied"
-            value={stats.denied}
-            icon={<XCircle className="w-6 h-6" />}
-            color="orange"
-          />
-        </div>
-      )}
+      {sectionOrder.map((sectionId) => {
+        if (sectionId === 'stats' && stats && allUrls) {
+          return wrapDraggableSection('stats', (
+            <TronPanel 
+              title="Statistics" 
+              icon={<Globe className="w-5 h-5" />} 
+              glowColor="cyan"
+              headerAction={addDragHandle('stats', (
+                <button
+                  onClick={() => toggleSection('stats')}
+                  className="p-1 text-tron-cyan hover:text-tron-cyan-bright transition-colors"
+                >
+                  {collapsedSections.stats ? (
+                    <ChevronDown className="w-5 h-5" />
+                  ) : (
+                    <ChevronUp className="w-5 h-5" />
+                  )}
+                </button>
+              ))}
+            >
+          {!collapsedSections.stats && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
+                <TronStatCard
+                  title="Total Links"
+                  value={stats.total}
+                  icon={<Globe className="w-6 h-6" />}
+                  color="cyan"
+                  onClick={() => setStatusFilter('all')}
+                  isActive={statusFilter === 'all'}
+                />
+                <TronStatCard
+                  title="Pending"
+                  value={stats.pending}
+                  icon={<AlertTriangle className="w-6 h-6" />}
+                  color="orange"
+                  onClick={() => setStatusFilter('pending')}
+                  isActive={statusFilter === 'pending'}
+                />
+                <TronStatCard
+                  title="Approved"
+                  value={stats.approved}
+                  icon={<CheckCircle className="w-6 h-6" />}
+                  color="cyan"
+                  onClick={() => setStatusFilter('approved')}
+                  isActive={statusFilter === 'approved'}
+                />
+                <TronStatCard
+                  title="Denied"
+                  value={stats.denied}
+                  icon={<XCircle className="w-6 h-6" />}
+                  color="orange"
+                  onClick={() => setStatusFilter('denied')}
+                  isActive={statusFilter === 'denied'}
+                />
+                <TronStatCard
+                  title="AI Verified"
+                  value={allUrls.filter(u => u.verifiedBy === 'GPT-5-Mini-Agent').length}
+                  icon={<Bot className="w-6 h-6" />}
+                  color="cyan"
+                />
+              </div>
+              
+              {/* Filter Actions and AI Review Status */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-tron-cyan/10">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter className="w-4 h-4 text-tron-gray" />
+                  <span className="text-sm text-tron-gray">Quick Filter:</span>
+                  <div className="flex gap-1 flex-wrap">
+                    {(['all', 'pending', 'approved', 'denied'] as StatusFilter[]).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setStatusFilter(filter)}
+                        className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                          statusFilter === filter
+                            ? 'bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30'
+                            : 'text-tron-gray hover:text-tron-white hover:bg-tron-bg-elevated'
+                        }`}
+                      >
+                        {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                        {filter === 'all' && stats && ` (${stats.total})`}
+                        {filter === 'pending' && stats && ` (${stats.pending})`}
+                        {filter === 'approved' && stats && ` (${stats.approved})`}
+                        {filter === 'denied' && stats && ` (${stats.denied})`}
+                      </button>
+                    ))}
+                  </div>
+                  {/* AI Review Status Info */}
+                  {allUrls && (
+                    <div className="flex items-center gap-2 text-xs text-tron-gray ml-2">
+                      <Bot className="w-3.5 h-3.5" />
+                      <span>
+                        AI Reviewed: {allUrls.filter(u => u.aiReviewStatus === 'completed').length} / {allUrls.filter(u => {
+                          // Only count pending links that need AI review
+                          if (u.status !== 'pending') return false;
+                          return !u.aiReviewStatus || 
+                                 u.aiReviewStatus === 'idle' || 
+                                 u.aiReviewStatus === 'failed' || 
+                                 u.aiReviewStatus === 'processing';
+                        }).length} pending
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-      {/* Import Section */}
-      <TronPanel title="Import Procurement Links" icon={<Upload className="w-5 h-5" />} glowColor="cyan">
-        {error && (
+                <div className="flex gap-2">
+                  {stats && stats.pending > 0 && (
+                    <TronButton
+                      onClick={handleApproveAll}
+                      variant="outline"
+                      color="cyan"
+                      size="sm"
+                      icon={<CheckCheck className="w-4 h-4" />}
+                    >
+                      Approve All Pending
+                    </TronButton>
+                  )}
+                  {stats && stats.total > 0 && (
+                    <TronButton
+                      onClick={handleClearAll}
+                      variant="outline"
+                      color="orange"
+                      size="sm"
+                      icon={<Trash2 className="w-4 h-4" />}
+                    >
+                      Clear All
+                    </TronButton>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </TronPanel>
+          ));
+        }
+        
+        if (sectionId === 'import') {
+          return wrapDraggableSection('import', (
+            <TronPanel 
+              title="Import Procurement Links" 
+              icon={<Upload className="w-5 h-5" />} 
+              glowColor="cyan"
+              headerAction={addDragHandle('import', (
+                <button
+                  onClick={() => toggleSection('import')}
+                  className="p-1 text-tron-cyan hover:text-tron-cyan-bright transition-colors"
+                >
+                  {collapsedSections.import ? (
+                    <ChevronDown className="w-5 h-5" />
+                  ) : (
+                    <ChevronUp className="w-5 h-5" />
+                  )}
+                </button>
+              ))}
+            >
+        {!collapsedSections.import && (
+          <>
+            {error && (
           <div className="mb-4 bg-neon-error/20 p-4 rounded-lg border border-neon-error">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-neon-error mt-0.5 flex-shrink-0" />
@@ -515,9 +927,9 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
                 ? 'border-tron-cyan bg-tron-bg-card'
                 : 'border-tron-cyan/20 hover:border-tron-cyan'
             }`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
+            onDrop={handleFileDrop}
+            onDragOver={handleFileDragOver}
+            onDragLeave={handleFileDragLeave}
             onClick={openFileDialog}
           >
             <input
@@ -538,29 +950,48 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
             </div>
           </div>
 )}
-        </TronPanel>
-
-      {/* Manual Entry Section */}
-      <TronPanel 
-        title="Add Link Manually" 
-        icon={<Plus className="w-5 h-5" />} 
-        glowColor="cyan"
-        headerAction={
-          <TronButton
-            onClick={() => setShowManualForm(!showManualForm)}
-            variant="outline"
-            color="cyan"
-            size="sm"
-          >
-            {showManualForm ? 'Hide Form' : 'Show Form'}
-          </TronButton>
+          </>
+        )}
+      </TronPanel>
+          ));
         }
-      >
-        <p className="text-sm text-tron-gray mb-4">
-          Manually add procurement links that you've verified yourself. These links are automatically approved.
-        </p>
+        
+        if (sectionId === 'manualEntry') {
+          return wrapDraggableSection('manualEntry', (
+            <TronPanel 
+              title="Add Link Manually" 
+              icon={<Plus className="w-5 h-5" />} 
+              glowColor="cyan"
+              headerAction={addDragHandle('manualEntry', (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleSection('manualEntry')}
+                    className="p-1 text-tron-cyan hover:text-tron-cyan-bright transition-colors"
+                  >
+                    {collapsedSections.manualEntry ? (
+                      <ChevronDown className="w-5 h-5" />
+                    ) : (
+                      <ChevronUp className="w-5 h-5" />
+                    )}
+                  </button>
+                  <TronButton
+                    onClick={() => setShowManualForm(!showManualForm)}
+                    variant="outline"
+                    color="cyan"
+                    size="sm"
+                  >
+                    {showManualForm ? 'Hide Form' : 'Show Form'}
+                  </TronButton>
+                </div>
+              ))}
+            >
+        {!collapsedSections.manualEntry && (
+          <>
+            <p className="text-sm text-tron-gray mb-4">
+              Manually add procurement links that you've verified yourself. These links are automatically approved.
+            </p>
 
-        {showManualForm && (
+            {showManualForm && (
           <form onSubmit={handleManualSubmit} className="space-y-4">
             {manualFormError && (
               <div className="bg-neon-error/20 p-3 rounded-lg border border-neon-error flex items-start gap-2">
@@ -720,64 +1151,134 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
             </TronButton>
           </div>
         )}
+          </>
+        )}
       </TronPanel>
-
-      {/* Filter and Actions */}
-      <TronPanel glowColor="cyan">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-tron-gray" />
-            <span className="text-sm text-tron-gray">Filter:</span>
-            <div className="flex gap-1">
-              {(['all', 'pending', 'approved', 'denied'] as StatusFilter[]).map((filter) => (
+          ));
+        }
+        
+        if (sectionId === 'aiAgent') {
+          return wrapDraggableSection('aiAgent', (
+            <TronPanel 
+              title="AI Procurement Verifier Agent" 
+              icon={<Bot className="w-5 h-5" />} 
+              glowColor="cyan"
+              headerAction={addDragHandle('aiAgent', (
                 <button
-                  key={filter}
-                  onClick={() => setStatusFilter(filter)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                    statusFilter === filter
-                      ? 'bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30'
-                      : 'text-tron-gray hover:text-tron-white hover:bg-tron-bg-elevated'
-                  }`}
+                  onClick={() => toggleSection('aiAgent')}
+                  className="p-1 text-tron-cyan hover:text-tron-cyan-bright transition-colors"
                 >
-                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  {filter === 'all' && stats && ` (${stats.total})`}
-                  {filter === 'pending' && stats && ` (${stats.pending})`}
-                  {filter === 'approved' && stats && ` (${stats.approved})`}
-                  {filter === 'denied' && stats && ` (${stats.denied})`}
+                  {collapsedSections.aiAgent ? (
+                    <ChevronDown className="w-5 h-5" />
+                  ) : (
+                    <ChevronUp className="w-5 h-5" />
+                  )}
                 </button>
               ))}
+            >
+        {!collapsedSections.aiAgent && (
+          <div className="space-y-4">
+          <p className="text-sm text-tron-gray">
+            The AI agent automatically verifies procurement links using GPT-5-Mini and headless browser automation.
+            It runs every 15 minutes via cron, but you can trigger it manually here.
+          </p>
+          
+          {verificationResult && (
+            <div className="bg-tron-bg-elevated p-4 rounded-lg border border-tron-cyan/20">
+              <h4 className="text-sm font-medium text-tron-cyan mb-2">Last Verification Results</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="text-tron-gray">Processed:</span>
+                  <span className="ml-2 text-tron-white font-medium">{verificationResult.processed}</span>
+                </div>
+                <div>
+                  <span className="text-tron-gray">Approved:</span>
+                  <span className="ml-2 text-neon-success font-medium">{verificationResult.approved}</span>
+                </div>
+                <div>
+                  <span className="text-tron-gray">Denied:</span>
+                  <span className="ml-2 text-neon-error font-medium">{verificationResult.denied}</span>
+                </div>
+                <div>
+                  <span className="text-tron-gray">Errors:</span>
+                  <span className="ml-2 text-neon-warning font-medium">{verificationResult.errors}</span>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="flex gap-2">
-            {stats && stats.pending > 0 && (
-              <TronButton
-                onClick={handleApproveAll}
-                variant="outline"
-                color="cyan"
-                size="sm"
-                icon={<CheckCheck className="w-4 h-4" />}
-              >
-                Approve All Pending
-              </TronButton>
-            )}
-            {stats && stats.total > 0 && (
-              <TronButton
-                onClick={handleClearAll}
-                variant="outline"
-                color="orange"
-                size="sm"
-                icon={<Trash2 className="w-4 h-4" />}
-              >
-                Clear All
-              </TronButton>
+          <div className="flex items-center gap-3">
+            <TronButton
+              onClick={async () => {
+                setIsVerifying(true);
+                setVerificationResult(null);
+                try {
+                  const result = await triggerAiVerification({ batchSize: 10 });
+                  setVerificationResult(result);
+                } catch (error) {
+                  console.error('Error triggering AI verification:', error);
+                  setError(error instanceof Error ? error.message : 'Failed to trigger AI verification');
+                } finally {
+                  setIsVerifying(false);
+                }
+              }}
+              variant="primary"
+              color="cyan"
+              disabled={isVerifying}
+              icon={isVerifying ? undefined : <Bot className="w-4 h-4" />}
+            >
+              {isVerifying ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  Verifying Links...
+                </>
+              ) : (
+                'Start AI Verification'
+              )}
+            </TronButton>
+            
+            {allUrls && (
+              <div className="text-xs text-tron-gray">
+                {allUrls.filter(u => {
+                  // Only count pending links that need AI review
+                  if (u.status !== 'pending') return false;
+                  // Count if: never processed, idle, failed, or currently processing
+                  return !u.aiReviewStatus || 
+                         u.aiReviewStatus === 'idle' || 
+                         u.aiReviewStatus === 'failed' || 
+                         u.aiReviewStatus === 'processing';
+                }).length} links pending AI review
+              </div>
             )}
           </div>
-        </div>
+          </div>
+        )}
       </TronPanel>
-
-      {/* Links Grid */}
-      {filteredUrls.length > 0 ? (
+          ));
+        }
+        
+        if (sectionId === 'links') {
+          return wrapDraggableSection('links', (
+            <TronPanel 
+              title="Procurement Links" 
+              icon={<Link2 className="w-5 h-5" />} 
+              glowColor="cyan"
+              headerAction={addDragHandle('links', (
+                <button
+                  onClick={() => toggleSection('links')}
+                  className="p-1 text-tron-cyan hover:text-tron-cyan-bright transition-colors"
+                >
+                  {collapsedSections.links ? (
+                    <ChevronDown className="w-5 h-5" />
+                  ) : (
+                    <ChevronUp className="w-5 h-5" />
+                  )}
+                </button>
+              ))}
+            >
+        {!collapsedSections.links && (
+          <>
+            {filteredUrls.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredUrls.map((url) => (
             <div
@@ -806,6 +1307,55 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
                   )}
                 </div>
               </div>
+
+              {/* AI Verification Section */}
+              {(url.verifiedBy === 'GPT-5-Mini-Agent' || url.aiReviewStatus || url.aiDecision) && (
+                <div className="mb-3 pt-2 border-t border-tron-cyan/10">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {url.verifiedBy === 'GPT-5-Mini-Agent' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30">
+                          <Bot className="w-3 h-3" />
+                          Verified by AI
+                        </span>
+                      )}
+                      {getAiReviewStatusBadge(url.aiReviewStatus)}
+                      {getAiDecisionBadge(url.aiDecision)}
+                    </div>
+                    {url.lastAgentAttempt && (
+                      <span className="text-xs text-tron-gray flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatTimestamp(url.lastAgentAttempt)}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* AI Reasoning */}
+                  {url.aiReasoning && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => toggleAiReasoning(url._id)}
+                        className="w-full flex items-center justify-between text-xs text-tron-cyan hover:text-tron-cyan-bright transition-colors p-1.5 rounded hover:bg-tron-bg-elevated"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Info className="w-3.5 h-3.5" />
+                          AI Reasoning
+                        </span>
+                        {expandedAiReasoning[url._id] ? (
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      {expandedAiReasoning[url._id] && (
+                        <div className="mt-2 p-2.5 bg-tron-bg-deep border border-tron-cyan/20 rounded text-xs text-tron-gray leading-relaxed">
+                          {url.aiReasoning}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Links */}
               <div className="space-y-2 mb-4">
@@ -958,16 +1508,18 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
                 )}
                 {url.status !== 'pending' && (
                   <>
-                    <TronButton
-                      onClick={() => handleReset(url._id)}
-                      variant="outline"
-                      color="cyan"
-                      size="sm"
-                      className="flex-1"
-                      icon={<RotateCcw className="w-4 h-4" />}
-                    >
-                      Reset
-                    </TronButton>
+                    {modifiedLinks.has(url._id) && (
+                      <TronButton
+                        onClick={() => handleManualApprove(url._id)}
+                        variant="primary"
+                        color="cyan"
+                        size="sm"
+                        className="flex-1"
+                        icon={<CheckCircle className="w-4 h-4" />}
+                      >
+                        Manually Approve
+                      </TronButton>
+                    )}
                     <TronButton
                       onClick={() => handleRemove(url._id)}
                       variant="outline"
@@ -982,20 +1534,26 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
           ))}
         </div>
       ) : (
-        <TronPanel glowColor="cyan">
-          <div className="text-center py-12">
-            <Globe className="w-16 h-16 text-tron-gray mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-tron-white mb-2">
-              {statusFilter === 'all' ? 'No Procurement Links' : `No ${statusFilter} Links`}
-            </h3>
-            <p className="text-tron-gray max-w-md mx-auto">
-              {statusFilter === 'all'
-                ? 'Import a JSON file with procurement links to get started.'
-                : `No links with status "${statusFilter}" found. Try a different filter or import more links.`}
-            </p>
-          </div>
-        </TronPanel>
+        <div className="text-center py-12">
+          <Globe className="w-16 h-16 text-tron-gray mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-tron-white mb-2">
+            {statusFilter === 'all' ? 'No Procurement Links' : `No ${statusFilter} Links`}
+          </h3>
+          <p className="text-tron-gray max-w-md mx-auto">
+            {statusFilter === 'all'
+              ? 'Import a JSON file with procurement links to get started.'
+              : `No links with status "${statusFilter}" found. Try a different filter or import more links.`}
+          </p>
+        </div>
       )}
+          </>
+        )}
+      </TronPanel>
+          ));
+        }
+        
+        return null;
+      })}
     </div>
   );
 }

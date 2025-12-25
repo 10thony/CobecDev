@@ -1,0 +1,94 @@
+{
+    "us_state_capitals_procurement": [
+    {
+    "state": "New York",
+    "capital": "New York City",
+    "official_website": "https://www.nyc.gov",
+    "procurement_link": "https://passport.cityofnewyork.us/page.aspx/en/rfp/request_browse_public"
+    },
+    {
+    "state": "Pennsylvania",
+    "capital": "Philadelphia",
+    "official_website": "https://www.phila.gov",
+    "procurement_link": "https://www.phila.gov/departments/procurement/"
+    },
+    {
+    "state": "Florida",
+    "capital": "Jacksonville",
+    "official_website": "https://www.jacksonville.gov",
+    "procurement_link": "https://www.jacksonville.gov/departments/finance/procurement"
+    },
+    {
+    "state": "North Carolina",
+    "capital": "Charlotte",
+    "official_website": "https://www.charlottenc.gov",
+    "procurement_link": "https://www.charlottenc.gov/Doing-Business/Procurement-Portal"
+    },
+    {
+    "state": "District of Columbia",
+    "capital": "Washington",
+    "official_website": "https://dc.gov",
+    "procurement_link": "https://ocp.dc.gov/page/solicitations-ocp"
+    },
+    {
+    "state": "Massachusetts",
+    "capital": "Boston",
+    "official_website": "https://www.boston.gov",
+    "procurement_link": "https://www.boston.gov/bid-listings"
+    },
+    {
+    "state": "Maryland",
+    "capital": "Baltimore",
+    "official_website": "https://www.baltimorecity.gov",
+    "procurement_link": "https://procurement.baltimorecity.gov/citibuy"
+    },
+    {
+    "state": "Georgia",
+    "capital": "Atlanta",
+    "official_website": "https://www.atlantaga.gov",
+    "procurement_link": "https://www.atlantaga.gov/government/departments/procurement"
+    },
+    {
+    "state": "North Carolina",
+    "capital": "Raleigh",
+    "official_website": "https://raleighnc.gov",
+    "procurement_link": "https://raleighnc.gov/doing-business/services/procurement/current-bidding-and-contracting-opportunities"
+    },
+    {
+    "state": "Florida",
+    "capital": "Miami",
+    "official_website": "https://www.miami.gov",
+    "procurement_link": "https://www.miami.gov/Procurement"
+    },
+    {
+    "state": "Virginia",
+    "capital": "Virginia Beach",
+    "official_website": "https://virginiabeach.gov",
+    "procurement_link": "https://virginiabeach.gov/business/procurement"
+    },
+    {
+    "state": "New Jersey",
+    "capital": "Newark",
+    "official_website": "https://www.newarknj.gov",
+    "procurement_link": "https://www.newarknj.gov/departments/purchasing"
+    },
+    {
+    "state": "New Jersey",
+    "capital": "Jersey City",
+    "official_website": "https://www.jerseycitynj.gov",
+    "procurement_link": "https://www.jerseycitynj.gov/CityHall/PublicSafety/Purchasing"
+    },
+    {
+    "state": "Florida",
+    "capital": "Orlando",
+    "official_website": "https://www.orlando.gov",
+    "procurement_link": "https://www.orlando.gov/Business-Development/Procurement-and-Bidding"
+    },
+    {
+    "state": "Georgia",
+    "capital": "Savannah",
+    "official_website": "https://www.savannahga.gov",
+    "procurement_link": "https://www.savannahga.gov/bids"
+    }
+    ]
+}

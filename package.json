@@ -52,7 +52,8 @@
     "docker:full:build": "docker compose -f cobecdev-docker-compose.yml build",
     "check:convex": "node scripts/check-convex.js",
     "convex:admin-key": "node scripts/get-convex-admin-key.js",
-    "import:resumes": "bun run scripts/importResumes.ts"
+    "import:resumes": "bun run scripts/importResumes.ts",
+    "reset:ai-denied": "node scripts/reset-ai-denied-links.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.88",
@@ -67,6 +68,7 @@
     "@vnedyalk0v/react19-simple-maps": "^1.2.1",
     "clsx": "^2.1.1",
     "convex": "^1.27.0",
+    "convex-helpers": "^0.1.108",
     "d3-geo": "^3.1.1",
     "docx": "^9.5.1",
     "exceljs": "^4.4.0",
@@ -86,7 +88,9 @@
     "tailwind-merge": "^3.3.1",
     "uploadthing": "^7.7.4",
     "vitest": "^3.2.3",
-    "zod": "^4.2.1"
+    "zod": "^4.2.1",
+    "puppeteer": "^24.34.0",
+    "@puppeteer/browsers": "^2.11.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",

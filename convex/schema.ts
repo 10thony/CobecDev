@@ -609,11 +609,17 @@ const applicationTables = {
     importedAt: v.number(), // When this URL was imported
     sourceFile: v.optional(v.string()), // Source JSON file name
     requiresRegistration: v.optional(v.boolean()), // Whether registration is required to view bids
+    // AI Agent fields
+    aiReviewStatus: v.optional(v.union(v.literal("idle"), v.literal("processing"), v.literal("completed"), v.literal("failed"))), // AI review status
+    aiDecision: v.optional(v.union(v.literal("approve"), v.literal("deny"))), // AI decision
+    aiReasoning: v.optional(v.string()), // AI reasoning for the decision
+    lastAgentAttempt: v.optional(v.number()), // Timestamp of last agent attempt
   })
     .index("by_state", ["state"])
     .index("by_status", ["status"])
     .index("by_state_status", ["state", "status"])
-    .index("by_imported", ["importedAt"]),
+    .index("by_imported", ["importedAt"])
+    .index("by_ai_review_status", ["aiReviewStatus"]),
 };
 
 export default defineSchema({

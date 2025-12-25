@@ -1,3 +1,5 @@
+"use node";
+
 import * as chats from "./chats";
 import * as messages from "./messages";
 import * as aiModels from "./aiModels";
@@ -23,6 +25,7 @@ import * as embeddingService from "./embeddingService";
 import * as favorites from "./favorites";
 import * as procurementChat from "./procurementChat";
 import * as procurementUrls from "./procurementUrls";
+import * as agent from "./agent/procurementVerifier";
 
 // Export all functions as a single API object
 export default {
@@ -51,4 +54,5 @@ export default {
   favorites,
   procurementChat,
   procurementUrls,
+  agent,
 };

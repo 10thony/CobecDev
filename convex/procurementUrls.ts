@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 // Type for procurement link from JSON
@@ -32,6 +32,10 @@ export const list = query({
     importedAt: v.number(),
     sourceFile: v.optional(v.string()),
     requiresRegistration: v.optional(v.boolean()),
+    aiReviewStatus: v.optional(v.union(v.literal("idle"), v.literal("processing"), v.literal("completed"), v.literal("failed"))),
+    aiDecision: v.optional(v.union(v.literal("approve"), v.literal("deny"))),
+    aiReasoning: v.optional(v.string()),
+    lastAgentAttempt: v.optional(v.number()),
   })),
   handler: async (ctx, args) => {
     if (args.status) {
@@ -63,12 +67,88 @@ export const getPending = query({
     importedAt: v.number(),
     sourceFile: v.optional(v.string()),
     requiresRegistration: v.optional(v.boolean()),
+    aiReviewStatus: v.optional(v.union(v.literal("idle"), v.literal("processing"), v.literal("completed"), v.literal("failed"))),
+    aiDecision: v.optional(v.union(v.literal("approve"), v.literal("deny"))),
+    aiReasoning: v.optional(v.string()),
+    lastAgentAttempt: v.optional(v.number()),
   })),
   handler: async (ctx) => {
     return await ctx.db
       .query("procurementUrls")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .collect();
+  },
+});
+
+/**
+ * Get pending procurement URLs for AI agent processing
+ * Returns URLs that are pending and haven't been processed by AI yet (or failed)
+ */
+export const getPendingForAgent = internalQuery({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(v.object({
+    _id: v.id("procurementUrls"),
+    _creationTime: v.number(),
+    state: v.string(),
+    capital: v.string(),
+    officialWebsite: v.string(),
+    procurementLink: v.string(),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("denied")),
+    verifiedBy: v.optional(v.string()),
+    verifiedAt: v.optional(v.number()),
+    denialReason: v.optional(v.string()),
+    importedAt: v.number(),
+    sourceFile: v.optional(v.string()),
+    requiresRegistration: v.optional(v.boolean()),
+    aiReviewStatus: v.optional(v.union(v.literal("idle"), v.literal("processing"), v.literal("completed"), v.literal("failed"))),
+    aiDecision: v.optional(v.union(v.literal("approve"), v.literal("deny"))),
+    aiReasoning: v.optional(v.string()),
+    lastAgentAttempt: v.optional(v.number()),
+  })),
+  handler: async (ctx, args) => {
+    const limit = args.limit || 10;
+    
+    // IMPORTANT: Only get URLs with status "pending" - never process approved or denied links
+    const allPending = await ctx.db
+      .query("procurementUrls")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+    
+    // Filter to only those that need AI review:
+    // - Never processed (no aiReviewStatus)
+    // - Idle (waiting to be processed)
+    // - Failed (can retry)
+    // - Exclude "completed" and "processing" statuses
+    const needsReview = allPending.filter((url) => {
+      // Only process if status is pending AND hasn't been completed by AI
+      if (url.status !== "pending") {
+        return false; // Double-check: should never happen due to index filter, but safety check
+      }
+      
+      // Skip if already completed by AI
+      if (url.aiReviewStatus === "completed") {
+        return false;
+      }
+      
+      // Skip if currently being processed
+      if (url.aiReviewStatus === "processing") {
+        return false;
+      }
+      
+      // Process if: idle, failed, or never processed
+      return !url.aiReviewStatus || url.aiReviewStatus === "idle" || url.aiReviewStatus === "failed";
+    });
+    
+    // Sort by lastAgentAttempt (oldest first) or by creation time
+    needsReview.sort((a, b) => {
+      const aTime = a.lastAgentAttempt || a._creationTime;
+      const bTime = b.lastAgentAttempt || b._creationTime;
+      return aTime - bTime;
+    });
+    
+    return needsReview.slice(0, limit);
   },
 });
 
@@ -91,6 +171,10 @@ export const getApproved = query({
     importedAt: v.number(),
     sourceFile: v.optional(v.string()),
     requiresRegistration: v.optional(v.boolean()),
+    aiReviewStatus: v.optional(v.union(v.literal("idle"), v.literal("processing"), v.literal("completed"), v.literal("failed"))),
+    aiDecision: v.optional(v.union(v.literal("approve"), v.literal("deny"))),
+    aiReasoning: v.optional(v.string()),
+    lastAgentAttempt: v.optional(v.number()),
   })),
   handler: async (ctx) => {
     return await ctx.db
@@ -119,6 +203,10 @@ export const getApprovedByState = query({
     importedAt: v.number(),
     sourceFile: v.optional(v.string()),
     requiresRegistration: v.optional(v.boolean()),
+    aiReviewStatus: v.optional(v.union(v.literal("idle"), v.literal("processing"), v.literal("completed"), v.literal("failed"))),
+    aiDecision: v.optional(v.union(v.literal("approve"), v.literal("deny"))),
+    aiReasoning: v.optional(v.string()),
+    lastAgentAttempt: v.optional(v.number()),
   })),
   handler: async (ctx, args) => {
     return await ctx.db
@@ -174,6 +262,10 @@ export const searchByStateCity = query({
     importedAt: v.number(),
     sourceFile: v.optional(v.string()),
     requiresRegistration: v.optional(v.boolean()),
+    aiReviewStatus: v.optional(v.union(v.literal("idle"), v.literal("processing"), v.literal("completed"), v.literal("failed"))),
+    aiDecision: v.optional(v.union(v.literal("approve"), v.literal("deny"))),
+    aiReasoning: v.optional(v.string()),
+    lastAgentAttempt: v.optional(v.number()),
   })),
   handler: async (ctx, args) => {
     let results;
@@ -245,6 +337,7 @@ export const importFromJson = mutation({
         status: "pending",
         importedAt,
         sourceFile: args.sourceFile,
+        aiReviewStatus: "idle", // New imports start as idle for AI review
       });
       imported++;
     }
@@ -269,6 +362,8 @@ export const approve = mutation({
       status: "approved",
       verifiedBy: identity?.subject ?? undefined,
       verifiedAt: Date.now(),
+      // Clear AI decision when manually approving (overrides AI denial)
+      aiDecision: undefined,
     };
     
     if (args.requiresRegistration !== undefined) {
@@ -366,6 +461,8 @@ export const approveAll = mutation({
         status: "approved",
         verifiedBy: identity?.subject ?? undefined,
         verifiedAt: now,
+        // Clear AI decision when bulk approving (overrides AI denial)
+        aiDecision: undefined,
       });
     }
     
@@ -428,6 +525,8 @@ export const addManual = mutation({
         status: "approved",
         verifiedBy: identity?.subject ?? undefined,
         verifiedAt: now,
+        // Clear AI decision when manually adding/updating (overrides AI denial)
+        aiDecision: undefined,
       };
       
       if (args.requiresRegistration !== undefined) {
@@ -479,7 +578,123 @@ export const addPendingUrl = internalMutation({
       procurementLink: args.procurementLink,
       status: "pending",
       importedAt: Date.now(),
+      aiReviewStatus: "idle", // New imports start as idle for AI review
     });
+  },
+});
+
+/**
+ * Report agent verification result
+ * Internal mutation called by the AI agent after verification
+ */
+export const reportAgentResult = internalMutation({
+  args: {
+    id: v.id("procurementUrls"),
+    status: v.union(v.literal("approved"), v.literal("denied")),
+    reason: v.string(),
+    requiresRegistration: v.optional(v.boolean()),
+    correctedLink: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const updateData: any = {
+      status: args.status,
+      verifiedBy: "GPT-5-Mini-Agent",
+      verifiedAt: Date.now(),
+      aiReviewStatus: "completed",
+      aiDecision: args.status === "approved" ? "approve" : "deny",
+      aiReasoning: args.reason,
+      lastAgentAttempt: Date.now(),
+    };
+
+    if (args.requiresRegistration !== undefined) {
+      updateData.requiresRegistration = args.requiresRegistration;
+    }
+
+    if (args.status === "denied") {
+      updateData.denialReason = args.reason;
+    }
+
+    // If agent found a corrected link, update the procurementLink
+    if (args.correctedLink && args.status === "approved") {
+      updateData.procurementLink = args.correctedLink;
+    }
+
+    await ctx.db.patch(args.id, updateData);
+  },
+});
+
+/**
+ * Update AI review status
+ * Internal mutation to track AI processing status
+ */
+export const updateAiReviewStatus = internalMutation({
+  args: {
+    id: v.id("procurementUrls"),
+    status: v.union(v.literal("idle"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      aiReviewStatus: args.status,
+      lastAgentAttempt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Migration: Reset all AI-denied or AI-failed links back to pending
+ * This is used to recover from errors where the AI agent incorrectly denied links
+ * or encountered errors during verification (e.g., Chrome not installed).
+ * 
+ * Resets links that:
+ * 1. Were explicitly denied by AI (verifiedBy === "GPT-5-Mini-Agent" && status === "denied")
+ * 2. Have failed AI review status (aiReviewStatus === "failed") - these show "AI Failed" in UI
+ */
+export const resetAiDeniedLinks = mutation({
+  args: {
+    confirm: v.boolean(),
+  },
+  returns: v.object({
+    reset: v.number(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    if (!args.confirm) {
+      return {
+        reset: 0,
+        message: "Migration cancelled. Set confirm to true to proceed.",
+      };
+    }
+
+    // Find all links that were denied by AI OR have failed AI review status
+    // This includes:
+    // 1. Links explicitly denied by AI (verifiedBy === "GPT-5-Mini-Agent" && status === "denied")
+    // 2. Links with failed AI review status (aiReviewStatus === "failed") - these show "AI Failed" in UI
+    const allUrls = await ctx.db.query("procurementUrls").collect();
+    const aiDeniedUrls = allUrls.filter(
+      (url) => 
+        (url.verifiedBy === "GPT-5-Mini-Agent" && url.status === "denied") ||
+        url.aiReviewStatus === "failed"
+    );
+
+    let resetCount = 0;
+    for (const url of aiDeniedUrls) {
+      await ctx.db.patch(url._id, {
+        status: "pending",
+        verifiedBy: undefined,
+        verifiedAt: undefined,
+        denialReason: undefined,
+        aiReviewStatus: "idle", // Reset to idle so AI can try again
+        aiDecision: undefined,
+        aiReasoning: undefined,
+        // Keep lastAgentAttempt for tracking purposes
+      });
+      resetCount++;
+    }
+
+    return {
+      reset: resetCount,
+      message: `Successfully reset ${resetCount} AI-denied or AI-failed links back to pending status.`,
+    };
   },
 });
 
@@ -541,6 +756,7 @@ export const importFromChatResponse = mutation({
         status: "pending",
         importedAt,
         sourceFile: args.sessionId ? `chat-export-${args.sessionId}` : "chat-export",
+        aiReviewStatus: "idle", // New imports start as idle for AI review
       });
       imported++;
     }
