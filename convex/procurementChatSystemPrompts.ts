@@ -120,6 +120,45 @@ export const get = query({
   },
 });
 
+/**
+ * Get the full system prompt with all approved links included (for copying to clipboard)
+ * This always includes the complete list of approved links, not summaries
+ */
+export const getFullPromptWithLinks = query({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    // Get the primary system prompt
+    const primaryPrompt = await ctx.db
+      .query("procurementChatSystemPrompts")
+      .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
+      .first();
+    
+    let basePrompt = primaryPrompt?.systemPromptText || DEFAULT_SYSTEM_PROMPT;
+    
+    // Get approved procurement links from the lookup table
+    const lookup = await ctx.db
+      .query("approvedProcurementLinksLookUp")
+      .first();
+    
+    const approvedLinks: ApprovedLink[] = lookup?.approvedProcurementLinks || [];
+    
+    // If we have approved links, inject them with FULL details
+    if (approvedLinks && approvedLinks.length > 0) {
+      // Remove any existing approved links section
+      basePrompt = removeExistingApprovedLinksSection(basePrompt);
+      
+      // Format with full details (always show all links)
+      const linksSection = formatApprovedLinksForPromptFull(approvedLinks);
+      
+      // Inject the full links section
+      basePrompt = injectApprovedLinksIntoPrompt(basePrompt, linksSection);
+    }
+    
+    return basePrompt;
+  },
+});
+
 // Create a new system prompt
 export const create = mutation({
   args: {
@@ -272,6 +311,7 @@ type ApprovedLink = {
 
 /**
  * Format approved links into a readable section for the system prompt
+ * Shows summary if more than 20 links (for runtime injection)
  */
 function formatApprovedLinksForPrompt(links: ApprovedLink[]): string {
   if (links.length === 0) return "";
@@ -303,6 +343,50 @@ function formatApprovedLinksForPrompt(links: ApprovedLink[]): string {
   }
   
   // Show full details for 20 or fewer links
+  // Group by state for better organization
+  const byState: Record<string, ApprovedLink[]> = {};
+  for (const link of links) {
+    if (!byState[link.state]) {
+      byState[link.state] = [];
+    }
+    byState[link.state].push(link);
+  }
+  
+  let formatted = "\n\n## ALREADY APPROVED PROCUREMENT LINKS\n";
+  formatted += "The following procurement links have already been collected and approved in our system. ";
+  formatted += "DO NOT suggest these links again. If a user requests a link for one of these locations, ";
+  formatted += "inform them that we already have it in our system.\n\n";
+  
+  // Sort states alphabetically
+  const sortedStates = Object.keys(byState).sort();
+  for (const state of sortedStates) {
+    const stateLinks = byState[state];
+    formatted += `### ${state}\n`;
+    for (const link of stateLinks) {
+      formatted += `- **${link.capital}**: ${link.procurementLink}`;
+      if (link.requiresRegistration) {
+        formatted += " (Requires Registration)";
+      }
+      formatted += "\n";
+    }
+    formatted += "\n";
+  }
+  
+  formatted += "CRITICAL: Before suggesting any procurement link, check this list. ";
+  formatted += "If the link already exists here, do NOT include it in your response. ";
+  formatted += "Instead, acknowledge that the link is already in our system.\n";
+  
+  return formatted;
+}
+
+/**
+ * Format approved links with FULL details (always shows all links, never summaries)
+ * Used for copying the complete system prompt to clipboard
+ */
+function formatApprovedLinksForPromptFull(links: ApprovedLink[]): string {
+  if (links.length === 0) return "";
+  
+  // Always show full details, regardless of count
   // Group by state for better organization
   const byState: Record<string, ApprovedLink[]> = {};
   for (const link of links) {

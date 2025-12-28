@@ -28,7 +28,8 @@ import {
   X,
   Edit2,
   Star,
-  Save
+  Save,
+  Copy
 } from 'lucide-react';
 
 interface ProcurementLink {
@@ -115,6 +116,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   
   // System Prompt queries and mutations
   const systemPrompts = useQuery(api.procurementChatSystemPrompts.list, {});
+  const fullPromptWithLinks = useQuery(api.procurementChatSystemPrompts.getFullPromptWithLinks);
   const createSystemPrompt = useMutation(api.procurementChatSystemPrompts.create);
   const updateSystemPrompt = useMutation(api.procurementChatSystemPrompts.update);
   const deleteSystemPrompt = useMutation(api.procurementChatSystemPrompts.remove);
@@ -418,6 +420,26 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       isPrimarySystemPrompt: false,
     });
     setModalMessage(null);
+  };
+
+  const handleCopyFullPrompt = async () => {
+    if (!fullPromptWithLinks) {
+      setError("System prompt with links is not available yet. Please wait a moment.");
+      return;
+    }
+    
+    try {
+      await navigator.clipboard.writeText(fullPromptWithLinks);
+      setModalMessage({
+        type: 'success',
+        text: 'Full system prompt (with all approved links) copied to clipboard!'
+      });
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setModalMessage(null), 3000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      setError('Failed to copy to clipboard. Please try again.');
+    }
   };
 
   const handleSavePrompt = async () => {
@@ -925,7 +947,20 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                   </div>
 
                   <div>
-                    <label className="block text-sm text-tron-gray mb-2">System Prompt Text *</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm text-tron-gray">System Prompt Text *</label>
+                      <TronButton
+                        onClick={handleCopyFullPrompt}
+                        variant="outline"
+                        color="cyan"
+                        size="sm"
+                        disabled={!fullPromptWithLinks}
+                        icon={<Copy className="w-3 h-3" />}
+                        title="Copy full system prompt with all approved links to clipboard"
+                      >
+                        Copy Full Prompt
+                      </TronButton>
+                    </div>
                     <textarea
                       value={promptFormData.systemPromptText}
                       onChange={(e) => setPromptFormData(prev => ({ ...prev, systemPromptText: e.target.value }))}
@@ -935,6 +970,9 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                                  focus:ring-tron-cyan focus:border-tron-cyan resize-none font-mono text-sm"
                       rows={12}
                     />
+                    <p className="text-xs text-tron-gray/70 mt-1">
+                      Click "Copy Full Prompt" to copy the complete system prompt including all approved procurement links to your clipboard.
+                    </p>
                   </div>
 
                   <div className="flex items-center gap-2">
