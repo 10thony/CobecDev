@@ -22,6 +22,7 @@ import { GovernmentLinkHubPage } from "./pages/GovernmentLinkHubPage";
 import TempChatPage from "./pages/TempChatPage";
 import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider } from "./lib/ThemeContext";
+import { LinksLegend } from "./components/LinksLegend";
 // Global data service removed - using Convex real-time queries instead
 
 export default function App() {
@@ -118,6 +119,10 @@ function UnauthenticatedApp() {
 
 // Public read-only version of Government Links page (no authentication required)
 function PublicGovernmentLinksPage() {
+  // Get all active links for the legend
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allLinks = useQuery((api.links as any).getAllActiveLinks);
+
   return (
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
@@ -127,12 +132,15 @@ function PublicGovernmentLinksPage() {
           <span className="text-tron-gray">|</span>
           <span className="text-tron-cyan">Government Link Hub</span>
         </div>
-        <a
-          href="/"
-          className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
-        >
-          Sign In for Full Access
-        </a>
+        <div className="flex items-center gap-3">
+          <LinksLegend links={allLinks} />
+          <a
+            href="/"
+            className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
+          >
+            Sign In for Full Access
+          </a>
+        </div>
       </header>
       {/* Render the page in read-only mode (isAdmin will be false) */}
       <div className="flex-1 overflow-auto">

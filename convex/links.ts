@@ -185,3 +185,198 @@ export const deleteLink = mutation({
     });
   },
 });
+
+// State name to state code mapping
+const stateNameToCode: Record<string, string> = {
+  Alabama: "AL",
+  Alaska: "AK",
+  Arizona: "AZ",
+  Arkansas: "AR",
+  California: "CA",
+  Colorado: "CO",
+  Connecticut: "CT",
+  Delaware: "DE",
+  Florida: "FL",
+  Georgia: "GA",
+  Hawaii: "HI",
+  Idaho: "ID",
+  Illinois: "IL",
+  Indiana: "IN",
+  Iowa: "IA",
+  Kansas: "KS",
+  Kentucky: "KY",
+  Louisiana: "LA",
+  Maine: "ME",
+  Maryland: "MD",
+  Massachusetts: "MA",
+  Michigan: "MI",
+  Minnesota: "MN",
+  Mississippi: "MS",
+  Missouri: "MO",
+  Montana: "MT",
+  Nebraska: "NE",
+  Nevada: "NV",
+  "New Hampshire": "NH",
+  "New Jersey": "NJ",
+  "New Mexico": "NM",
+  "New York": "NY",
+  "North Carolina": "NC",
+  "North Dakota": "ND",
+  Ohio: "OH",
+  Oklahoma: "OK",
+  Oregon: "OR",
+  Pennsylvania: "PA",
+  "Rhode Island": "RI",
+  "South Carolina": "SC",
+  "South Dakota": "SD",
+  Tennessee: "TN",
+  Texas: "TX",
+  Utah: "UT",
+  Vermont: "VT",
+  Virginia: "VA",
+  Washington: "WA",
+  "West Virginia": "WV",
+  Wisconsin: "WI",
+  Wyoming: "WY",
+  "District of Columbia": "DC",
+};
+
+/**
+ * Clear all existing pins from the government links map
+ * This deletes all active links (sets isActive to false for safety)
+ */
+export const clearAllPins = mutation({
+  args: {},
+  returns: v.object({
+    deletedCount: v.number(),
+  }),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Must be authenticated");
+    }
+
+    // Get all active links
+    const allLinks = await ctx.db
+      .query("govLinks")
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    // Delete all active links
+    let deletedCount = 0;
+    for (const link of allLinks) {
+      await ctx.db.delete(link._id);
+      deletedCount++;
+    }
+
+    // Log the bulk deletion
+    await ctx.db.insert("auditLog", {
+      action: "bulk_delete",
+      timestamp: Date.now(),
+      details: `Bulk deleted ${deletedCount} links by user ${identity.subject}`,
+    });
+
+    return { deletedCount };
+  },
+});
+
+/**
+ * Bulk import approved procurement links as pins on the government links map
+ * This will:
+ * 1. Clear all existing pins
+ * 2. Create pins for each approved procurement link in the appropriate state
+ */
+export const bulkImportApprovedProcurementLinks = mutation({
+  args: {},
+  returns: v.object({
+    clearedCount: v.number(),
+    importedCount: v.number(),
+    errors: v.array(v.string()),
+  }),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Must be authenticated");
+    }
+
+    // Step 1: Clear all existing pins
+    const allLinks = await ctx.db
+      .query("govLinks")
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    let clearedCount = 0;
+    for (const link of allLinks) {
+      await ctx.db.delete(link._id);
+      clearedCount++;
+    }
+
+    // Step 2: Get all approved procurement links
+    const approvedLinks = await ctx.db
+      .query("procurementUrls")
+      .withIndex("by_status", (q) => q.eq("status", "approved"))
+      .collect();
+
+    // Step 3: Create pins for each approved link
+    let importedCount = 0;
+    const errors: string[] = [];
+
+    for (const procurementLink of approvedLinks) {
+      try {
+        // Map state name to state code
+        const stateCode = stateNameToCode[procurementLink.state];
+        
+        if (!stateCode) {
+          errors.push(`Unknown state: ${procurementLink.state} for link ${procurementLink.procurementLink}`);
+          continue;
+        }
+
+        // Create a title for the pin
+        const title = `${procurementLink.state} - ${procurementLink.capital} Procurement`;
+        
+        // Create description if available
+        const description = procurementLink.requiresRegistration 
+          ? `Requires registration: ${procurementLink.officialWebsite}`
+          : undefined;
+
+        // Insert the pin
+        const linkId = await ctx.db.insert("govLinks", {
+          title,
+          url: procurementLink.procurementLink,
+          stateCode,
+          stateName: procurementLink.state,
+          category: "Solicitations", // Default category for procurement links
+          description,
+          isActive: true,
+          lastVerified: Date.now(),
+        });
+
+        importedCount++;
+
+        // Log individual creation (optional, can be removed for performance)
+        await ctx.db.insert("auditLog", {
+          action: "bulk_create",
+          linkId,
+          timestamp: Date.now(),
+          details: `Bulk imported: ${title}`,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        errors.push(`Failed to import ${procurementLink.procurementLink}: ${errorMessage}`);
+      }
+    }
+
+    // Log the bulk import operation
+    await ctx.db.insert("auditLog", {
+      action: "bulk_import",
+      timestamp: Date.now(),
+      details: `Bulk imported ${importedCount} links from ${approvedLinks.length} approved procurement links by user ${identity.subject}. Errors: ${errors.length}`,
+    });
+
+    return {
+      clearedCount,
+      importedCount,
+      errors,
+    };
+  },
+});

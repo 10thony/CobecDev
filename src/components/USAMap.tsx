@@ -13,8 +13,9 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { StateTooltip } from "./StateTooltip";
 import type { Doc } from "../../convex/_generated/dataModel";
-import { MapPin, X, Plus, Edit2, Trash2 } from "lucide-react";
+import { MapPin, X, Plus, Edit2, Trash2, Download, AlertTriangle } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
+import { useAuth } from "@clerk/clerk-react";
 
 // Use unpkg CDN which has proper CORS headers
 const GEO_URL = "https://unpkg.com/us-atlas@3/states-10m.json";
@@ -147,6 +148,39 @@ const stateCodeToName: Record<string, string> = Object.fromEntries(
   Object.entries(stateNameToCode).map(([name, code]) => [code, name])
 );
 
+// Small states that should use single pin mode with hover modal
+// These are states with small geographic area where multiple pins would overlap or go outside bounds
+const SMALL_STATES = new Set([
+  "RI", // Rhode Island
+  "DE", // Delaware
+  "CT", // Connecticut
+  "NJ", // New Jersey
+  "NH", // New Hampshire
+  "VT", // Vermont
+  "MA", // Massachusetts
+  "MD", // Maryland
+  "HI", // Hawaii
+  "DC", // District of Columbia
+]);
+
+// Approximate maximum offset from centroid to keep pins within state bounds (in degrees)
+// These are conservative estimates to prevent pins from going outside state boundaries
+const MAX_STATE_OFFSETS: Record<string, number> = {
+  "RI": 0.3,   // Rhode Island - very small
+  "DE": 0.4,   // Delaware - small
+  "CT": 0.5,   // Connecticut - small
+  "NJ": 0.6,   // New Jersey - small
+  "NH": 0.7,   // New Hampshire - small
+  "VT": 0.7,   // Vermont - small
+  "MA": 0.6,   // Massachusetts - small
+  "MD": 0.5,   // Maryland - small
+  "HI": 0.8,   // Hawaii - islands
+  "DC": 0.2,   // District of Columbia - very small
+  "FL": 0.7,   // Florida - peninsula shape, needs very tight bounds to prevent pins going into ocean
+  // Default for other states - allow larger offsets but still bounded
+  "DEFAULT": 2.5,
+};
+
 interface ContextMenuState {
   link: Doc<"govLinks">;
   position: { x: number; y: number };
@@ -156,11 +190,19 @@ interface MapState {
   selectedState: string | null;
   hoveredState: string | null;
   tooltipPosition: { x: number; y: number } | null;
+  hoveredPin: Doc<"govLinks"> | null; // Pin being hovered
+  pinTooltipPosition: { x: number; y: number } | null; // Position for pin tooltip
+  hoveredStateLinks: {
+    stateCode: string;
+    links: Doc<"govLinks">[];
+    position: { x: number; y: number };
+  } | null; // For small states - shows all links in a modal
   isCreateMode: boolean;
   createPinState: string | null; // State code where we're creating a pin
   contextMenu: ContextMenuState | null; // Right-click context menu
   editPin: Doc<"govLinks"> | null; // Pin being edited
   deleteConfirm: Doc<"govLinks"> | null; // Pin pending deletion confirmation
+  bulkImportConfirm: boolean; // Bulk import confirmation modal
 }
 
 // Pin component props
@@ -169,6 +211,9 @@ interface PinProps {
   isHighlighted: boolean;
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent, link: Doc<"govLinks">) => void;
+  onMouseEnter: (e: React.MouseEvent<SVGGElement>, link: Doc<"govLinks">) => void;
+  onMouseLeave: () => void;
+  indexInState: number; // Index of this pin within its state (for positioning)
 }
 
 // Create Pin Modal Component
@@ -802,16 +847,89 @@ function hashCode(str: string): number {
   return hash;
 }
 
+/**
+ * Calculate hexagonal grid position for a pin to avoid overlaps
+ * Uses a hexagonal grid pattern with proper spacing to ensure pins don't overlap
+ * @param index - The index of the pin within its state (0-based)
+ * @param stateCode - State code for bounds checking
+ * @returns [offsetX, offsetY] in degrees
+ */
+function calculateSpiralPosition(index: number, stateCode: string): [number, number] {
+  if (index === 0) {
+    // First pin at center
+    return [0, 0];
+  }
+
+  // Pin spacing: 1.5 degrees (~105 miles) ensures pins don't overlap
+  // This accounts for:
+  // - Pin body: ~12 units wide, ~16 units tall
+  // - Pin label: extends to ~18 units above center (text at y=-18)
+  // - Glow/shadow effects that extend further
+  // - Clickable area for better UX
+  // - Extra margin to prevent label overlap and ensure all pins are clearly visible
+  // At map scale, 1.5 degrees provides generous separation even with labels
+  const spacing = 1.5; // degrees
+  
+  // Get maximum allowed offset for this state to prevent going outside bounds
+  const maxOffset = MAX_STATE_OFFSETS[stateCode] ?? MAX_STATE_OFFSETS["DEFAULT"];
+  
+  // Hexagonal grid pattern with proper ring calculation:
+  // Ring 0: 1 pin (index 0) - center
+  // Ring 1: 6 pins (indices 1-6) - 6 positions around center
+  // Ring 2: 12 pins (indices 7-18) - 12 positions in second ring
+  // Ring 3: 18 pins (indices 19-36) - 18 positions in third ring
+  // Ring n: 6*n pins (for n >= 1)
+  // Total pins after ring n: 1 + 3*n*(n+1)
+  
+  // Find which ring this pin belongs to
+  // After ring 0: 1 pin total
+  // After ring 1: 1 + 6 = 7 pins total
+  // After ring 2: 7 + 12 = 19 pins total
+  // After ring 3: 19 + 18 = 37 pins total
+  
+  let ring = 1;
+  let cumulative = 1; // Pins before ring 1 (just the center pin)
+  
+  // Find the ring: keep adding rings until we exceed the index
+  while (index >= cumulative + 6 * ring) {
+    cumulative += 6 * ring;
+    ring++;
+  }
+  
+  // Now we know the ring. Calculate position within the ring
+  const startOfRing = cumulative;
+  const positionInRing = index - startOfRing;
+  const pinsInRing = 6 * ring;
+  
+  // Calculate angle: distribute evenly around the circle
+  // Each pin in the ring is spaced evenly (360 degrees / pinsInRing)
+  const angle = (2 * Math.PI * positionInRing) / pinsInRing;
+  
+  // Calculate radius: distance from center
+  // Use proper hexagonal packing: radius = ring * spacing
+  // This ensures pins in adjacent rings don't overlap
+  let radius = ring * spacing;
+  
+  // Clamp radius to maximum offset to prevent pins from going outside state bounds
+  radius = Math.min(radius, maxOffset);
+  
+  // Convert to x, y offsets
+  // Note: We use standard polar to cartesian conversion
+  const offsetX = radius * Math.cos(angle);
+  const offsetY = radius * Math.sin(angle);
+  
+  return [offsetX, offsetY];
+}
+
 // Pin marker component
-function Pin({ link, isHighlighted, onClick, onContextMenu }: PinProps) {
+function Pin({ link, isHighlighted, onClick, onContextMenu, onMouseEnter, onMouseLeave, indexInState }: PinProps & { indexInState: number }) {
   const centroid = stateCentroids[link.stateCode];
   if (!centroid) return null;
 
-  // Use consistent offset based on link ID (so it doesn't change on re-render)
-  // Reduced offset to ±0.3 degrees (~20 miles) to keep pins within state boundaries
-  const hash = hashCode(link._id);
-  const offsetX = ((hash % 100) / 100 - 0.5) * 0.6;
-  const offsetY = (((hash >> 8) % 100) / 100 - 0.5) * 0.6;
+  // Use spiral positioning to avoid overlaps
+  // This ensures pins are evenly distributed and don't overlap
+  // Pass stateCode for bounds checking
+  const [offsetX, offsetY] = calculateSpiralPosition(indexInState, link.stateCode);
 
   const pinColor = isHighlighted 
     ? "rgb(253, 61, 181)" // Neon/Hot Magenta
@@ -832,6 +950,14 @@ function Pin({ link, isHighlighted, onClick, onContextMenu }: PinProps) {
           e.preventDefault();
           e.stopPropagation();
           onContextMenu(e, link);
+        }}
+        onMouseEnter={(e) => {
+          e.stopPropagation();
+          onMouseEnter(e, link);
+        }}
+        onMouseLeave={(e) => {
+          e.stopPropagation();
+          onMouseLeave();
         }}
         style={{ cursor: "pointer" }}
       >
@@ -887,18 +1013,31 @@ interface USAMapProps {
 }
 
 export function USAMap({ isAdmin = false }: USAMapProps) {
+  const { isSignedIn } = useAuth();
   const [mapState, setMapState] = useState<MapState>({
     selectedState: null,
     hoveredState: null,
     tooltipPosition: null,
+    hoveredPin: null,
+    pinTooltipPosition: null,
+    hoveredStateLinks: null,
     isCreateMode: false,
     createPinState: null,
     contextMenu: null,
     editPin: null,
     deleteConfirm: null,
+    bulkImportConfirm: false,
   });
   const [isPending, startTransition] = useTransition();
+  const [isBulkImporting, setIsBulkImporting] = useState(false);
+  const [bulkImportResult, setBulkImportResult] = useState<{
+    clearedCount: number;
+    importedCount: number;
+    errors: string[];
+  } | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  
+  const bulkImportMutation = useMutation(api.links.bulkImportApprovedProcurementLinks);
 
   const stateStats = useQuery(api.links.getStateStats);
 
@@ -919,6 +1058,55 @@ export function USAMap({ isAdmin = false }: USAMapProps) {
         link,
         position: { x: e.clientX, y: e.clientY },
       },
+    }));
+  }, []);
+
+  // Handle pin hover - show tooltip or state links modal for small states
+  const handlePinHover = useCallback((e: React.MouseEvent<SVGGElement>, link: Doc<"govLinks">) => {
+    const container = mapContainerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    
+    // Check if this is a small state - show modal with all links
+    if (SMALL_STATES.has(link.stateCode)) {
+      // Get all links for this state
+      const stateLinks = allLinks?.filter(l => l.stateCode === link.stateCode) || [];
+      
+      setMapState((prev) => ({
+        ...prev,
+        hoveredPin: null, // Clear individual pin tooltip
+        pinTooltipPosition: null,
+        hoveredStateLinks: {
+          stateCode: link.stateCode,
+          links: stateLinks,
+          position: {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+          },
+        },
+      }));
+    } else {
+      // Regular state - show individual pin tooltip
+      setMapState((prev) => ({
+        ...prev,
+        hoveredPin: link,
+        pinTooltipPosition: {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        },
+        hoveredStateLinks: null,
+      }));
+    }
+  }, [allLinks]);
+
+  // Handle pin hover end - hide tooltip and modal
+  const handlePinHoverEnd = useCallback(() => {
+    setMapState((prev) => ({
+      ...prev,
+      hoveredPin: null,
+      pinTooltipPosition: null,
+      hoveredStateLinks: null,
     }));
   }, []);
 
@@ -1061,6 +1249,35 @@ export function USAMap({ isAdmin = false }: USAMapProps) {
     return "#00ff88"; // neon-success
   };
 
+  // Handle bulk import
+  const handleBulkImport = useCallback(async () => {
+    setIsBulkImporting(true);
+    setBulkImportResult(null);
+    try {
+      const result = await bulkImportMutation();
+      setBulkImportResult(result);
+      // Close confirmation modal after successful import
+      setMapState((prev) => ({ ...prev, bulkImportConfirm: false }));
+    } catch (error) {
+      setBulkImportResult({
+        clearedCount: 0,
+        importedCount: 0,
+        errors: [error instanceof Error ? error.message : "Unknown error occurred"],
+      });
+    } finally {
+      setIsBulkImporting(false);
+    }
+  }, [bulkImportMutation]);
+
+  const handleOpenBulkImportConfirm = useCallback(() => {
+    setMapState((prev) => ({ ...prev, bulkImportConfirm: true }));
+  }, []);
+
+  const handleCloseBulkImportConfirm = useCallback(() => {
+    setMapState((prev) => ({ ...prev, bulkImportConfirm: false }));
+    setBulkImportResult(null);
+  }, []);
+
   return (
     <div className="p-4 lg:p-6 h-[calc(100vh-2rem)] bg-tron-bg-deep">
       {/* Map Container - fills available height */}
@@ -1134,16 +1351,66 @@ export function USAMap({ isAdmin = false }: USAMapProps) {
               }
             </Geographies>
             
-            {/* Render pins for all active links */}
-            {allLinks?.map((link) => (
-              <Pin
-                key={link._id}
-                link={link}
-                isHighlighted={mapState.selectedState === link.stateCode}
-                onClick={() => handlePinClick(link.url)}
-                onContextMenu={isAdmin ? handlePinContextMenu : () => {}}
-              />
-            ))}
+            {/* Render pins for all active links - grouped by state to calculate indices */}
+            {(() => {
+              // Group links by state and calculate index for each
+              const linksByState = new Map<string, Doc<"govLinks">[]>();
+              allLinks?.forEach((link) => {
+                const stateLinks = linksByState.get(link.stateCode) || [];
+                stateLinks.push(link);
+                linksByState.set(link.stateCode, stateLinks);
+              });
+
+              // Sort links within each state for consistent ordering
+              // Sort by creation time (or _id as fallback) for stable ordering
+              linksByState.forEach((stateLinks) => {
+                stateLinks.sort((a, b) => {
+                  // Sort by creation time for consistent ordering
+                  if (a._creationTime !== b._creationTime) {
+                    return a._creationTime - b._creationTime;
+                  }
+                  // Fallback to ID comparison for stability
+                  return a._id.localeCompare(b._id);
+                });
+              });
+
+              // Flatten back to array with indices
+              // Important: For small states, only show a single pin (index 0)
+              // For other states, show all pins with proper spacing
+              const linksWithIndices: Array<{ link: Doc<"govLinks">; indexInState: number }> = [];
+              // Sort states alphabetically for consistent processing
+              const sortedStates = Array.from(linksByState.entries()).sort((a, b) => 
+                a[0].localeCompare(b[0])
+              );
+              sortedStates.forEach(([stateCode, stateLinks]) => {
+                // stateLinks are already sorted by creation time
+                if (SMALL_STATES.has(stateCode)) {
+                  // Small states: only show the first pin (index 0)
+                  // The hover modal will show all links
+                  if (stateLinks.length > 0) {
+                    linksWithIndices.push({ link: stateLinks[0], indexInState: 0 });
+                  }
+                } else {
+                  // Regular states: show all pins with proper spacing
+                  stateLinks.forEach((link, index) => {
+                    linksWithIndices.push({ link, indexInState: index });
+                  });
+                }
+              });
+
+              return linksWithIndices.map(({ link, indexInState }) => (
+                <Pin
+                  key={link._id}
+                  link={link}
+                  isHighlighted={mapState.selectedState === link.stateCode}
+                  onClick={() => handlePinClick(link.url)}
+                  onContextMenu={isAdmin ? handlePinContextMenu : () => {}}
+                  onMouseEnter={handlePinHover}
+                  onMouseLeave={handlePinHoverEnd}
+                  indexInState={indexInState}
+                />
+              ));
+            })()}
           </ZoomableGroup>
         </ComposableMap>
 
@@ -1188,6 +1455,67 @@ export function USAMap({ isAdmin = false }: USAMapProps) {
           />
         )}
 
+        {/* Pin Tooltip - shows link title on hover */}
+        {mapState.hoveredPin && mapState.pinTooltipPosition && (
+          <div
+            className="absolute z-50 bg-tron-bg-panel border border-tron-cyan/30 text-tron-white px-3 py-2 rounded-lg shadow-tron-glow text-sm pointer-events-none max-w-xs"
+            style={{
+              left: `${mapState.pinTooltipPosition.x + 12}px`,
+              top: `${mapState.pinTooltipPosition.y - 40}px`,
+            }}
+          >
+            <div className="font-semibold text-tron-cyan truncate">{mapState.hoveredPin.title}</div>
+            {mapState.hoveredPin.category && (
+              <div className="text-xs text-tron-gray mt-1">{mapState.hoveredPin.category}</div>
+            )}
+          </div>
+        )}
+
+        {/* State Links Modal - shows all links for small states on hover */}
+        {mapState.hoveredStateLinks && (
+          <div
+            className="absolute z-50 bg-tron-bg-panel border border-tron-cyan/30 text-tron-white rounded-lg shadow-tron-glow pointer-events-auto max-w-md max-h-96 overflow-hidden flex flex-col"
+            style={{
+              left: `${mapState.hoveredStateLinks.position.x + 20}px`,
+              top: `${mapState.hoveredStateLinks.position.y - 20}px`,
+            }}
+            onMouseLeave={handlePinHoverEnd}
+          >
+            <div className="px-4 py-3 border-b border-tron-cyan/20 flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-tron-cyan text-lg">
+                  {stateCodeToName[mapState.hoveredStateLinks.stateCode]} ({mapState.hoveredStateLinks.stateCode})
+                </div>
+                <div className="text-xs text-tron-gray mt-1">
+                  {mapState.hoveredStateLinks.links.length} procurement link{mapState.hoveredStateLinks.links.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+            </div>
+            <div className="overflow-y-auto flex-1 px-4 py-2">
+              <div className="space-y-2">
+                {mapState.hoveredStateLinks.links.map((link) => (
+                  <div
+                    key={link._id}
+                    className="p-3 bg-tron-bg-deep rounded border border-tron-cyan/10 hover:border-tron-cyan/30 transition-colors cursor-pointer"
+                    onClick={() => handlePinClick(link.url)}
+                  >
+                    <div className="font-medium text-tron-white text-sm mb-1 truncate">
+                      {link.title}
+                    </div>
+                    {link.category && (
+                      <div className="text-xs text-tron-gray mb-2">{link.category}</div>
+                    )}
+                    {link.description && (
+                      <div className="text-xs text-tron-gray/80 line-clamp-2">{link.description}</div>
+                    )}
+                    <div className="text-xs text-tron-cyan mt-2 truncate">{link.url}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Create Pin Toggle Button - Admin only */}
         {isAdmin && (
           <button
@@ -1213,6 +1541,19 @@ export function USAMap({ isAdmin = false }: USAMapProps) {
                 Create Pin
               </>
             )}
+          </button>
+        )}
+
+        {/* Bulk Import Button - Authenticated users only */}
+        {isSignedIn && !mapState.isCreateMode && (
+          <button
+            onClick={handleOpenBulkImportConfirm}
+            className={`absolute flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-lg bg-tron-bg-panel/95 backdrop-blur-sm border border-tron-cyan/30 text-tron-cyan hover:bg-tron-cyan/10 ${
+              isAdmin ? "top-20" : "top-6"
+            } right-6`}
+          >
+            <Download className="w-4 h-4" />
+            Bulk Import
           </button>
         )}
 
@@ -1285,6 +1626,122 @@ export function USAMap({ isAdmin = false }: USAMapProps) {
           onClose={handleCloseDeleteModal}
           onSuccess={handleCloseDeleteModal}
         />
+      )}
+
+      {/* Bulk Import Confirmation Modal - Authenticated users */}
+      {isSignedIn && mapState.bulkImportConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-tron-bg-elevated border border-tron-cyan/30 rounded-xl shadow-tron-glow max-w-md w-full mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-tron-cyan/20 to-tron-blue/20 p-4 border-b border-tron-cyan/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "rgba(0, 212, 255, 0.2)" }}
+                >
+                  <Download className="w-5 h-5 text-tron-cyan" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-tron-white">Bulk Import Procurement Links</h2>
+                  <p className="text-xs text-tron-gray">Import all approved procurement links as pins</p>
+                </div>
+              </div>
+              <button
+                onClick={handleCloseBulkImportConfirm}
+                className="p-2 hover:bg-tron-cyan/20 rounded-full transition text-tron-gray hover:text-tron-cyan"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {!bulkImportResult ? (
+                <>
+                  <div className="flex items-start gap-3 p-4 bg-neon-warning/10 border border-neon-warning/30 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-neon-warning flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-tron-white mb-1">Warning</p>
+                      <p className="text-xs text-tron-gray">
+                        This will clear all existing pins on the map and replace them with pins from approved procurement links. 
+                        This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={handleCloseBulkImportConfirm}
+                      className="flex-1 px-4 py-2 rounded-lg border border-tron-cyan/30 text-tron-cyan hover:bg-tron-cyan/10 transition-colors"
+                      disabled={isBulkImporting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleBulkImport}
+                      disabled={isBulkImporting}
+                      className="flex-1 px-4 py-2 rounded-lg bg-tron-cyan text-tron-bg-deep hover:bg-tron-cyan/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isBulkImporting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-tron-bg-deep border-t-transparent rounded-full animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Import Now
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className={`p-4 rounded-lg border ${
+                    bulkImportResult.errors.length > 0 
+                      ? "bg-neon-error/10 border-neon-error/30" 
+                      : "bg-neon-success/10 border-neon-success/30"
+                  }`}>
+                    <p className={`text-sm font-medium mb-2 ${
+                      bulkImportResult.errors.length > 0 ? "text-neon-error" : "text-neon-success"
+                    }`}>
+                      {bulkImportResult.errors.length > 0 ? "Import completed with errors" : "Import completed successfully"}
+                    </p>
+                    <div className="text-xs text-tron-gray space-y-1">
+                      <p>Cleared: {bulkImportResult.clearedCount} pins</p>
+                      <p>Imported: {bulkImportResult.importedCount} pins</p>
+                      {bulkImportResult.errors.length > 0 && (
+                        <p className="text-neon-error">Errors: {bulkImportResult.errors.length}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {bulkImportResult.errors.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto p-3 bg-tron-bg-deep rounded border border-neon-error/20">
+                      <p className="text-xs font-medium text-neon-error mb-2">Error Details:</p>
+                      <ul className="text-xs text-tron-gray space-y-1">
+                        {bulkImportResult.errors.slice(0, 10).map((error, idx) => (
+                          <li key={idx} className="truncate">• {error}</li>
+                        ))}
+                        {bulkImportResult.errors.length > 10 && (
+                          <li className="text-tron-gray/60">... and {bulkImportResult.errors.length - 10} more errors</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleCloseBulkImportConfirm}
+                    className="w-full px-4 py-2 rounded-lg bg-tron-cyan text-tron-bg-deep hover:bg-tron-cyan/90 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
