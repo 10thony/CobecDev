@@ -4,6 +4,7 @@ import { X, Info, ChevronDown, ChevronUp } from "lucide-react";
 
 interface LinksLegendProps {
   links: Doc<"govLinks">[] | undefined;
+  buttonClassName?: string;
 }
 
 // Map state codes to regions
@@ -79,7 +80,7 @@ const categoryIcons: Record<string, string> = {
   Solicitations: "📋",
 };
 
-export function LinksLegend({ links }: LinksLegendProps) {
+export function LinksLegend({ links, buttonClassName }: LinksLegendProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
@@ -127,7 +128,7 @@ export function LinksLegend({ links }: LinksLegendProps) {
       {/* Legend Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm flex items-center gap-2"
+        className={buttonClassName || "px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm flex items-center gap-2"}
         aria-label="Toggle legend"
       >
         <Info className="w-4 h-4" />

@@ -12,6 +12,7 @@ import type { PreparedFeature } from "@vnedyalk0v/react19-simple-maps";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { StateTooltip } from "./StateTooltip";
+import { LinksLegend } from "./LinksLegend";
 import type { Doc } from "../../convex/_generated/dataModel";
 import { MapPin, X, Plus, Edit2, Trash2, Download, AlertTriangle } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -1555,6 +1556,20 @@ export function USAMap({ isAdmin = false }: USAMapProps) {
             <Download className="w-4 h-4" />
             Bulk Import
           </button>
+        )}
+
+        {/* Legend Button - Authenticated users only */}
+        {isSignedIn && !mapState.isCreateMode && (
+          <div
+            className={`absolute right-6 ${
+              isAdmin ? "top-[136px]" : "top-[69px]"
+            }`}
+          >
+            <LinksLegend 
+              links={allLinks} 
+              buttonClassName="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-lg bg-tron-bg-panel/95 backdrop-blur-sm border border-tron-cyan/30 text-tron-cyan hover:bg-tron-cyan/10"
+            />
+          </div>
         )}
 
         {/* Create Mode Instruction Banner - Admin only */}
