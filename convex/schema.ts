@@ -618,6 +618,7 @@ const applicationTables = {
     .index("by_state", ["state"])
     .index("by_status", ["status"])
     .index("by_state_status", ["state", "status"])
+    .index("by_state_capital", ["state", "capital"]) // Composite index for state+city lookup
     .index("by_imported", ["importedAt"])
     .index("by_ai_review_status", ["aiReviewStatus"]),
 

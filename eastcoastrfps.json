@@ -1,0 +1,184 @@
+{
+  "us_state_capitals_procurement": [
+    {
+      "state": "New York",
+      "capital": "New York City",
+      "official_website": "https://www.nyc.gov",
+      "procurement_link": "https://www.google.com/search?q=https://www.nyc.gov/site/mocs/systems/about-passport.page"
+    },
+    {
+      "state": "Pennsylvania",
+      "capital": "Philadelphia",
+      "official_website": "https://www.phila.gov",
+      "procurement_link": "https://www.phlcontracts.phila.gov/bso/"
+    },
+    {
+      "state": "Massachusetts",
+      "capital": "Boston",
+      "official_website": "https://www.boston.gov",
+      "procurement_link": "https://www.boston.gov/bid-listings"
+    },
+    {
+      "state": "Maryland",
+      "capital": "Baltimore",
+      "official_website": "https://www.baltimorecity.gov",
+      "procurement_link": "https://comptroller.baltimorecity.gov/boe/bids"
+    },
+    {
+      "state": "Georgia",
+      "capital": "Atlanta",
+      "official_website": "https://www.atlantaga.gov",
+      "procurement_link": "https://www.atlantaga.gov/government/departments/procurement"
+    },
+    {
+      "state": "Florida",
+      "capital": "Miami",
+      "official_website": "https://www.miami.gov",
+      "procurement_link": "https://www.miami.gov/My-Government/Departments/Procurement/View-Solicitations"
+    },
+    {
+      "state": "District of Columbia",
+      "capital": "Washington",
+      "official_website": "https://dc.gov",
+      "procurement_link": "https://www.google.com/search?q=https://ocp.dc.gov/page/solicitations-ocp"
+    },
+    {
+      "state": "North Carolina",
+      "capital": "Charlotte",
+      "official_website": "https://www.charlottenc.gov",
+      "procurement_link": "https://www.charlottenc.gov/Growth-and-Development/Doing-Business/Contract-Opportunities"
+    },
+    {
+      "state": "New Jersey",
+      "capital": "Jersey City",
+      "official_website": "https://www.jerseycitynj.gov",
+      "procurement_link": "https://www.jerseycitynj.gov/cityhall/finance/purchasing"
+    },
+    {
+      "state": "Virginia",
+      "capital": "Richmond",
+      "official_website": "https://www.rva.gov",
+      "procurement_link": "https://www.google.com/search?q=https://www.rva.gov/procurement/solicitations"
+    },
+    {
+      "state": "Rhode Island",
+      "capital": "Providence",
+      "official_website": "https://www.providenceri.gov",
+      "procurement_link": "https://www.providenceri.gov/purchasing/how-to-submit-a-bid/"
+    },
+    {
+      "state": "Maine",
+      "capital": "Portland",
+      "official_website": "https://www.portlandmaine.gov",
+      "procurement_link": "https://www.portlandmaine.gov/1210/Current-BidsRFPs"
+    },
+    {
+      "state": "Georgia",
+      "capital": "Savannah",
+      "official_website": "https://www.savannahga.gov",
+      "procurement_link": "https://www.google.com/search?q=https://www.savannahga.gov/bids"
+    },
+    {
+      "state": "Florida",
+      "capital": "Jacksonville",
+      "official_website": "https://www.coj.net",
+      "procurement_link": "https://www.google.com/search?q=https://www.coj.net/departments/finance/procurement/bidding-opportunities"
+    },
+    {
+      "state": "South Carolina",
+      "capital": "Charleston",
+      "official_website": "https://www.charleston-sc.gov",
+      "procurement_link": "https://www.charleston-sc.gov/Bids.aspx?CatID=17"
+    },
+    {
+      "state": "Virginia",
+      "capital": "Norfolk",
+      "official_website": "https://www.norfolk.gov",
+      "procurement_link": "https://www.norfolk.gov/5275/Bid-Postings"
+    },
+    {
+      "state": "Virginia",
+      "capital": "Virginia Beach",
+      "official_website": "https://virginiabeach.gov",
+      "procurement_link": "https://www.google.com/search?q=https://finance.virginiabeach.gov/procurement"
+    },
+    {
+      "state": "New Jersey",
+      "capital": "Newark",
+      "official_website": "https://www.newarknj.gov",
+      "procurement_link": "https://www.newarknj.gov/384/Current-Bids-RFPs-RFQs"
+    },
+    {
+      "state": "Connecticut",
+      "capital": "Stamford",
+      "official_website": "https://www.stamfordct.gov",
+      "procurement_link": "https://www.google.com/search?q=https://www.stamfordct.gov/government/administration/purchasing/bids-rfps"
+    },
+    {
+      "state": "Delaware",
+      "capital": "Wilmington",
+      "official_website": "https://www.wilmingtonde.gov",
+      "procurement_link": "https://www.google.com/search?q=https://www.wilmingtonde.gov/government/city-departments/department-of-finance/procurement-bids"
+    },
+    {
+      "state": "New York",
+      "capital": "Syracuse",
+      "official_website": "https://www.google.com/search?q=https://sygov.net",
+      "procurement_link": "https://www.google.com/search?q=https://www.syr.gov/Business/Bids-RFPs"
+    },
+    {
+      "state": "New York",
+      "capital": "Rochester",
+      "official_website": "https://www.cityofrochester.gov",
+      "procurement_link": "https://www.cityofrochester.gov/bids/"
+    },
+    {
+      "state": "New York",
+      "capital": "Buffalo",
+      "official_website": "https://www.buffalony.gov",
+      "procurement_link": "https://www.google.com/search?q=http://www.buffalony.gov/Bids.aspx%3FCatID%3D18"
+    },
+    {
+      "state": "Massachusetts",
+      "capital": "Worcester",
+      "official_website": "https://www.worcesterma.gov",
+      "procurement_link": "https://www.google.com/search?q=https://www.worcesterma.gov/purchasing/bids-rfps"
+    },
+    {
+      "state": "North Carolina",
+      "capital": "Durham",
+      "official_website": "https://www.durhamnc.gov",
+      "procurement_link": "https://www.durhamnc.gov/4291/RFP-RFQ-BIDS"
+    },
+    {
+      "state": "Florida",
+      "capital": "Tallahassee",
+      "official_website": "https://www.talgov.com",
+      "procurement_link": "https://www.google.com/search?q=https://www.talgov.com/procurement/bids"
+    },
+    {
+      "state": "Florida",
+      "capital": "Fort Lauderdale",
+      "official_website": "https://www.fortlauderdale.gov",
+      "procurement_link": "https://www.bidnetdirect.com/florida/cityoffortlauderdale"
+    },
+    {
+      "state": "Florida",
+      "capital": "West Palm Beach",
+      "official_website": "https://www.wpb.org",
+      "procurement_link": "https://www.google.com/search?q=https://www.wpb.org/government/procurement/solicitations-bids"
+    },
+    {
+      "state": "Georgia",
+      "capital": "Augusta",
+      "official_website": "https://www.augustaga.gov",
+      "procurement_link": "https://www.google.com/search?q=https://www.augustaga.gov/Bids.aspx"
+    },
+    {
+      "state": "South Carolina",
+      "capital": "Columbia",
+      "official_website": "https://www.columbiasc.gov",
+      "procurement_link": "https://www.google.com/search?q=https://procurement.columbiasc.gov/solicitations/"
+    }
+  ]
+}

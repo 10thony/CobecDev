@@ -108,6 +108,10 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
+  const [stateFilterSticky, setStateFilterSticky] = useState(false);
+  const [stateFilterHover, setStateFilterHover] = useState(false);
+  const stateFilterHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // State for editing corrected links
@@ -254,11 +258,71 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
     errors: number;
   } | null>(null);
 
-  // Filter URLs based on status
+  // Filter URLs based on status and state
   const filteredUrls = allUrls?.filter((url) => {
-    if (statusFilter === 'all') return true;
-    return url.status === statusFilter;
+    // Status filter
+    if (statusFilter !== 'all' && url.status !== statusFilter) return false;
+    // State filter - if any states are selected, filter by them
+    if (stateFilter.length > 0 && !stateFilter.includes(url.state)) return false;
+    return true;
   }) ?? [];
+
+  // Get unique states from all URLs (regardless of status)
+  const uniqueStates = useMemo(() => {
+    if (!allUrls) return [];
+    const states = [...new Set(allUrls.map(url => url.state))];
+    return states.sort();
+  }, [allUrls]);
+
+  // Handle state filter hover with 3-second delay
+  const handleStateFilterMouseEnter = () => {
+    if (stateFilterHoverTimeoutRef.current) {
+      clearTimeout(stateFilterHoverTimeoutRef.current);
+      stateFilterHoverTimeoutRef.current = null;
+    }
+    setStateFilterHover(true);
+  };
+
+  const handleStateFilterMouseLeave = () => {
+    if (stateFilterHoverTimeoutRef.current) {
+      clearTimeout(stateFilterHoverTimeoutRef.current);
+    }
+    // Only set timeout if not sticky
+    if (!stateFilterSticky) {
+      stateFilterHoverTimeoutRef.current = setTimeout(() => {
+        setStateFilterHover(false);
+        stateFilterHoverTimeoutRef.current = null;
+      }, 3000);
+    }
+  };
+
+  const handleStateFilterClick = () => {
+    const newStickyState = !stateFilterSticky;
+    setStateFilterSticky(newStickyState);
+    
+    // Clear any pending timeout
+    if (stateFilterHoverTimeoutRef.current) {
+      clearTimeout(stateFilterHoverTimeoutRef.current);
+      stateFilterHoverTimeoutRef.current = null;
+    }
+    
+    if (newStickyState) {
+      // When making sticky, ensure it's visible
+      setStateFilterHover(true);
+    } else {
+      // When unsticking, hide immediately
+      setStateFilterHover(false);
+    }
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (stateFilterHoverTimeoutRef.current) {
+        clearTimeout(stateFilterHoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) {
@@ -1029,10 +1093,10 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
                 </select>
               </div>
 
-              {/* Capital (auto-filled) */}
+              {/* City (auto-filled with capital, but can be edited for any city) */}
               <div>
                 <label className="block text-sm font-medium text-tron-cyan mb-1">
-                  Capital *
+                  City *
                 </label>
                 <input
                   type="text"
@@ -1040,9 +1104,12 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
                   onChange={(e) => setManualFormData(prev => ({ ...prev, capital: e.target.value }))}
                   disabled={isSubmittingManual}
                   className="w-full px-3 py-2 bg-tron-bg-card border border-tron-cyan/20 rounded-lg text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 focus:ring-tron-cyan focus:border-tron-cyan disabled:opacity-50"
-                  placeholder="Capital city"
+                  placeholder="City name (auto-filled with capital)"
                   required
                 />
+                <p className="text-xs text-tron-gray mt-1">
+                  Auto-filled with state capital, but you can edit for any city
+                </p>
               </div>
             </div>
 
@@ -1264,16 +1331,118 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
               icon={<Link2 className="w-5 h-5" />} 
               glowColor="cyan"
               headerAction={addDragHandle('links', (
-                <button
-                  onClick={() => toggleSection('links')}
-                  className="p-1 text-tron-cyan hover:text-tron-cyan-bright transition-colors"
-                >
-                  {collapsedSections.links ? (
-                    <ChevronDown className="w-5 h-5" />
-                  ) : (
-                    <ChevronUp className="w-5 h-5" />
+                <div className="flex items-center gap-2">
+                  {/* State Filter Button */}
+                  {uniqueStates.length > 0 && (
+                    <div 
+                      className="relative"
+                      onMouseEnter={handleStateFilterMouseEnter}
+                      onMouseLeave={handleStateFilterMouseLeave}
+                    >
+                      <button
+                        onClick={handleStateFilterClick}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
+                          stateFilterSticky || stateFilterHover
+                            ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40'
+                            : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                        }`}
+                      >
+                        <Filter className="w-4 h-4" />
+                        <span className="text-sm font-medium">State</span>
+                        {stateFilter.length > 0 && (
+                          <span className="text-xs px-1.5 py-0.5 bg-tron-cyan/30 text-tron-cyan rounded-full">
+                            {stateFilter.length === 1 
+                              ? stateFilter[0] 
+                              : `${stateFilter.length} selected`}
+                          </span>
+                        )}
+                        {stateFilterSticky && (
+                          <span className="text-xs text-tron-cyan">●</span>
+                        )}
+                      </button>
+                      
+                      {/* Filter Dropdown */}
+                      {(stateFilterHover || stateFilterSticky) && (
+                        <div 
+                          className="absolute right-0 top-full mt-2 z-[100] bg-tron-bg-panel border border-tron-cyan/30 rounded-lg shadow-lg p-4 min-w-[300px] max-w-[600px] max-h-[400px] overflow-y-auto"
+                          onMouseEnter={handleStateFilterMouseEnter}
+                          onMouseLeave={handleStateFilterMouseLeave}
+                        >
+                          <div className="flex items-center justify-between mb-3 sticky top-0 bg-tron-bg-panel pb-2 border-b border-tron-cyan/10">
+                            <div className="flex items-center gap-2">
+                              <Filter className="w-4 h-4 text-tron-cyan" />
+                              <span className="text-sm font-medium text-tron-white">Filter by State</span>
+                            </div>
+                            {stateFilterSticky && (
+                              <button
+                                onClick={handleStateFilterClick}
+                                className="text-xs text-tron-gray hover:text-tron-cyan transition-colors"
+                                title="Unpin filter"
+                              >
+                                Unpin
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setStateFilter([])}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                stateFilter.length === 0
+                                  ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                                  : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                              }`}
+                            >
+                              All States
+                            </button>
+                            {uniqueStates.map((state) => {
+                              const isSelected = stateFilter.includes(state);
+                              return (
+                                <button
+                                  key={state}
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setStateFilter(stateFilter.filter(s => s !== state));
+                                    } else {
+                                      setStateFilter([...stateFilter, state]);
+                                    }
+                                  }}
+                                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                    isSelected
+                                      ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                                      : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                                  }`}
+                                >
+                                  {state}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {stateFilter.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-tron-cyan/10">
+                              <button
+                                onClick={() => setStateFilter([])}
+                                className="text-xs text-tron-gray hover:text-tron-cyan transition-colors"
+                              >
+                                Clear all ({stateFilter.length} selected)
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
-                </button>
+                  
+                  <button
+                    onClick={() => toggleSection('links')}
+                    className="p-1 text-tron-cyan hover:text-tron-cyan-bright transition-colors"
+                  >
+                    {collapsedSections.links ? (
+                      <ChevronDown className="w-5 h-5" />
+                    ) : (
+                      <ChevronUp className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               ))}
             >
         {!collapsedSections.links && (

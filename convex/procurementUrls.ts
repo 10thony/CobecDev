@@ -385,15 +385,18 @@ export const importFromJson = mutation({
     const duplicates: string[] = [];
 
     for (const link of args.links) {
-      // Check if this state already exists in any status
+      // Check if this state+city combination already exists in any status
+      // This allows multiple cities per state (not just capitals)
       const existing = await ctx.db
         .query("procurementUrls")
-        .withIndex("by_state", (q) => q.eq("state", link.state))
+        .withIndex("by_state_capital", (q) => 
+          q.eq("state", link.state).eq("capital", link.capital)
+        )
         .first();
 
       if (existing) {
         skipped++;
-        duplicates.push(link.state);
+        duplicates.push(`${link.state} - ${link.capital}`);
         continue;
       }
 
@@ -588,10 +591,13 @@ export const addManual = mutation({
     const identity = await ctx.auth.getUserIdentity();
     const now = Date.now();
     
-    // Check if this state already exists
+    // Check if this state+city combination already exists
+    // This allows multiple cities per state (not just capitals)
     const existing = await ctx.db
       .query("procurementUrls")
-      .withIndex("by_state", (q) => q.eq("state", args.state))
+      .withIndex("by_state_capital", (q) => 
+        q.eq("state", args.state).eq("capital", args.capital)
+      )
       .first();
 
     if (existing) {
