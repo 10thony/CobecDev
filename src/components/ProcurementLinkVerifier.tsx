@@ -89,11 +89,34 @@ const US_STATES = [
   { name: 'District of Columbia', capital: 'Washington' },
 ];
 
+// Region mapping for state grouping
+const STATE_REGIONS: Record<string, string[]> = {
+  'West Coast': ['California', 'Oregon', 'Washington', 'Alaska', 'Hawaii'],
+  'Northwest': ['Idaho', 'Montana', 'Wyoming', 'Nevada', 'Utah'],
+  'Midwest': ['Illinois', 'Indiana', 'Iowa', 'Kansas', 'Michigan', 'Minnesota', 'Missouri', 'Nebraska', 'North Dakota', 'Ohio', 'South Dakota', 'Wisconsin'],
+  'Northeast': ['Connecticut', 'Maine', 'Massachusetts', 'New Hampshire', 'Rhode Island', 'Vermont', 'New Jersey', 'New York', 'Pennsylvania'],
+  'Southeast': ['Alabama', 'Florida', 'Georgia', 'Kentucky', 'Mississippi', 'North Carolina', 'South Carolina', 'Tennessee', 'Virginia', 'West Virginia'],
+  'South': ['Arkansas', 'Louisiana', 'Oklahoma', 'Texas'],
+  'Mid Central': ['Colorado', 'New Mexico'],
+  'East': ['Delaware', 'Maryland', 'District of Columbia'],
+};
+
+// Reverse mapping: state -> region
+const STATE_TO_REGION: Record<string, string> = {};
+Object.entries(STATE_REGIONS).forEach(([region, states]) => {
+  states.forEach(state => {
+    STATE_TO_REGION[state] = region;
+  });
+});
+
 interface ProcurementLink {
   state: string;
   capital: string;
   official_website: string;
   procurement_link: string;
+  entity_type?: string;
+  link_type?: string;
+  confidence_score?: number;
 }
 
 interface ProcurementLinkVerifierProps {
@@ -117,6 +140,9 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   // State for editing corrected links
   const [editingId, setEditingId] = useState<Id<"procurementUrls"> | null>(null);
   const [correctedLink, setCorrectedLink] = useState('');
+  // State for editing official website
+  const [editingOfficialWebsiteId, setEditingOfficialWebsiteId] = useState<Id<"procurementUrls"> | null>(null);
+  const [correctedOfficialWebsite, setCorrectedOfficialWebsite] = useState('');
   const [requiresRegistration, setRequiresRegistration] = useState<Record<string, boolean>>({});
   // Track which links have been modified (edited)
   const [modifiedLinks, setModifiedLinks] = useState<Set<Id<"procurementUrls">>>(new Set());
@@ -315,6 +341,54 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
     }
   };
 
+  // Handle region filter selection
+  const handleRegionFilter = (region: string) => {
+    const regionStates = STATE_REGIONS[region] || [];
+    const availableRegionStates = regionStates.filter(state => uniqueStates.includes(state));
+    
+    if (availableRegionStates.length === 0) return;
+    
+    // Check if all states in region are already selected
+    const allSelected = availableRegionStates.every(state => stateFilter.includes(state));
+    
+    if (allSelected) {
+      // Deselect all states in this region
+      setStateFilter(stateFilter.filter(state => !availableRegionStates.includes(state)));
+    } else {
+      // Select all states in this region (add to existing selection)
+      const newFilter = [...new Set([...stateFilter, ...availableRegionStates])];
+      setStateFilter(newFilter);
+    }
+  };
+
+  // Check if a region is fully selected
+  const isRegionFullySelected = (region: string): boolean => {
+    const regionStates = STATE_REGIONS[region] || [];
+    const availableRegionStates = regionStates.filter(state => uniqueStates.includes(state));
+    return availableRegionStates.length > 0 && availableRegionStates.every(state => stateFilter.includes(state));
+  };
+
+  // Check if a region is partially selected
+  const isRegionPartiallySelected = (region: string): boolean => {
+    const regionStates = STATE_REGIONS[region] || [];
+    const availableRegionStates = regionStates.filter(state => uniqueStates.includes(state));
+    const selectedInRegion = availableRegionStates.filter(state => stateFilter.includes(state));
+    return selectedInRegion.length > 0 && selectedInRegion.length < availableRegionStates.length;
+  };
+
+  // Group states by region
+  const statesByRegion = useMemo(() => {
+    const grouped: Record<string, string[]> = {};
+    uniqueStates.forEach(state => {
+      const region = STATE_TO_REGION[state] || 'Other';
+      if (!grouped[region]) {
+        grouped[region] = [];
+      }
+      grouped[region].push(state);
+    });
+    return grouped;
+  }, [uniqueStates]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -437,6 +511,18 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
         }
       }
       
+      // If this card is being edited and has a corrected official website, save it first
+      if (editingOfficialWebsiteId === id && correctedOfficialWebsite.trim()) {
+        // Find the original URL to compare
+        const originalUrl = allUrls?.find(url => url._id === id);
+        if (originalUrl && correctedOfficialWebsite.trim() !== originalUrl.officialWebsite) {
+          // Save the corrected official website before approving
+          await updateLink({ id, officialWebsite: correctedOfficialWebsite.trim() });
+          // Mark as modified if website changed
+          setModifiedLinks(prev => new Set(prev).add(id));
+        }
+      }
+      
       // Then approve with registration requirement
       await approve({ 
         id, 
@@ -447,6 +533,10 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
       if (editingId === id) {
         setEditingId(null);
         setCorrectedLink('');
+      }
+      if (editingOfficialWebsiteId === id) {
+        setEditingOfficialWebsiteId(null);
+        setCorrectedOfficialWebsite('');
       }
       // Clear modified status after approval
       setModifiedLinks(prev => {
@@ -473,6 +563,10 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
         setEditingId(null);
         setCorrectedLink('');
       }
+      if (editingOfficialWebsiteId === id) {
+        setEditingOfficialWebsiteId(null);
+        setCorrectedOfficialWebsite('');
+      }
       // Clear registration requirement state for this link
       setRequiresRegistration(prev => {
         const next = { ...prev };
@@ -492,6 +586,35 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   const handleCancelEdit = () => {
     setEditingId(null);
     setCorrectedLink('');
+  };
+
+  const handleStartEditOfficialWebsite = (id: Id<"procurementUrls">, currentWebsite: string) => {
+    setEditingOfficialWebsiteId(id);
+    setCorrectedOfficialWebsite(currentWebsite);
+  };
+
+  const handleCancelEditOfficialWebsite = () => {
+    setEditingOfficialWebsiteId(null);
+    setCorrectedOfficialWebsite('');
+  };
+
+  const handleSaveOfficialWebsite = async (id: Id<"procurementUrls">) => {
+    if (!correctedOfficialWebsite.trim()) {
+      return;
+    }
+    try {
+      // Check if the website actually changed
+      const originalUrl = allUrls?.find(url => url._id === id);
+      if (originalUrl && correctedOfficialWebsite.trim() !== originalUrl.officialWebsite) {
+        await updateLink({ id, officialWebsite: correctedOfficialWebsite.trim() });
+        // Mark this link as modified
+        setModifiedLinks(prev => new Set(prev).add(id));
+      }
+      setEditingOfficialWebsiteId(null);
+      setCorrectedOfficialWebsite('');
+    } catch (err) {
+      console.error('Error updating official website:', err);
+    }
   };
 
   const handleSaveCorrectedLink = async (id: Id<"procurementUrls">) => {
@@ -541,6 +664,10 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
       if (editingId === id) {
         setEditingId(null);
         setCorrectedLink('');
+      }
+      if (editingOfficialWebsiteId === id) {
+        setEditingOfficialWebsiteId(null);
+        setCorrectedOfficialWebsite('');
       }
     } catch (err) {
       console.error('Error manually approving URL:', err);
@@ -1383,39 +1510,83 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
                               </button>
                             )}
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              onClick={() => setStateFilter([])}
-                              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                                stateFilter.length === 0
-                                  ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
-                                  : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
-                              }`}
-                            >
-                              All States
-                            </button>
-                            {uniqueStates.map((state) => {
-                              const isSelected = stateFilter.includes(state);
-                              return (
-                                <button
-                                  key={state}
-                                  onClick={() => {
-                                    if (isSelected) {
-                                      setStateFilter(stateFilter.filter(s => s !== state));
-                                    } else {
-                                      setStateFilter([...stateFilter, state]);
-                                    }
-                                  }}
-                                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                                    isSelected
-                                      ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
-                                      : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
-                                  }`}
-                                >
-                                  {state}
-                                </button>
-                              );
-                            })}
+                          
+                          {/* Region Quick Filters */}
+                          <div className="mb-4">
+                            <div className="text-xs font-medium text-tron-gray mb-2">Quick Filters by Region</div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() => setStateFilter([])}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                  stateFilter.length === 0
+                                    ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                                    : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                                }`}
+                              >
+                                All States
+                              </button>
+                              {Object.keys(STATE_REGIONS).map((region) => {
+                                const fullySelected = isRegionFullySelected(region);
+                                const partiallySelected = isRegionPartiallySelected(region);
+                                const regionStates = STATE_REGIONS[region] || [];
+                                const availableInRegion = regionStates.filter(state => uniqueStates.includes(state));
+                                
+                                if (availableInRegion.length === 0) return null;
+                                
+                                return (
+                                  <button
+                                    key={region}
+                                    onClick={() => handleRegionFilter(region)}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                      fullySelected
+                                        ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                                        : partiallySelected
+                                        ? 'bg-tron-cyan/10 text-tron-cyan/80 border-tron-cyan/30'
+                                        : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                                    }`}
+                                    title={`${availableInRegion.length} state${availableInRegion.length !== 1 ? 's' : ''} available`}
+                                  >
+                                    {region}
+                                    {partiallySelected && ' *'}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* States Grouped by Region */}
+                          <div className="space-y-4">
+                            {Object.entries(statesByRegion).sort(([a], [b]) => a.localeCompare(b)).map(([region, states]) => (
+                              <div key={region} className="space-y-2">
+                                <div className="text-xs font-semibold text-tron-cyan/80 uppercase tracking-wide">
+                                  {region}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {states.map((state) => {
+                                    const isSelected = stateFilter.includes(state);
+                                    return (
+                                      <button
+                                        key={state}
+                                        onClick={() => {
+                                          if (isSelected) {
+                                            setStateFilter(stateFilter.filter(s => s !== state));
+                                          } else {
+                                            setStateFilter([...stateFilter, state]);
+                                          }
+                                        }}
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                          isSelected
+                                            ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                                            : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                                        }`}
+                                      >
+                                        {state}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                           {stateFilter.length > 0 && (
                             <div className="mt-3 pt-3 border-t border-tron-cyan/10">
@@ -1528,16 +1699,62 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
 
               {/* Links */}
               <div className="space-y-2 mb-4">
-                <a
-                  href={url.officialWebsite}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-tron-gray hover:text-tron-cyan transition-colors group"
-                >
-                  <Globe className="w-4 h-4" />
-                  <span className="truncate group-hover:underline">Official Website</span>
-                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </a>
+                {/* Official Website Link */}
+                <div className="flex items-center gap-2">
+                  <a
+                    href={url.officialWebsite}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-tron-gray hover:text-tron-cyan transition-colors group flex-1 min-w-0"
+                  >
+                    <Globe className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate group-hover:underline">Official Website</span>
+                    <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </a>
+                  {editingOfficialWebsiteId !== url._id && (
+                    <button
+                      onClick={() => handleStartEditOfficialWebsite(url._id, url.officialWebsite)}
+                      className="p-1 text-tron-gray hover:text-tron-cyan transition-colors"
+                      title="Edit Official Website"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Official Website Input */}
+                {editingOfficialWebsiteId === url._id && (
+                  <div className="mt-2 space-y-2">
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-tron-cyan">
+                      <Globe className="w-3 h-3" />
+                      Edit Official Website
+                    </label>
+                    <div className="flex gap-1">
+                      <input
+                        type="url"
+                        value={correctedOfficialWebsite}
+                        onChange={(e) => setCorrectedOfficialWebsite(e.target.value)}
+                        placeholder="Enter official website URL..."
+                        className="flex-1 px-2 py-1.5 text-sm bg-tron-bg-deep border border-tron-cyan/30 rounded text-tron-white placeholder-tron-gray focus:outline-none focus:ring-1 focus:ring-tron-cyan focus:border-tron-cyan"
+                      />
+                      <button
+                        onClick={() => handleSaveOfficialWebsite(url._id)}
+                        disabled={!correctedOfficialWebsite.trim()}
+                        className="p-1.5 bg-tron-cyan/20 text-tron-cyan hover:bg-tron-cyan/30 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Save"
+                      >
+                        <Save className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={handleCancelEditOfficialWebsite}
+                        className="p-1.5 bg-tron-bg-elevated text-tron-gray hover:text-tron-white rounded transition-colors"
+                        title="Cancel"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Original Procurement Link */}
                 <div className="flex items-center gap-2">

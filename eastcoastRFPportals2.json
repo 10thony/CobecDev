@@ -1,0 +1,113 @@
+{
+
+    "links": [
+    {
+    "state": "Connecticut",
+    "capital": "Hartford",
+    "official_website": "[https://www.hartfordct.gov](https://www.hartfordct.gov)",
+    "procurement_link": "[https://www.hartfordct.gov/Government/Departments/Finance/Purchasing](https://www.google.com/search?q=https://www.hartfordct.gov/Government/Departments/Finance/Purchasing)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 0.95
+    },
+    {
+    "state": "Rhode Island",
+    "capital": "Providence",
+    "official_website": "[https://www.providenceri.gov](https://www.providenceri.gov)",
+    "procurement_link": "[https://www.providenceri.gov/purchasing/active-bid-solicitations/](https://www.providenceri.gov/purchasing/active-bid-solicitations/)",
+    "entity_type": "City",
+    "link_type": "RFP Listing",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "New Hampshire",
+    "capital": "Concord",
+    "official_website": "[https://www.concordnh.gov](https://www.concordnh.gov)",
+    "procurement_link": "[https://www.concordnh.gov/Bids.aspx](https://www.concordnh.gov/Bids.aspx)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "Maine",
+    "capital": "Augusta",
+    "official_website": "[https://www.augustamaine.gov](https://www.augustamaine.gov)",
+    "procurement_link": "[https://www.augustamaine.gov/purchasing](https://www.augustamaine.gov/purchasing)",
+    "entity_type": "City",
+    "link_type": "RFP Listing",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "Maryland",
+    "capital": "Annapolis",
+    "official_website": "[https://procurement.maryland.gov](https://procurement.maryland.gov)",
+    "procurement_link": "[https://emma.maryland.gov/page.aspx/en/rfp/request_browse_public](https://emma.maryland.gov/page.aspx/en/rfp/request_browse_public)",
+    "entity_type": "State",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "Pennsylvania",
+    "capital": "Harrisburg",
+    "official_website": "[https://harrisburgpa.gov](https://harrisburgpa.gov)",
+    "procurement_link": "[https://harrisburgpa.gov/services/purchasing/](https://www.google.com/search?q=https://harrisburgpa.gov/services/purchasing/)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 0.95
+    },
+    {
+    "state": "New Jersey",
+    "capital": "Jersey City",
+    "official_website": "[https://www.jerseycitynj.gov](https://www.jerseycitynj.gov)",
+    "procurement_link": "[https://www.jerseycitynj.gov/cityhall/finance/purchasing/publiccontracts](https://www.jerseycitynj.gov/cityhall/finance/purchasing/publiccontracts)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "New Jersey",
+    "capital": "Trenton",
+    "official_website": "[https://www.nj.gov/treasury/purchase/](https://www.nj.gov/treasury/purchase/)",
+    "procurement_link": "[https://www.njstart.gov/bsol/](https://www.google.com/search?q=https://www.njstart.gov/bsol/)",
+    "entity_type": "State",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "Virginia",
+    "capital": "Virginia Beach",
+    "official_website": "[https://www.vbgov.com](https://www.google.com/search?q=https://www.vbgov.com)",
+    "procurement_link": "[https://finance.virginiabeach.gov/purchasing/supplier-services](https://finance.virginiabeach.gov/purchasing/supplier-services)",
+    "entity_type": "City",
+    "link_type": "Vendor Registration",
+    "confidence_score": 0.95
+    },
+    {
+    "state": "Florida",
+    "capital": "Jacksonville",
+    "official_website": "[https://www.jacksonville.gov](https://www.jacksonville.gov)",
+    "procurement_link": "[https://www.jacksonville.gov/departments/office-of-administrative-services/procurement](https://www.jacksonville.gov/departments/office-of-administrative-services/procurement)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "Georgia",
+    "capital": "Savannah",
+    "official_website": "[https://www.savannahga.gov](https://www.savannahga.gov)",
+    "procurement_link": "[https://www.savannahga.gov/599/E-Procurement](https://www.savannahga.gov/599/E-Procurement)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "South Carolina",
+    "capital": "Charleston",
+    "official_website": "[https://www.charleston-sc.gov](https://www.charleston-sc.gov)",
+    "procurement_link": "[https://www.charleston-sc.gov/131/BIDLINE](https://www.charleston-sc.gov/131/BIDLINE)",
+    "entity_type": "City",
+    "link_type": "RFP Listing",
+    "confidence_score": 1.0
+    }
+    ]
+    }

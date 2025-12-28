@@ -1,0 +1,95 @@
+{
+   
+    "links": [
+    {
+    "state": "Texas",
+    "capital": "Houston",
+    "official_website": "[https://www.houstontx.gov](https://www.houstontx.gov)",
+    "procurement_link": "[https://purchasing.houstontx.gov](https://purchasing.houstontx.gov)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "Texas",
+    "capital": "Dallas",
+    "official_website": "[https://www.dallascounty.org](https://www.dallascounty.org)",
+    "procurement_link": "[https://www.bidnetdirect.com/texas/dallas-county](https://www.bidnetdirect.com/texas/dallas-county)",
+    "entity_type": "County",
+    "link_type": "RFP Listing",
+    "confidence_score": 0.95
+    },
+    {
+    "state": "Texas",
+    "capital": "Fort Worth",
+    "official_website": "[https://www.fortworthtexas.gov](https://www.fortworthtexas.gov)",
+    "procurement_link": "[https://fortworthtexas.bonfirehub.com/portal/?tab=openOpportunities](https://fortworthtexas.bonfirehub.com/portal/?tab=openOpportunities)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "Texas",
+    "capital": "El Paso",
+    "official_website": "[https://www.epcounty.com](https://www.epcounty.com)",
+    "procurement_link": "[https://www.epcounty.com/purchasing/](https://www.epcounty.com/purchasing/)",
+    "entity_type": "County",
+    "link_type": "RFP Listing",
+    "confidence_score": 0.9
+    },
+    {
+    "state": "Texas",
+    "capital": "Arlington",
+    "official_website": "[https://www.arlingtontx.gov](https://www.arlingtontx.gov)",
+    "procurement_link": "[https://arlingtontx.ionwave.net/Login.aspx](https://www.google.com/search?q=https://arlingtontx.ionwave.net/Login.aspx)",
+    "entity_type": "City",
+    "link_type": "Vendor Registration",
+    "confidence_score": 0.95
+    },
+    {
+    "state": "Texas",
+    "capital": "Corpus Christi",
+    "official_website": "[https://www.cctexas.com](https://www.cctexas.com)",
+    "procurement_link": "[https://www.publicpurchase.com/gems/cctexas,tx/buyer/public/home](https://www.publicpurchase.com/gems/cctexas,tx/buyer/public/home)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 0.95
+    },
+    {
+    "state": "Texas",
+    "capital": "Plano",
+    "official_website": "[https://www.plano.gov](https://www.plano.gov)",
+    "procurement_link": "[https://plano.ionwave.net/Login.aspx](https://www.google.com/search?q=https://plano.ionwave.net/Login.aspx)",
+    "entity_type": "City",
+    "link_type": "Vendor Registration",
+    "confidence_score": 0.95
+    },
+    {
+    "state": "Texas",
+    "capital": "Laredo",
+    "official_website": "[https://www.cityoflaredo.com](https://www.cityoflaredo.com)",
+    "procurement_link": "[https://cityoflaredo.ionwave.net/Login.aspx](https://cityoflaredo.ionwave.net/Login.aspx)",
+    "entity_type": "City",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    },
+    {
+    "state": "Texas",
+    "capital": "Lubbock",
+    "official_website": "[https://www.lubbockcounty.gov](https://www.lubbockcounty.gov)",
+    "procurement_link": "[https://lubbock.bonfirehub.com](https://lubbock.bonfirehub.com)",
+    "entity_type": "County",
+    "link_type": "Vendor Registration",
+    "confidence_score": 0.95
+    },
+    {
+    "state": "Texas",
+    "capital": "Austin",
+    "official_website": "[https://comptroller.texas.gov](https://comptroller.texas.gov)",
+    "procurement_link": "[https://comptroller.texas.gov/purchasing/](https://comptroller.texas.gov/purchasing/)",
+    "entity_type": "State",
+    "link_type": "Direct Portal",
+    "confidence_score": 1.0
+    }
+    ]
+    }

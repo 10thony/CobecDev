@@ -9,6 +9,9 @@ const procurementLinkValidator = v.object({
   capital: v.string(),
   official_website: v.string(),
   procurement_link: v.string(),
+  entity_type: v.optional(v.string()),
+  link_type: v.optional(v.string()),
+  confidence_score: v.optional(v.number()),
 });
 
 // Type for the formatted link structure
@@ -363,6 +366,29 @@ export const searchByStateCity = query({
   },
 });
 
+// Helper function to sanitize URLs from markdown-style links
+// Handles cases like "[https://example.com](https://example.com)" -> "https://example.com"
+function sanitizeUrl(url: string): string {
+  if (!url || typeof url !== 'string') {
+    return url;
+  }
+  
+  // Trim whitespace
+  url = url.trim();
+  
+  // Check if it's a markdown link format: [text](url)
+  const markdownLinkRegex = /^\[([^\]]*)\]\(([^)]+)\)$/;
+  const match = url.match(markdownLinkRegex);
+  
+  if (match) {
+    // Extract URL from parentheses (the actual link)
+    return match[2].trim();
+  }
+  
+  // If not markdown format, return as-is
+  return url;
+}
+
 // Mutations
 
 /**
@@ -385,6 +411,10 @@ export const importFromJson = mutation({
     const duplicates: string[] = [];
 
     for (const link of args.links) {
+      // Sanitize URLs to extract from markdown-style links
+      const sanitizedOfficialWebsite = sanitizeUrl(link.official_website);
+      const sanitizedProcurementLink = sanitizeUrl(link.procurement_link);
+      
       // Check if this state+city combination already exists in any status
       // This allows multiple cities per state (not just capitals)
       const existing = await ctx.db
@@ -403,8 +433,8 @@ export const importFromJson = mutation({
       await ctx.db.insert("procurementUrls", {
         state: link.state,
         capital: link.capital,
-        officialWebsite: link.official_website,
-        procurementLink: link.procurement_link,
+        officialWebsite: sanitizedOfficialWebsite,
+        procurementLink: sanitizedProcurementLink,
         status: "pending",
         importedAt,
         sourceFile: args.sourceFile,
@@ -826,9 +856,13 @@ export const importFromChatResponse = mutation({
     const duplicates: string[] = [];
 
     for (const link of args.links) {
+      // Sanitize URLs to extract from markdown-style links
+      const sanitizedOfficialWebsite = sanitizeUrl(link.official_website);
+      const sanitizedProcurementLink = sanitizeUrl(link.procurement_link);
+      
       // Normalize URLs for comparison (remove trailing slashes, convert to lowercase)
       const normalizeUrl = (url: string) => url.trim().toLowerCase().replace(/\/$/, '');
-      const normalizedProcurementLink = normalizeUrl(link.procurement_link);
+      const normalizedProcurementLink = normalizeUrl(sanitizedProcurementLink);
       
       // Check if this exact procurement link URL already exists
       // This allows state and city links for the same location to both be imported
@@ -842,15 +876,15 @@ export const importFromChatResponse = mutation({
 
       if (exactUrlMatch) {
         skipped++;
-        duplicates.push(`${link.state} - ${link.capital} (${link.procurement_link})`);
+        duplicates.push(`${link.state} - ${link.capital} (${sanitizedProcurementLink})`);
         continue;
       }
 
       await ctx.db.insert("procurementUrls", {
         state: link.state,
         capital: link.capital,
-        officialWebsite: link.official_website,
-        procurementLink: link.procurement_link,
+        officialWebsite: sanitizedOfficialWebsite,
+        procurementLink: sanitizedProcurementLink,
         status: "pending",
         importedAt,
         sourceFile: args.sessionId ? `chat-export-${args.sessionId}` : "chat-export",
