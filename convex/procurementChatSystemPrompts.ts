@@ -1,5 +1,6 @@
 import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 // Default system prompt - used if no prompt exists in the database
 export const DEFAULT_SYSTEM_PROMPT = `You are a specialized Procurement Data Intelligence Agent. Your primary function is to assist users in identifying official government procurement, bidding, and RFP (Request for Proposal) portals for specific geographic regions (States, Cities, Counties, or Municipalities).
@@ -255,5 +256,262 @@ export const initializeDefault = mutation({
     });
     
     return { created: true, id };
+  },
+});
+
+// Type for approved links from lookup table
+type ApprovedLink = {
+  state: string;
+  capital: string;
+  officialWebsite: string;
+  procurementLink: string;
+  entityType: string | null;
+  linkType: string | null;
+  requiresRegistration: boolean | null;
+};
+
+/**
+ * Format approved links into a readable section for the system prompt
+ */
+function formatApprovedLinksForPrompt(links: ApprovedLink[]): string {
+  if (links.length === 0) return "";
+  
+  // If we have many links, show summary only
+  if (links.length > 20) {
+    // Group by state and show summary
+    const byState: Record<string, number> = {};
+    for (const link of links) {
+      byState[link.state] = (byState[link.state] || 0) + 1;
+    }
+    
+    let formatted = "\n\n## ALREADY APPROVED PROCUREMENT LINKS\n";
+    formatted += `We have ${links.length} approved procurement links across ${Object.keys(byState).length} states. `;
+    formatted += "DO NOT suggest links that are already in our system.\n\n";
+    formatted += "**States with approved links:**\n";
+    
+    // Sort states alphabetically
+    const sortedStates = Object.keys(byState).sort();
+    for (const state of sortedStates) {
+      const count = byState[state];
+      formatted += `- ${state}: ${count} link${count > 1 ? 's' : ''}\n`;
+    }
+    
+    formatted += "\nCRITICAL: Before suggesting any procurement link, check if we already have it. ";
+    formatted += "If the link already exists in our system, acknowledge that it's already collected.\n";
+    
+    return formatted;
+  }
+  
+  // Show full details for 20 or fewer links
+  // Group by state for better organization
+  const byState: Record<string, ApprovedLink[]> = {};
+  for (const link of links) {
+    if (!byState[link.state]) {
+      byState[link.state] = [];
+    }
+    byState[link.state].push(link);
+  }
+  
+  let formatted = "\n\n## ALREADY APPROVED PROCUREMENT LINKS\n";
+  formatted += "The following procurement links have already been collected and approved in our system. ";
+  formatted += "DO NOT suggest these links again. If a user requests a link for one of these locations, ";
+  formatted += "inform them that we already have it in our system.\n\n";
+  
+  // Sort states alphabetically
+  const sortedStates = Object.keys(byState).sort();
+  for (const state of sortedStates) {
+    const stateLinks = byState[state];
+    formatted += `### ${state}\n`;
+    for (const link of stateLinks) {
+      formatted += `- **${link.capital}**: ${link.procurementLink}`;
+      if (link.requiresRegistration) {
+        formatted += " (Requires Registration)";
+      }
+      formatted += "\n";
+    }
+    formatted += "\n";
+  }
+  
+  formatted += "CRITICAL: Before suggesting any procurement link, check this list. ";
+  formatted += "If the link already exists here, do NOT include it in your response. ";
+  formatted += "Instead, acknowledge that the link is already in our system.\n";
+  
+  return formatted;
+}
+
+/**
+ * Remove existing approved links section from prompt text
+ */
+function removeExistingApprovedLinksSection(promptText: string): string {
+  // Find the start of the approved links section (handle both with and without leading newlines)
+  let sectionStart = promptText.indexOf("\n\n## ALREADY APPROVED PROCUREMENT LINKS");
+  if (sectionStart === -1) {
+    sectionStart = promptText.indexOf("## ALREADY APPROVED PROCUREMENT LINKS");
+  }
+  
+  if (sectionStart === -1) {
+    return promptText; // No section found, return as-is
+  }
+  
+  // If we found it with leading newlines, include them in the removal
+  // Otherwise, we need to find the start of the line
+  let actualStart = sectionStart;
+  if (sectionStart > 0 && promptText[sectionStart - 1] === '\n') {
+    // Check if there's another newline before this
+    if (sectionStart > 1 && promptText[sectionStart - 2] === '\n') {
+      actualStart = sectionStart - 2; // Include both newlines
+    } else {
+      actualStart = sectionStart - 1; // Include single newline
+    }
+  }
+  
+  // Find the end of the section by looking for the next "##" or "Remember:" or end of string
+  const afterSection = promptText.slice(sectionStart);
+  const nextSection = afterSection.indexOf("\n\n## ", 1); // Start search after the first "##"
+  const rememberIndex = afterSection.indexOf("\n\nRemember:");
+  
+  let endIndex = afterSection.length;
+  if (nextSection !== -1 && rememberIndex !== -1) {
+    endIndex = Math.min(nextSection, rememberIndex);
+  } else if (nextSection !== -1) {
+    endIndex = nextSection;
+  } else if (rememberIndex !== -1) {
+    endIndex = rememberIndex;
+  }
+  
+  // Remove the section
+  const beforeSection = promptText.slice(0, actualStart);
+  const afterRemoved = afterSection.slice(endIndex);
+  
+  // Clean up extra newlines
+  const cleaned = (beforeSection.trimEnd() + "\n" + afterRemoved.trimStart()).trim();
+  
+  return cleaned;
+}
+
+/**
+ * Inject approved links section into the system prompt
+ * Note: basePrompt should already have any existing approved links section removed
+ */
+function injectApprovedLinksIntoPrompt(basePrompt: string, linksSection: string): string {
+  if (!linksSection) return basePrompt;
+  
+  // Insert the links section before the final "Remember:" instruction
+  const rememberIndex = basePrompt.lastIndexOf("Remember:");
+  
+  if (rememberIndex !== -1) {
+    return basePrompt.slice(0, rememberIndex) + linksSection + "\n\n" + basePrompt.slice(rememberIndex);
+  }
+  
+  // If "Remember:" not found, append at the end
+  return basePrompt + linksSection;
+}
+
+/**
+ * Update the primary system prompt with approved procurement links
+ * This mutation refreshes the lookup table and then updates the primary prompt
+ */
+export const updatePrimaryWithApprovedLinks = mutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    linkCount: v.number(),
+    promptUpdated: v.boolean(),
+  }),
+  handler: async (ctx) => {
+    const now = Date.now();
+    
+    // First, refresh the lookup table
+    const identity = await ctx.auth.getUserIdentity();
+    const approvedBy = identity?.subject || "System";
+    
+    // Get all approved procurement links directly from database
+    const approvedLinks = await ctx.db
+      .query("procurementUrls")
+      .withIndex("by_status", (q) => q.eq("status", "approved"))
+      .collect();
+    
+    // Transform to lookup format
+    type FormattedLink = {
+      state: string;
+      capital: string;
+      officialWebsite: string;
+      procurementLink: string;
+      entityType: string | null;
+      linkType: string | null;
+      requiresRegistration: boolean | null;
+    };
+    
+    const formattedLinks: FormattedLink[] = approvedLinks.map((link) => ({
+      state: link.state,
+      capital: link.capital,
+      officialWebsite: link.officialWebsite,
+      procurementLink: link.procurementLink,
+      entityType: null,
+      linkType: null,
+      requiresRegistration: link.requiresRegistration ?? null,
+    }));
+    
+    // Update the lookup table
+    const existingLookup = await ctx.db
+      .query("approvedProcurementLinksLookUp")
+      .first();
+    
+    if (existingLookup) {
+      await ctx.db.patch(existingLookup._id, {
+        lastApprovedBy: approvedBy,
+        lastApprovedAt: now,
+        approvedProcurementLinks: formattedLinks,
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("approvedProcurementLinksLookUp", {
+        dateCreated: now,
+        lastApprovedBy: approvedBy,
+        lastApprovedAt: now,
+        approvedProcurementLinks: formattedLinks,
+        updatedAt: now,
+      });
+    }
+    
+    // Get the primary system prompt
+    const primaryPrompt = await ctx.db
+      .query("procurementChatSystemPrompts")
+      .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
+      .first();
+    
+    if (!primaryPrompt) {
+      return {
+        success: false,
+        message: "No primary system prompt found. Please create one first.",
+        linkCount: formattedLinks.length,
+        promptUpdated: false,
+      };
+    }
+    
+    // Format approved links for the prompt
+    const linksSection = formatApprovedLinksForPrompt(formattedLinks);
+    
+    // Get the base prompt (remove any existing approved links section)
+    let basePrompt = removeExistingApprovedLinksSection(primaryPrompt.systemPromptText);
+    
+    // If we have approved links, inject them into the prompt
+    const updatedPromptText = linksSection 
+      ? injectApprovedLinksIntoPrompt(basePrompt, linksSection)
+      : basePrompt;
+    
+    // Update the primary prompt in the database
+    await ctx.db.patch(primaryPrompt._id, {
+      systemPromptText: updatedPromptText,
+      updatedAt: now,
+    });
+    
+    return {
+      success: true,
+      message: `Successfully updated primary system prompt with ${formattedLinks.length} approved links.`,
+      linkCount: formattedLinks.length,
+      promptUpdated: true,
+    };
   },
 });

@@ -10,6 +10,7 @@
 
 import type * as agent_procurementVerifier from "../agent/procurementVerifier.js";
 import type * as aiModels from "../aiModels.js";
+import type * as approvedProcurementLinksLookup from "../approvedProcurementLinksLookup.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as chats from "../chats.js";
@@ -84,6 +85,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "agent/procurementVerifier": typeof agent_procurementVerifier;
   aiModels: typeof aiModels;
+  approvedProcurementLinksLookup: typeof approvedProcurementLinksLookup;
   auth: typeof auth;
   chat: typeof chat;
   chats: typeof chats;

@@ -26,7 +26,8 @@ export const sendMessage = action({
     
     try {
       // Get the primary system prompt from the database
-      const systemPrompt = await getPrimarySystemPrompt(ctx);
+      // Pass user message to enable state filtering for approved links
+      const systemPrompt = await getPrimarySystemPrompt(ctx, args.prompt);
       
       // Create agent with the fetched prompt
       const simpleChatAgent = createSimpleChatAgent(systemPrompt);

@@ -94,6 +94,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     isPrimarySystemPrompt: false,
   });
   const [savingPrompt, setSavingPrompt] = useState(false);
+  const [modalMessage, setModalMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Convex queries and mutations
   const sessions = useQuery(api.procurementChatSessions.list, { includeArchived: false });
@@ -119,6 +120,8 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const deleteSystemPrompt = useMutation(api.procurementChatSystemPrompts.remove);
   const setPromptAsPrimary = useMutation(api.procurementChatSystemPrompts.setPrimary);
   const initializeDefaultPrompt = useMutation(api.procurementChatSystemPrompts.initializeDefault);
+  const updatePrimaryWithApprovedLinks = useMutation(api.procurementChatSystemPrompts.updatePrimaryWithApprovedLinks);
+  const [refreshingLinks, setRefreshingLinks] = useState(false);
   
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -414,6 +417,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       systemPromptText: '',
       isPrimarySystemPrompt: false,
     });
+    setModalMessage(null);
   };
 
   const handleSavePrompt = async () => {
@@ -463,6 +467,36 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       await setPromptAsPrimary({ id });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set primary prompt');
+    }
+  };
+
+  const handleRefreshApprovedLinks = async () => {
+    setRefreshingLinks(true);
+    setModalMessage(null);
+    try {
+      const result = await updatePrimaryWithApprovedLinks({});
+      if (result.success) {
+        // Show success message briefly
+        setModalMessage({
+          type: 'success',
+          text: result.message
+        });
+        setTimeout(() => setModalMessage(null), 5000);
+      } else {
+        setModalMessage({
+          type: 'error',
+          text: result.message
+        });
+        setTimeout(() => setModalMessage(null), 5000);
+      }
+    } catch (err) {
+      setModalMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to update system prompt with approved links'
+      });
+      setTimeout(() => setModalMessage(null), 5000);
+    } finally {
+      setRefreshingLinks(false);
     }
   };
 
@@ -815,6 +849,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                 onClick={() => {
                   setShowPromptSettings(false);
                   handleCancelPromptForm();
+                  setModalMessage(null);
                 }}
                 className="p-2 hover:bg-tron-cyan/10 rounded-lg transition-colors"
               >
@@ -824,6 +859,28 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-4">
+              {/* Modal Message */}
+              {modalMessage && (
+                <div className={`mb-4 p-3 border rounded-lg ${
+                  modalMessage.type === 'success'
+                    ? 'bg-neon-success/20 border-neon-success'
+                    : 'bg-neon-error/20 border-neon-error'
+                }`}>
+                  <div className="flex items-start gap-2">
+                    {modalMessage.type === 'success' ? (
+                      <CheckCircle className="w-4 h-4 text-neon-success mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-neon-error mt-0.5 flex-shrink-0" />
+                    )}
+                    <p className={`text-xs ${
+                      modalMessage.type === 'success'
+                        ? 'text-neon-success'
+                        : 'text-neon-error'
+                    }`}>{modalMessage.text}</p>
+                  </div>
+                </div>
+              )}
+              
               {/* Create/Edit Form */}
               {(isCreatingPrompt || editingPrompt) ? (
                 <div className="space-y-4">
@@ -920,15 +977,28 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                     <p className="text-sm text-tron-gray">
                       Manage system prompts for the Procurement Chat AI. The primary prompt will be used for all conversations.
                     </p>
-                    <TronButton
-                      onClick={handleStartCreatePrompt}
-                      variant="primary"
-                      color="cyan"
-                      size="sm"
-                      icon={<Plus className="w-4 h-4" />}
-                    >
-                      New Prompt
-                    </TronButton>
+                    <div className="flex items-center gap-2">
+                      <TronButton
+                        onClick={handleRefreshApprovedLinks}
+                        variant="outline"
+                        color="cyan"
+                        size="sm"
+                        disabled={refreshingLinks}
+                        icon={refreshingLinks ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                        title="Update primary system prompt with approved procurement links"
+                      >
+                        {refreshingLinks ? 'Updating...' : 'Update Prompt with Links'}
+                      </TronButton>
+                      <TronButton
+                        onClick={handleStartCreatePrompt}
+                        variant="primary"
+                        color="cyan"
+                        size="sm"
+                        icon={<Plus className="w-4 h-4" />}
+                      >
+                        New Prompt
+                      </TronButton>
+                    </div>
                   </div>
 
                   {/* Prompts List */}

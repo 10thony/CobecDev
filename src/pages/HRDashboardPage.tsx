@@ -796,19 +796,6 @@ export function HRDashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-tron-white">
-                HR Dashboard
-              </h1>
-              <p className="mt-2 text-lg text-tron-gray">
-                AI-powered job-resume matching and semantic search for HR professionals
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Target className="h-8 w-8 text-tron-cyan" />
-            </div>
-          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -833,47 +820,6 @@ export function HRDashboardPage() {
         {/* Tab Content */}
         <div className="bg-tron-bg-panel rounded-lg shadow-sm border border-tron-cyan/20">
           {renderTabContent()}
-        </div>
-
-
-        {/* Help Section */}
-        <div className="mt-8 bg-tron-bg-card border-tron-cyan/30 rounded-lg border p-6">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <Settings className="h-6 w-6 text-tron-cyan" />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-lg font-medium text-tron-white">
-                Getting Started with HR Dashboard
-              </h3>
-              <div className="mt-2 text-sm text-tron-gray">
-                <p className="mb-2">
-                  <strong>1. Overview Tab:</strong> View job-resume matching statistics and business insights
-                </p>
-                <p className="mb-2">
-                  <strong>2. Search Tab:</strong> Use AI-powered semantic search to find optimal matches
-                </p>
-                <p className="mb-2">
-                  <strong>3. Leads Management Tab:</strong> Manage procurement opportunity leads with full CRUD functionality
-                </p>
-                <p className="mb-2">
-                  <strong>4. Procurement Links Tab:</strong> Import and verify procurement URLs that become available in the Government Link Map
-                </p>
-                <p className="mb-2">
-                  <strong>5. KFC Management Tab:</strong> Manage KFC points and employee nominations with sub-tabs for Points Manager and Nominations
-                </p>
-                <p className="mb-2">
-                  <strong>6. Data Management Tab:</strong> Import, export, and manage job postings and resumes
-                </p>
-                <p className="mb-2">
-                  <strong>7. Embeddings Tab:</strong> Manage AI embeddings for system optimization (Admin only)
-                </p>
-                <p>
-                  <strong>Tip:</strong> Use the 50% similarity threshold for optimal HR matching results
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

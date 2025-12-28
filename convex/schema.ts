@@ -620,6 +620,29 @@ const applicationTables = {
     .index("by_state_status", ["state", "status"])
     .index("by_imported", ["importedAt"])
     .index("by_ai_review_status", ["aiReviewStatus"]),
+
+  // Approved Procurement Links Lookup - singleton table for system prompt injection
+  // This table caches all approved procurement links for efficient access during chat
+  approvedProcurementLinksLookUp: defineTable({
+    dateCreated: v.number(), // Timestamp when the lookup was first created
+    lastApprovedBy: v.string(), // User ID (Clerk), "AI Agent", "System", or "Migration"
+    lastApprovedAt: v.number(), // Timestamp of last approval that triggered update
+    approvedProcurementLinks: v.array(
+      v.object({
+        state: v.string(),
+        capital: v.string(),
+        officialWebsite: v.string(),
+        procurementLink: v.string(),
+        // CRITICAL: Use v.union with v.null() for optional fields inside arrays
+        // Using v.optional() inside arrays causes Convex deployment errors
+        entityType: v.union(v.string(), v.null()),
+        linkType: v.union(v.string(), v.null()),
+        requiresRegistration: v.union(v.boolean(), v.null()),
+      })
+    ), // Array of all approved procurement links
+    updatedAt: v.number(), // Last update timestamp
+  })
+    .index("by_creation", ["dateCreated"]), // For sorting/querying
 };
 
 export default defineSchema({

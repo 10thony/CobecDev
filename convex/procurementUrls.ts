@@ -1,5 +1,7 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { MutationCtx } from "./_generated/server";
+import { Doc } from "./_generated/dataModel";
 
 // Type for procurement link from JSON
 const procurementLinkValidator = v.object({
@@ -8,6 +10,72 @@ const procurementLinkValidator = v.object({
   official_website: v.string(),
   procurement_link: v.string(),
 });
+
+// Type for the formatted link structure
+type FormattedLink = {
+  state: string;
+  capital: string;
+  officialWebsite: string;
+  procurementLink: string;
+  entityType: string | null;
+  linkType: string | null;
+  requiresRegistration: boolean | null;
+};
+
+/**
+ * Local helper function to refresh the lookup table
+ * This is used within mutations in this file.
+ * IMPORTANT: This function MUST use null (not undefined) for optional fields
+ * to match the schema's v.union(v.string(), v.null()) validators
+ */
+async function refreshLookupHelper(
+  ctx: MutationCtx,
+  approvedBy: string
+): Promise<void> {
+  // Get all approved procurement links directly from database
+  const approvedLinks = await ctx.db
+    .query("procurementUrls")
+    .withIndex("by_status", (q) => q.eq("status", "approved"))
+    .collect();
+  
+  // Transform to lookup format
+  // CRITICAL: Use null instead of undefined for optional fields
+  const formattedLinks: FormattedLink[] = approvedLinks.map((link: Doc<"procurementUrls">) => ({
+    state: link.state,
+    capital: link.capital,
+    officialWebsite: link.officialWebsite,
+    procurementLink: link.procurementLink,
+    entityType: null, // Not stored in procurementUrls table
+    linkType: null, // Not stored in procurementUrls table
+    requiresRegistration: link.requiresRegistration ?? null, // Convert undefined to null
+  }));
+  
+  const now = Date.now();
+  
+  // Check if lookup exists (singleton pattern)
+  const existing = await ctx.db
+    .query("approvedProcurementLinksLookUp")
+    .first();
+  
+  if (existing) {
+    // Update existing record
+    await ctx.db.patch(existing._id, {
+      lastApprovedBy: approvedBy,
+      lastApprovedAt: now,
+      approvedProcurementLinks: formattedLinks,
+      updatedAt: now,
+    });
+  } else {
+    // Create new record
+    await ctx.db.insert("approvedProcurementLinksLookUp", {
+      dateCreated: now,
+      lastApprovedBy: approvedBy,
+      lastApprovedAt: now,
+      approvedProcurementLinks: formattedLinks,
+      updatedAt: now,
+    });
+  }
+}
 
 // Queries
 
@@ -371,6 +439,10 @@ export const approve = mutation({
     }
     
     await ctx.db.patch(args.id, updateData);
+    
+    // Refresh the approved procurement links lookup table
+    const approvedBy = identity?.subject || "System";
+    await refreshLookupHelper(ctx, approvedBy);
   },
 });
 
@@ -466,6 +538,12 @@ export const approveAll = mutation({
       });
     }
     
+    // Refresh the lookup table after bulk approval
+    if (pending.length > 0) {
+      const approvedBy = identity?.subject || "System";
+      await refreshLookupHelper(ctx, approvedBy);
+    }
+    
     return pending.length;
   },
 });
@@ -534,6 +612,11 @@ export const addManual = mutation({
       }
       
       await ctx.db.patch(existing._id, updateData);
+      
+      // Refresh the approved procurement links lookup table
+      const approvedBy = identity?.subject || "System";
+      await refreshLookupHelper(ctx, approvedBy);
+      
       return existing._id;
     }
 
@@ -555,6 +638,10 @@ export const addManual = mutation({
     }
 
     const id = await ctx.db.insert("procurementUrls", insertData);
+    
+    // Refresh the approved procurement links lookup table
+    const approvedBy = identity?.subject || "System";
+    await refreshLookupHelper(ctx, approvedBy);
 
     return id;
   },
@@ -620,6 +707,11 @@ export const reportAgentResult = internalMutation({
     }
 
     await ctx.db.patch(args.id, updateData);
+    
+    // If approved, refresh the lookup table
+    if (args.status === "approved") {
+      await refreshLookupHelper(ctx, "AI Agent");
+    }
   },
 });
 
