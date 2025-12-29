@@ -644,6 +644,273 @@ const applicationTables = {
     updatedAt: v.number(), // Last update timestamp
   })
     .index("by_creation", ["dateCreated"]), // For sorting/querying
+
+  // Scraped Procurement Data - stores data scraped from procurement websites
+  scrapedProcurementData: defineTable({
+    // Source information
+    procurementLinkId: v.optional(v.id("procurementUrls")), // Reference to original procurement link
+    sourceUrl: v.string(), // The URL that was scraped
+    state: v.string(), // State name
+    capital: v.string(), // City/capital name
+    
+    // Scraping metadata
+    scrapedAt: v.number(), // Timestamp when scraping occurred
+    scrapedBy: v.string(), // "AI Agent" or user ID
+    scrapingStatus: v.union(
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    status: v.optional(v.union( // Legacy field - kept for compatibility, maps to scrapingStatus
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("failed")
+    )),
+    errorMessage: v.optional(v.string()), // Error message if scraping failed
+    
+    // Scraped data (stored as JSON)
+    scrapedData: v.any(), // Flexible JSON structure to handle different website formats
+    
+    // AI metadata
+    aiModel: v.string(), // "gpt-5-mini"
+    aiPrompt: v.optional(v.string()), // The prompt used for scraping
+    tokensUsed: v.optional(v.number()), // Token usage for cost tracking
+    
+    // Data quality
+    dataQuality: v.optional(v.union(
+      v.literal("high"),
+      v.literal("medium"),
+      v.literal("low")
+    )),
+    dataCompleteness: v.optional(v.number()), // 0-1 score
+    
+    // Last update
+    updatedAt: v.number(),
+  })
+    .index("by_source_url", ["sourceUrl"])
+    .index("by_state", ["state"])
+    .index("by_status", ["scrapingStatus"])
+    .index("by_scraped_at", ["scrapedAt"])
+    .index("by_procurement_link", ["procurementLinkId"]),
+
+  // Procurement Scraper System Prompts - configurable system prompts for procurement scraper
+  procurementScraperSystemPrompts: defineTable({
+    systemPromptText: v.string(), // The full system prompt text
+    isPrimarySystemPrompt: v.boolean(), // Whether this is the active/primary prompt
+    title: v.string(), // A descriptive title for this prompt
+    description: v.optional(v.string()), // Optional description
+    createdBy: v.optional(v.string()), // Clerk user ID who created this
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_primary", ["isPrimarySystemPrompt"])
+    .index("by_creation", ["createdAt"]),
+
+  // Scraping Batch Jobs - tracks batch scraping operations for persistence across navigation
+  scrapingBatchJobs: defineTable({
+    userId: v.string(), // Clerk user ID who started the job
+    jobType: v.union(
+      v.literal("all_approved"), // Scraping all approved links
+      v.literal("multiple"), // Scraping multiple specific URLs
+      v.literal("single") // Scraping a single URL
+    ),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+    totalUrls: v.number(), // Total number of URLs to scrape
+    completedUrls: v.number(), // Number of URLs completed
+    failedUrls: v.number(), // Number of URLs that failed
+    urls: v.array(v.string()), // List of URLs to scrape (for reference)
+    recordIds: v.array(v.id("scrapedProcurementData")), // IDs of created scraping records
+    errorMessage: v.optional(v.string()), // Error message if job failed
+    startedAt: v.number(), // When the job started
+    completedAt: v.optional(v.number()), // When the job completed
+    updatedAt: v.number(), // Last update timestamp
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_user_status", ["userId", "status"])
+    .index("by_started_at", ["startedAt"]),
+
+  // ============================================================================
+  // PROCUREMENT OPPORTUNITIES - Individual scraped procurement items
+  // ============================================================================
+  procurementOpportunities: defineTable({
+    // ─────────────────────────────────────────────────────────────────────────
+    // SOURCE TRACKING
+    // ─────────────────────────────────────────────────────────────────────────
+    scrapedDataId: v.id("scrapedProcurementData"), // Parent scraping session
+    sourceUrl: v.string(), // URL of the list page where this was found
+    detailUrl: v.optional(v.string()), // URL of the opportunity detail page (if navigated)
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // LOCATION DATA
+    // ─────────────────────────────────────────────────────────────────────────
+    state: v.string(),
+    capital: v.string(),
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // CORE OPPORTUNITY DATA
+    // ─────────────────────────────────────────────────────────────────────────
+    title: v.string(), // Required - opportunity title
+    referenceNumber: v.optional(v.string()), // RFP-2024-001, ITB-123, etc.
+    opportunityType: v.optional(v.string()), // RFP, RFQ, ITB, IFB, RFI, etc.
+    status: v.optional(v.string()), // Open, Closed, Awarded, Pending, etc.
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // DATES
+    // ─────────────────────────────────────────────────────────────────────────
+    postedDate: v.optional(v.string()), // When the opportunity was posted
+    closingDate: v.optional(v.string()), // Deadline for submissions
+    openingDate: v.optional(v.string()), // When bids will be opened
+    awardDate: v.optional(v.string()), // When contract was/will be awarded
+    lastModifiedDate: v.optional(v.string()), // Last update to the listing
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // DESCRIPTION & CLASSIFICATION
+    // ─────────────────────────────────────────────────────────────────────────
+    description: v.optional(v.string()), // Full description text
+    shortDescription: v.optional(v.string()), // Summary/teaser text
+    category: v.optional(v.string()), // Category/classification
+    subcategory: v.optional(v.string()),
+    department: v.optional(v.string()), // Issuing department/agency
+    division: v.optional(v.string()),
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // FINANCIAL
+    // ─────────────────────────────────────────────────────────────────────────
+    estimatedValue: v.optional(v.string()), // Dollar amount or range
+    budgetCode: v.optional(v.string()),
+    fundingSource: v.optional(v.string()),
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // CONTACT INFORMATION
+    // ─────────────────────────────────────────────────────────────────────────
+    contactName: v.optional(v.string()),
+    contactEmail: v.optional(v.string()),
+    contactPhone: v.optional(v.string()),
+    contactAddress: v.optional(v.string()),
+    buyerName: v.optional(v.string()), // Procurement officer name
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // REQUIREMENTS
+    // ─────────────────────────────────────────────────────────────────────────
+    requirements: v.optional(v.string()), // Eligibility/qualification requirements
+    certifications: v.optional(v.array(v.string())), // Required certifications
+    setAside: v.optional(v.string()), // Small business set-aside info
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // DOCUMENTS & ATTACHMENTS
+    // ─────────────────────────────────────────────────────────────────────────
+    documents: v.optional(v.array(v.object({
+      name: v.string(),
+      url: v.string(),
+      type: v.optional(v.string()), // PDF, DOC, XLS, etc.
+      size: v.optional(v.string()),
+    }))),
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // SUBMISSION INFO
+    // ─────────────────────────────────────────────────────────────────────────
+    submissionMethod: v.optional(v.string()), // Online, Email, Mail, etc.
+    submissionInstructions: v.optional(v.string()),
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // SCRAPING METADATA
+    // ─────────────────────────────────────────────────────────────────────────
+    scrapedAt: v.number(), // Timestamp when scraped
+    rawScrapedText: v.optional(v.string()), // Raw text for debugging
+    confidence: v.optional(v.number()), // AI confidence score 0-1
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // DEDUPLICATION
+    // ─────────────────────────────────────────────────────────────────────────
+    hash: v.optional(v.string()), // Hash of key fields for dedup
+  })
+    .index("by_scraped_data", ["scrapedDataId"])
+    .index("by_source_url", ["sourceUrl"])
+    .index("by_state", ["state"])
+    .index("by_state_capital", ["state", "capital"])
+    .index("by_closing_date", ["closingDate"])
+    .index("by_type", ["opportunityType"])
+    .index("by_status", ["status"])
+    .index("by_scraped_at", ["scrapedAt"])
+    .index("by_hash", ["hash"]),
+
+  // ============================================================================
+  // SCRAPER INTERACTION LOG - Debug trail of scraper actions
+  // ============================================================================
+  scraperInteractionLog: defineTable({
+    scrapedDataId: v.id("scrapedProcurementData"), // Parent scraping session
+    
+    // Action details
+    action: v.string(), // "navigate", "click", "snapshot", "extract", "scroll", etc.
+    selector: v.optional(v.string()), // Element reference (e.g., "D14", "B7")
+    description: v.string(), // Human-readable description
+    
+    // Result
+    success: v.boolean(),
+    errorMessage: v.optional(v.string()),
+    
+    // Context
+    pageUrl: v.optional(v.string()), // URL at time of action
+    timestamp: v.number(),
+    durationMs: v.optional(v.number()), // How long the action took
+    
+    // Debug data
+    snapshotPreview: v.optional(v.string()), // First 500 chars of snapshot
+    aiAnalysis: v.optional(v.string()), // AI reasoning for this action
+  })
+    .index("by_scraped_data", ["scrapedDataId"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_action", ["action"]),
+
+  // ============================================================================
+  // SCRAPING STRATEGIES - Site-specific scraping configurations
+  // ============================================================================
+  scrapingStrategies: defineTable({
+    // URL pattern matching
+    urlPattern: v.string(), // Regex pattern to match URLs
+    siteName: v.string(), // Human-readable site name
+    
+    // Page structure hints
+    listPageSelectors: v.optional(v.object({
+      opportunityRow: v.optional(v.string()), // CSS-like hint for rows
+      opportunityLink: v.optional(v.string()),
+      nextPageButton: v.optional(v.string()),
+      loadMoreButton: v.optional(v.string()),
+    })),
+    
+    detailPageSelectors: v.optional(v.object({
+      title: v.optional(v.string()),
+      referenceNumber: v.optional(v.string()),
+      closingDate: v.optional(v.string()),
+      description: v.optional(v.string()),
+    })),
+    
+    // Special handling
+    requiresLogin: v.boolean(),
+    hasInfiniteScroll: v.boolean(),
+    spaType: v.optional(v.string()), // "react", "angular", "vue", "none"
+    
+    // AI prompt customization
+    customListPagePrompt: v.optional(v.string()),
+    customDetailPagePrompt: v.optional(v.string()),
+    
+    // Metadata
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    successRate: v.optional(v.number()), // Tracked over time
+    lastUsed: v.optional(v.number()),
+  })
+    .index("by_url_pattern", ["urlPattern"])
+    .index("by_site_name", ["siteName"]),
 };
 
 export default defineSchema({

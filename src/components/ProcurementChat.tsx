@@ -906,18 +906,10 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
               {/* Create/Edit Form */}
               {(isCreatingPrompt || editingPrompt) ? (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="mb-4">
                     <h3 className="text-md font-medium text-tron-cyan">
                       {editingPrompt ? 'Edit System Prompt' : 'Create New System Prompt'}
                     </h3>
-                    <TronButton
-                      onClick={handleCancelPromptForm}
-                      variant="outline"
-                      color="cyan"
-                      size="sm"
-                    >
-                      Cancel
-                    </TronButton>
                   </div>
 
                   <div>

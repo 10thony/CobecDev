@@ -48,6 +48,17 @@ import type * as procurementChatAnalytics from "../procurementChatAnalytics.js";
 import type * as procurementChatMessages from "../procurementChatMessages.js";
 import type * as procurementChatSessions from "../procurementChatSessions.js";
 import type * as procurementChatSystemPrompts from "../procurementChatSystemPrompts.js";
+import type * as procurementScraperActions from "../procurementScraperActions.js";
+import type * as procurementScraperAgent from "../procurementScraperAgent.js";
+import type * as procurementScraperBatchJobs from "../procurementScraperBatchJobs.js";
+import type * as procurementScraperConstants from "../procurementScraperConstants.js";
+import type * as procurementScraperMutations from "../procurementScraperMutations.js";
+import type * as procurementScraperQueries from "../procurementScraperQueries.js";
+import type * as procurementScraperSystemPrompts from "../procurementScraperSystemPrompts.js";
+import type * as procurementScraperTypes from "../procurementScraperTypes.js";
+import type * as procurementScraperV2Mutations from "../procurementScraperV2Mutations.js";
+import type * as procurementScraperV2Queries from "../procurementScraperV2Queries.js";
+import type * as procurementScrapingServices from "../procurementScrapingServices.js";
 import type * as procurementUrls from "../procurementUrls.js";
 import type * as resumeEmbeddingPipeline from "../resumeEmbeddingPipeline.js";
 import type * as resumes from "../resumes.js";
@@ -74,14 +85,6 @@ import type {
   FunctionReference,
 } from "convex/server";
 
-/**
- * A utility for referencing Convex functions in your app's API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
 declare const fullApi: ApiFromModules<{
   "agent/procurementVerifier": typeof agent_procurementVerifier;
   aiModels: typeof aiModels;
@@ -123,6 +126,17 @@ declare const fullApi: ApiFromModules<{
   procurementChatMessages: typeof procurementChatMessages;
   procurementChatSessions: typeof procurementChatSessions;
   procurementChatSystemPrompts: typeof procurementChatSystemPrompts;
+  procurementScraperActions: typeof procurementScraperActions;
+  procurementScraperAgent: typeof procurementScraperAgent;
+  procurementScraperBatchJobs: typeof procurementScraperBatchJobs;
+  procurementScraperConstants: typeof procurementScraperConstants;
+  procurementScraperMutations: typeof procurementScraperMutations;
+  procurementScraperQueries: typeof procurementScraperQueries;
+  procurementScraperSystemPrompts: typeof procurementScraperSystemPrompts;
+  procurementScraperTypes: typeof procurementScraperTypes;
+  procurementScraperV2Mutations: typeof procurementScraperV2Mutations;
+  procurementScraperV2Queries: typeof procurementScraperV2Queries;
+  procurementScrapingServices: typeof procurementScrapingServices;
   procurementUrls: typeof procurementUrls;
   resumeEmbeddingPipeline: typeof resumeEmbeddingPipeline;
   resumes: typeof resumes;
@@ -143,14 +157,30 @@ declare const fullApi: ApiFromModules<{
   vectorSearchHelpers: typeof vectorSearchHelpers;
   vectorSearchPrompts: typeof vectorSearchPrompts;
 }>;
-declare const fullApiWithMounts: typeof fullApi;
 
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 export declare const api: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "public">
 >;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
 export declare const internal: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "internal">
 >;
 
@@ -922,12 +952,6 @@ export declare const components: {
         },
         null
       >;
-      getMessageSearchFields: FunctionReference<
-        "query",
-        "internal",
-        { messageId: string },
-        { embedding?: Array<number>; embeddingModel?: string; text?: string }
-      >;
       getMessagesByIds: FunctionReference<
         "query",
         "internal",
@@ -1194,6 +1218,12 @@ export declare const components: {
             | { message: string; type: "other" }
           >;
         }>
+      >;
+      getMessageSearchFields: FunctionReference<
+        "query",
+        "internal",
+        { messageId: string },
+        { embedding?: Array<number>; embeddingModel?: string; text?: string }
       >;
       listMessagesByThreadId: FunctionReference<
         "query",

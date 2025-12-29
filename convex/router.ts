@@ -26,6 +26,11 @@ import * as favorites from "./favorites";
 import * as procurementChat from "./procurementChat";
 import * as procurementUrls from "./procurementUrls";
 import * as agent from "./agent/procurementVerifier";
+import * as procurementScraperActions from "./procurementScraperActions";
+import * as procurementScraperMutations from "./procurementScraperMutations";
+import * as procurementScraperQueries from "./procurementScraperQueries";
+import * as procurementScraperSystemPrompts from "./procurementScraperSystemPrompts";
+import * as procurementScraperBatchJobs from "./procurementScraperBatchJobs";
 
 // Export all functions as a single API object
 export default {
@@ -55,4 +60,9 @@ export default {
   procurementChat,
   procurementUrls,
   agent,
+  procurementScraperActions,
+  procurementScraperMutations,
+  procurementScraperQueries,
+  procurementScraperSystemPrompts,
+  procurementScraperBatchJobs,
 };

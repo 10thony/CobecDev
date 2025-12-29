@@ -588,37 +588,40 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
             <div 
               className="sticky top-6"
               style={{ 
-                height: selectedLead ? '60vh' : '0vh',
-                overflow: selectedLead ? 'hidden' : 'visible',
-                transition: 'height 0.3s ease-in-out, opacity 0.3s ease-in-out',
+                maxHeight: 'calc(100vh - 3rem)',
+                transition: 'opacity 0.3s ease-in-out',
                 opacity: selectedLead ? 1 : 0
               }}
             >
-              <TronPanel title="Lead Details">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex gap-2">
-                  <TronButton
-                    onClick={() => setIsEditing(true)}
-                    variant="ghost"
-                    color="cyan"
-                    size="sm"
-                    title="Edit"
-                  >
-                    <Edit className="w-5 h-5" />
-                  </TronButton>
-                  <TronButton
-                    onClick={() => setSelectedLeadId(null)}
-                    variant="ghost"
-                    color="orange"
-                    size="sm"
-                    title="Close"
-                  >
-                    <X className="w-5 h-5" />
-                  </TronButton>
+              <TronPanel title="Lead Details" className="max-h-[calc(100vh-3rem)]">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex gap-2">
+                    <TronButton
+                      onClick={() => setIsEditing(true)}
+                      variant="ghost"
+                      color="cyan"
+                      size="sm"
+                      title="Edit"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </TronButton>
+                    <TronButton
+                      onClick={() => setSelectedLeadId(null)}
+                      variant="ghost"
+                      color="orange"
+                      size="sm"
+                      title="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </TronButton>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-6 overflow-y-auto" style={{ height: 'calc(60vh - 120px)' }}>
+                <div className="space-y-6 overflow-y-auto overflow-x-hidden" style={{ 
+                  maxHeight: 'calc(100vh - 280px)',
+                  height: 'calc(100vh - 280px)',
+                  WebkitOverflowScrolling: 'touch'
+                }}>
                 <div className="space-y-3">
                   <h3 className="font-semibold text-tron-white text-lg">{selectedLead.opportunityTitle}</h3>
                   <p className="text-sm text-tron-gray leading-relaxed">{selectedLead.summary}</p>

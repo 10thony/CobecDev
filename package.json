@@ -67,7 +67,7 @@
     "@uploadthing/react": "^7.3.3",
     "@vnedyalk0v/react19-simple-maps": "^1.2.1",
     "clsx": "^2.1.1",
-    "convex": "^1.27.0",
+    "convex": "^1.31.2",
     "convex-helpers": "^0.1.108",
     "d3-geo": "^3.1.1",
     "docx": "^9.5.1",
