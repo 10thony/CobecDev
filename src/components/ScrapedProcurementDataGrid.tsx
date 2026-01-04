@@ -22,6 +22,7 @@ import {
 import { TronPanel } from './TronPanel';
 import { TronButton } from './TronButton';
 import { TronStatCard } from './TronStatCard';
+import { BrowserScraperPanel } from './BrowserScraperPanel';
 import { Id } from '../../convex/_generated/dataModel';
 
 interface ScrapedProcurementData {
@@ -45,6 +46,7 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [selectedRecord, setSelectedRecord] = useState<ScrapedProcurementData | null>(null);
+  const [showSanAntonioScraper, setShowSanAntonioScraper] = useState(false);
   const { userId } = useAuth();
 
   // Fetch data
@@ -315,6 +317,14 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
                     <Play className="w-4 h-4" />
                     Scrape All Approved Links
                   </TronButton>
+                  <TronButton 
+                    onClick={() => setShowSanAntonioScraper(!showSanAntonioScraper)} 
+                    className="flex items-center gap-2 border-tron-cyan/40 text-tron-cyan hover:bg-tron-cyan/10 hover:border-tron-cyan/60"
+                    variant="outline"
+                  >
+                    <Play className="w-4 h-4" />
+                    Scrape San Antonio
+                  </TronButton>
                   {scrapedData && scrapedData.length > 0 && (
                     <TronButton 
                       onClick={handleClearAll} 
@@ -361,6 +371,37 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
           )}
         </div>
       </TronPanel>
+
+      {/* San Antonio Scraper Panel */}
+      {showSanAntonioScraper && (
+        <TronPanel>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-tron-text">San Antonio Procurement Scraper</h3>
+              <button
+                onClick={() => setShowSanAntonioScraper(false)}
+                className="text-tron-gray hover:text-tron-text transition-colors"
+                aria-label="Close scraper panel"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <BrowserScraperPanel
+              url="https://webapp1.sanantonio.gov/BidContractOpps/Default.aspx"
+              state="Texas"
+              capital="San Antonio"
+              onComplete={(result) => {
+                console.log('San Antonio scraping completed:', result);
+                // The data will automatically refresh via Convex queries
+                // Close the panel after a short delay to show completion
+                setTimeout(() => {
+                  setShowSanAntonioScraper(false);
+                }, 2000);
+              }}
+            />
+          </div>
+        </TronPanel>
+      )}
 
       {/* Table */}
       <TronPanel className="overflow-hidden">

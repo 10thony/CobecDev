@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useBrowserScraper } from '../hooks/useBrowserScraper';
+import { useBrowserScraper, ScrapingProgress } from '../hooks/useBrowserScraper';
+import { useSanAntonioScraper, SanAntonioScrapingProgress } from '../hooks/useSanAntonioScraper';
 import { createMCPBrowserAdapter } from '../services/mcpBrowserAdapter';
 import { 
   Play, 
@@ -30,18 +31,43 @@ export function BrowserScraperPanel({
   procurementLinkId,
   onComplete,
 }: BrowserScraperPanelProps) {
-  const { progress, scrapeUrl, cancel, reset, isActive } = useBrowserScraper({
+  // Detect if this is a San Antonio URL - use table scraper
+  const isSanAntonio = url.includes('sanantonio.gov') && url.includes('BidContractOpps');
+  
+  const browserScraper = useBrowserScraper({
     maxOpportunities: 50,
     maxPages: 10,
   });
+  
+  const sanAntonioScraper = useSanAntonioScraper({
+    maxPages: 10,
+  });
+  
+  // Use appropriate scraper based on URL
+  const sanAntonioProgress: SanAntonioScrapingProgress = sanAntonioScraper.progress;
+  const browserProgress: ScrapingProgress = browserScraper.progress;
+  const progress: ScrapingProgress | SanAntonioScrapingProgress = isSanAntonio ? sanAntonioProgress : browserProgress;
+  const isActive = isSanAntonio ? sanAntonioScraper.isActive : browserScraper.isActive;
+  const cancel = isSanAntonio ? sanAntonioScraper.cancel : browserScraper.cancel;
+  const reset = isSanAntonio ? sanAntonioScraper.reset : browserScraper.reset;
   
   const [showDetails, setShowDetails] = useState(false);
 
   const handleStart = async () => {
     const browser = createMCPBrowserAdapter();
-    const result = await scrapeUrl(browser, url, state, capital, procurementLinkId);
-    if (onComplete) {
-      onComplete(result);
+    
+    if (isSanAntonio) {
+      // Use San Antonio table scraper
+      const result = await sanAntonioScraper.scrape(browser, url, state, capital, procurementLinkId);
+      if (onComplete) {
+        onComplete(result);
+      }
+    } else {
+      // Use general browser scraper
+      const result = await browserScraper.scrapeUrl(browser, url, state, capital, procurementLinkId);
+      if (onComplete) {
+        onComplete(result);
+      }
     }
   };
 
@@ -87,7 +113,9 @@ export function BrowserScraperPanel({
         <div className="flex items-center gap-3">
           {getStatusIcon()}
           <div>
-            <h3 className="font-medium text-tron-text">Browser Scraper</h3>
+            <h3 className="font-medium text-tron-text">
+              {isSanAntonio ? 'San Antonio Table Scraper' : 'Browser Scraper'}
+            </h3>
             <p className="text-sm text-gray-400 truncate max-w-md">{url}</p>
           </div>
         </div>
@@ -146,13 +174,22 @@ export function BrowserScraperPanel({
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-gray-400">
                 <span>Progress</span>
-                <span>{progress.opportunitiesScraped} / {progress.opportunitiesFound}</span>
+                <span>
+                  {isSanAntonio
+                    ? sanAntonioProgress.opportunitiesFound 
+                    : browserProgress.opportunitiesScraped
+                  } / {progress.opportunitiesFound}
+                </span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2">
                 <div
                   className="bg-tron-cyan h-2 rounded-full transition-all duration-300"
                   style={{
-                    width: `${(progress.opportunitiesScraped / progress.opportunitiesFound) * 100}%`,
+                    width: `${(
+                      isSanAntonio
+                        ? sanAntonioProgress.opportunitiesFound 
+                        : browserProgress.opportunitiesScraped
+                    ) / progress.opportunitiesFound * 100}%`,
                   }}
                 />
               </div>
@@ -169,13 +206,19 @@ export function BrowserScraperPanel({
             </div>
             <div className="bg-tron-bg/50 rounded-lg p-3">
               <div className="text-2xl font-bold text-green-400">
-                {progress.opportunitiesScraped}
+                {isSanAntonio
+                  ? sanAntonioProgress.opportunitiesFound 
+                  : browserProgress.opportunitiesScraped
+                }
               </div>
               <div className="text-xs text-gray-400">Scraped</div>
             </div>
             <div className="bg-tron-bg/50 rounded-lg p-3">
               <div className="text-2xl font-bold text-yellow-400">
-                {progress.pagesProcessed}
+                {isSanAntonio
+                  ? sanAntonioProgress.pagesScraped
+                  : browserProgress.pagesProcessed
+                }
               </div>
               <div className="text-xs text-gray-400">Pages</div>
             </div>

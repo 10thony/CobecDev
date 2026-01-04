@@ -12,6 +12,9 @@ import type * as agent_procurementVerifier from "../agent/procurementVerifier.js
 import type * as aiModels from "../aiModels.js";
 import type * as approvedProcurementLinksLookup from "../approvedProcurementLinksLookup.js";
 import type * as auth from "../auth.js";
+import type * as browserAgentActions from "../browserAgentActions.js";
+import type * as browserAgentMutations from "../browserAgentMutations.js";
+import type * as browserAgentQueries from "../browserAgentQueries.js";
 import type * as chat from "../chat.js";
 import type * as chats from "../chats.js";
 import type * as cobecAdmins from "../cobecAdmins.js";
@@ -24,6 +27,7 @@ import type * as embeddingService from "../embeddingService.js";
 import type * as employees from "../employees.js";
 import type * as enhancedEmbeddingService from "../enhancedEmbeddingService.js";
 import type * as favorites from "../favorites.js";
+import type * as hrDashboardComponents from "../hrDashboardComponents.js";
 import type * as http from "../http.js";
 import type * as jobPostings from "../jobPostings.js";
 import type * as kfcData from "../kfcData.js";
@@ -90,6 +94,9 @@ declare const fullApi: ApiFromModules<{
   aiModels: typeof aiModels;
   approvedProcurementLinksLookup: typeof approvedProcurementLinksLookup;
   auth: typeof auth;
+  browserAgentActions: typeof browserAgentActions;
+  browserAgentMutations: typeof browserAgentMutations;
+  browserAgentQueries: typeof browserAgentQueries;
   chat: typeof chat;
   chats: typeof chats;
   cobecAdmins: typeof cobecAdmins;
@@ -102,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   employees: typeof employees;
   enhancedEmbeddingService: typeof enhancedEmbeddingService;
   favorites: typeof favorites;
+  hrDashboardComponents: typeof hrDashboardComponents;
   http: typeof http;
   jobPostings: typeof jobPostings;
   kfcData: typeof kfcData;

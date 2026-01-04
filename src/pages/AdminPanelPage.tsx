@@ -13,7 +13,10 @@ import {
   AlertCircle,
   Copy,
   Check,
-  BarChart3
+  BarChart3,
+  Settings,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from "@clerk/clerk-react";
@@ -25,7 +28,7 @@ export function AdminPanelPage() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [activeTab, setActiveTab] = useState<'users' | 'analytics'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'hr-dashboard'>('users');
 
   // Check if current user is admin
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
@@ -46,6 +49,13 @@ export function AdminPanelPage() {
   const addCobecAdminMutation = useMutation(api.cobecAdmins.addCobecAdmin);
   const removeCobecAdminMutation = useMutation(api.cobecAdmins.removeCobecAdmin);
   const ensureAdminExistsMutation = useMutation(api.userRoles.ensureAdminExists);
+  
+  // HR Dashboard Components
+  const hrComponents = useQuery(api.hrDashboardComponents.getAllComponents);
+  const setComponentVisibilityMutation = useMutation(api.hrDashboardComponents.setComponentVisibility);
+  const updateComponentMutation = useMutation(api.hrDashboardComponents.updateComponent);
+  const initializeComponentsMutation = useMutation(api.hrDashboardComponents.initializeDefaultComponents);
+  const bulkUpdateVisibilityMutation = useMutation(api.hrDashboardComponents.bulkUpdateVisibility);
 
   // Check if user has admin access
   const isAdmin = userRole === "admin" || isCobecAdmin === true;
@@ -225,6 +235,22 @@ export function AdminPanelPage() {
                 <span>Refresh Users</span>
               </button>
             )}
+            {activeTab === 'hr-dashboard' && (
+              <button
+                onClick={async () => {
+                  try {
+                    await initializeComponentsMutation();
+                    toast.success("Default components initialized");
+                  } catch (error: any) {
+                    toast.error(`Failed to initialize: ${error.message}`);
+                  }
+                }}
+                className="flex items-center space-x-2 px-4 py-2 bg-tron-cyan/20 text-tron-white rounded-md hover:bg-tron-cyan/30 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span>Initialize Default Components</span>
+              </button>
+            )}
           </div>
 
           {/* Tab Navigation */}
@@ -255,12 +281,178 @@ export function AdminPanelPage() {
                 AI Chat Analytics
               </div>
             </button>
+            <button
+              onClick={() => setActiveTab('hr-dashboard')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'hr-dashboard'
+                  ? 'text-tron-cyan border-b-2 border-tron-cyan'
+                  : 'text-tron-gray hover:text-tron-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                HR Dashboard Settings
+              </div>
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'analytics' ? (
           <ProcurementChatAnalytics />
+        ) : activeTab === 'hr-dashboard' ? (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6">
+              <h2 className="text-xl font-semibold text-tron-white mb-2 flex items-center space-x-2">
+                <Settings className="h-5 w-5 text-tron-cyan" />
+                <span>HR Dashboard Component Visibility</span>
+              </h2>
+              <p className="text-sm text-tron-gray">
+                Control which tabs and components are visible to users in the HR Dashboard. 
+                Toggle visibility for each component below.
+              </p>
+            </div>
+
+            {/* Components List */}
+            {hrComponents === undefined ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-tron-cyan" />
+                <span className="ml-3 text-tron-gray">Loading components...</span>
+              </div>
+            ) : hrComponents.length === 0 ? (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6 text-center">
+                <AlertCircle className="h-8 w-8 text-tron-gray mx-auto mb-2" />
+                <p className="text-tron-gray mb-4">No components configured yet.</p>
+                <button
+                  onClick={async () => {
+                    try {
+                      await initializeComponentsMutation();
+                      toast.success("Default components initialized");
+                    } catch (error: any) {
+                      toast.error(`Failed to initialize: ${error.message}`);
+                    }
+                  }}
+                  className="px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80 transition-colors"
+                >
+                  Initialize Default Components
+                </button>
+              </div>
+            ) : (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-tron-bg-elevated">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
+                          Component
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
+                          Description
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
+                          Visibility
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-tron-cyan/10">
+                      {hrComponents.map((component) => (
+                        <tr key={component._id} className="hover:bg-tron-bg-elevated transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-tron-white">
+                              {component.componentName}
+                            </div>
+                            <div className="text-xs text-tron-gray font-mono">
+                              {component.componentId}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-tron-gray">
+                              {component.description || "No description"}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-2">
+                              {component.isVisible ? (
+                                <>
+                                  <Eye className="h-5 w-5 text-tron-cyan" />
+                                  <span className="text-sm text-tron-cyan font-medium">Visible</span>
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="h-5 w-5 text-tron-gray" />
+                                  <span className="text-sm text-tron-gray">Hidden</span>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await setComponentVisibilityMutation({
+                                    componentId: component.componentId,
+                                    isVisible: !component.isVisible,
+                                  });
+                                  toast.success(
+                                    `${component.componentName} is now ${!component.isVisible ? 'visible' : 'hidden'}`
+                                  );
+                                } catch (error: any) {
+                                  toast.error(`Failed to update: ${error.message}`);
+                                }
+                              }}
+                              className={`flex items-center space-x-2 px-3 py-1 rounded-md transition-colors text-sm ${
+                                component.isVisible
+                                  ? 'bg-tron-gray/20 text-tron-gray hover:bg-tron-gray/30'
+                                  : 'bg-tron-cyan/20 text-tron-cyan hover:bg-tron-cyan/30'
+                              }`}
+                            >
+                              {component.isVisible ? (
+                                <>
+                                  <EyeOff className="h-4 w-4" />
+                                  <span>Hide</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="h-4 w-4" />
+                                  <span>Show</span>
+                                </>
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Info Section */}
+            <div className="bg-tron-bg-card border-tron-cyan/30 rounded-lg border p-6">
+              <h3 className="text-lg font-semibold text-tron-white mb-3 flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-tron-cyan" />
+                <span>About Component Visibility</span>
+              </h3>
+              <div className="space-y-2 text-sm text-tron-gray">
+                <p>
+                  <strong className="text-tron-white">Visibility Control:</strong> Toggle components on or off to 
+                  control what users can access in the HR Dashboard. Hidden components will not appear in the 
+                  navigation tabs.
+                </p>
+                <p>
+                  <strong className="text-tron-white">Default Components:</strong> If no components are configured, 
+                  click "Initialize Default Components" to set up the standard HR Dashboard tabs.
+                </p>
+                <p className="text-tron-gray/80 italic">
+                  Note: Changes take effect immediately for all users.
+                </p>
+              </div>
+            </div>
+          </div>
         ) : (
           <>
         {/* Add User by ID Section */}

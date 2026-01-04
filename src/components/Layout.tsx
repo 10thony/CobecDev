@@ -15,6 +15,32 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
+  // Get HR dashboard components to determine the first visible tab name
+  const hrComponents = useQuery(api.hrDashboardComponents.getAllComponents);
+  const visibleComponentIds = useQuery(api.hrDashboardComponents.getVisibleComponents);
+  
+  // Get the first visible component's name, or default to "HR Dashboard"
+  const getFirstVisibleTabName = () => {
+    if (!hrComponents || !visibleComponentIds || visibleComponentIds.length === 0) {
+      return "HR Dashboard"; // Default fallback
+    }
+    
+    // Find the first visible component by matching IDs
+    const firstVisibleComponent = hrComponents
+      .filter(comp => visibleComponentIds.includes(comp.componentId))
+      .sort((a, b) => {
+        // Sort by order if available, otherwise by creation time
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        if (a.order !== undefined) return -1;
+        if (b.order !== undefined) return 1;
+        return a.createdAt - b.createdAt;
+      })[0];
+    
+    return firstVisibleComponent?.componentName || "HR Dashboard";
+  };
+  
   // Hide sidebar only on leads management page
   const isLeadsManagement = location.pathname === '/leads-management';
   
@@ -25,7 +51,7 @@ export function Layout({ children }: LayoutProps) {
     {
       to: "/hr-dashboard",
       icon: Target,
-      label: "HR Dashboard", 
+      label: getFirstVisibleTabName(), 
       path: "/hr-dashboard"
     },
     {

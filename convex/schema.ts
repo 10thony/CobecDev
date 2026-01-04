@@ -708,6 +708,61 @@ const applicationTables = {
     .index("by_primary", ["isPrimarySystemPrompt"])
     .index("by_creation", ["createdAt"]),
 
+  // Scraping Jobs (for browser agent tracking)
+  scrapingJobs: defineTable({
+    // Identification
+    portalId: v.optional(v.id("portals")),
+    batchJobId: v.optional(v.id("scrapingBatchJobs")),
+    procurementLinkId: v.optional(v.id("procurementUrls")),
+    
+    // Status
+    status: v.union(
+      v.literal("pending"),
+      v.literal("queued"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+    
+    // Browser Agent Info
+    agentJobId: v.string(),          // UUID sent to browser agent
+    agentStatus: v.optional(v.string()),
+    
+    // URL and location
+    url: v.string(),
+    state: v.string(),
+    capital: v.string(),
+    
+    // Progress
+    currentPage: v.optional(v.number()),
+    totalPages: v.optional(v.number()),
+    opportunitiesFound: v.optional(v.number()),
+    currentAction: v.optional(v.string()),
+    
+    // Timing
+    queuedAt: v.number(),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    duration: v.optional(v.number()),
+    
+    // Results
+    resultRecordId: v.optional(v.id("scrapedProcurementData")),
+    
+    // Errors
+    errorMessage: v.optional(v.string()),
+    errorType: v.optional(v.string()),
+    retryCount: v.number(),
+    
+    // Metadata
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_portal", ["portalId"])
+    .index("by_status", ["status"])
+    .index("by_agent_job_id", ["agentJobId"])
+    .index("by_batch_job", ["batchJobId"]),
+
   // Scraping Batch Jobs - tracks batch scraping operations for persistence across navigation
   scrapingBatchJobs: defineTable({
     userId: v.string(), // Clerk user ID who started the job
@@ -911,6 +966,20 @@ const applicationTables = {
   })
     .index("by_url_pattern", ["urlPattern"])
     .index("by_site_name", ["siteName"]),
+
+  // HR Dashboard Component Visibility - controls which tabs/components are visible
+  hrDashboardComponents: defineTable({
+    componentId: v.string(), // Unique ID for the component (e.g., "overview", "search", "kfc-management")
+    componentName: v.string(), // Display name (e.g., "HR Overview", "Semantic Search")
+    isVisible: v.boolean(), // Whether this component is visible to users
+    description: v.optional(v.string()), // Optional description
+    order: v.optional(v.number()), // Optional ordering for display
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_component_id", ["componentId"])
+    .index("by_visible", ["isVisible"])
+    .index("by_order", ["order"]),
 };
 
 export default defineSchema({

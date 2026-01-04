@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useAction, useMutation } from 'convex/react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../convex/_generated/api';
@@ -529,6 +529,9 @@ export function HRDashboardPage() {
   const [selectedResult, setSelectedResult] = useState<any>(null);
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
   const navigate = useNavigate();
+  
+  // Get visible components
+  const visibleComponents = useQuery(api.hrDashboardComponents.getVisibleComponents);
 
   // Navigation handlers for search results
   const handleJobClick = (job: any) => {
@@ -553,7 +556,7 @@ export function HRDashboardPage() {
     setSelectedResult(selectedResult?._id === result._id ? null : result);
   };
 
-  const tabs = [
+  const allTabs = [
     {
       id: 'overview',
       name: 'HR Overview',
@@ -597,6 +600,29 @@ export function HRDashboardPage() {
       description: 'Manage AI embeddings and system optimization'
     }
   ];
+
+  // Filter tabs based on visibility settings
+  // If visibleComponents is undefined (loading) or empty, show all tabs by default
+  // Otherwise, only show tabs that are in the visibleComponents array
+  const tabs = visibleComponents === undefined || visibleComponents.length === 0
+    ? allTabs
+    : allTabs.filter(tab => visibleComponents.includes(tab.id));
+  
+  // Ensure activeTab is valid - if current tab is not visible, switch to first visible tab
+  useEffect(() => {
+    if (visibleComponents !== undefined) {
+      const filteredTabs = visibleComponents.length === 0
+        ? allTabs
+        : allTabs.filter(tab => visibleComponents.includes(tab.id));
+      
+      if (filteredTabs.length > 0) {
+        const isCurrentTabVisible = filteredTabs.some(tab => tab.id === activeTab);
+        if (!isCurrentTabVisible) {
+          setActiveTab(filteredTabs[0].id as any);
+        }
+      }
+    }
+  }, [visibleComponents, activeTab]);
 
   const handleSearchResults = (results: any) => {
     setSearchResults(results);
@@ -799,36 +825,50 @@ export function HRDashboardPage() {
     }
   };
 
+  // If only one tab is visible, render it directly without navigation
+  const shouldShowNavigation = tabs.length > 1;
+
   return (
     <div className="min-h-screen bg-tron-bg-deep">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-        </div>
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${shouldShowNavigation ? 'py-8' : 'py-0'}`}>
+        {/* Page Header - only show if multiple tabs */}
+        {shouldShowNavigation && (
+          <div className="mb-8">
+          </div>
+        )}
 
-        {/* Navigation Tabs */}
-        <div className="mb-8">
-          <nav className="flex space-x-8" aria-label="Tabs">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${ activeTab === tab.id ? 'bg-tron-cyan/20 text-tron-white border-b-2 border-tron-cyan' : 'text-tron-gray hover:text-tron-white hover:bg-tron-bg-elevated' }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span>{tab.name}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+        {/* Navigation Tabs - only show if multiple tabs */}
+        {shouldShowNavigation && (
+          <div className="mb-8">
+            <nav className="flex space-x-8" aria-label="Tabs">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${ activeTab === tab.id ? 'bg-tron-cyan/20 text-tron-white border-b-2 border-tron-cyan' : 'text-tron-gray hover:text-tron-white hover:bg-tron-bg-elevated' }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span>{tab.name}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        )}
 
         {/* Tab Content */}
-        <div className="bg-tron-bg-panel rounded-lg shadow-sm border border-tron-cyan/20">
-          {renderTabContent()}
-        </div>
+        {shouldShowNavigation ? (
+          <div className="bg-tron-bg-panel rounded-lg shadow-sm border border-tron-cyan/20">
+            {renderTabContent()}
+          </div>
+        ) : (
+          // When only one tab, render content directly without wrapper for full screen usage
+          <div className="w-full">
+            {renderTabContent()}
+          </div>
+        )}
       </div>
     </div>
   );
