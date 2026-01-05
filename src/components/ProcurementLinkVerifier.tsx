@@ -125,6 +125,108 @@ interface ProcurementLinkVerifierProps {
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'denied';
 
+// Component to display scraped data for a procurement URL
+function ScrapedDataSection({ urlId }: { urlId: Id<"procurementUrls"> }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const summary = useQuery(api.procurementData.getSummaryByProcurementUrlId, { procurementUrlId: urlId });
+  const allData = useQuery(api.procurementData.getByProcurementUrlId, { procurementUrlId: urlId });
+
+  if (!summary || summary.count === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mb-3 pt-2 border-t border-tron-cyan/10">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between text-xs text-tron-cyan hover:text-tron-cyan-bright transition-colors p-1.5 rounded hover:bg-tron-bg-elevated"
+      >
+        <span className="flex items-center gap-1.5">
+          <FileJson className="w-3.5 h-3.5" />
+          Scraped Data
+          <span className="px-1.5 py-0.5 bg-tron-cyan/20 text-tron-cyan rounded-full text-xs">
+            {summary.count}
+          </span>
+          {summary.totalRows > 0 && (
+            <span className="text-tron-gray">
+              • {summary.totalRows} rows
+            </span>
+          )}
+        </span>
+        {isExpanded ? (
+          <ChevronUp className="w-3.5 h-3.5" />
+        ) : (
+          <ChevronDown className="w-3.5 h-3.5" />
+        )}
+      </button>
+      {isExpanded && allData && (
+        <div className="mt-2 space-y-2">
+          {allData.map((dataItem, idx) => (
+            <div
+              key={dataItem._id}
+              className="p-2.5 bg-tron-bg-deep border border-tron-cyan/20 rounded text-xs"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-tron-cyan font-medium">
+                    Scrape #{allData.length - idx}
+                  </span>
+                  <span className="text-tron-gray">
+                    {new Date(dataItem.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                  dataItem.status === 'pending_review'
+                    ? 'bg-neon-warning/20 text-neon-warning'
+                    : 'bg-neon-success/20 text-neon-success'
+                }`}>
+                  {dataItem.status}
+                </span>
+              </div>
+              <div className="text-tron-gray space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-tron-white">Rows:</span>
+                  <span>{dataItem.rowCount}</span>
+                </div>
+                {dataItem.sourceUrl && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-tron-white">Source:</span>
+                    <a
+                      href={dataItem.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-tron-cyan hover:underline truncate max-w-xs"
+                    >
+                      {dataItem.sourceUrl}
+                    </a>
+                  </div>
+                )}
+                {dataItem.data && dataItem.data.length > 0 && (
+                  <div className="mt-2">
+                    <details className="cursor-pointer">
+                      <summary className="text-tron-cyan hover:text-tron-cyan-bright">
+                        View Data ({dataItem.data.length} records)
+                      </summary>
+                      <div className="mt-2 max-h-48 overflow-y-auto">
+                        <pre className="text-xs bg-tron-bg-card p-2 rounded border border-tron-cyan/10">
+                          {JSON.stringify(dataItem.data.slice(0, 5), null, 2)}
+                          {dataItem.data.length > 5 && (
+                            <span className="text-tron-gray">... and {dataItem.data.length - 5} more records</span>
+                          )}
+                        </pre>
+                      </div>
+                    </details>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerifierProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; duplicates: string[] } | null>(null);
@@ -146,6 +248,9 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   const [requiresRegistration, setRequiresRegistration] = useState<Record<string, boolean>>({});
   // Track which links have been modified (edited)
   const [modifiedLinks, setModifiedLinks] = useState<Set<Id<"procurementUrls">>>(new Set());
+  
+  // Track expanded scraped data for each URL
+  const [expandedScrapedData, setExpandedScrapedData] = useState<Record<string, boolean>>({});
   
   // Track which sections are collapsed
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -1865,6 +1970,9 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
                   </label>
                 </div>
               )}
+
+              {/* Scraped Data Section */}
+              <ScrapedDataSection urlId={url._id} />
 
               {/* Actions */}
               <div className="flex gap-2 pt-3 border-t border-tron-cyan/10">

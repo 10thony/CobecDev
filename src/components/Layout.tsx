@@ -2,7 +2,7 @@ import { useQuery } from "convex/react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
-import { Target, ChevronLeft, ChevronRight, Map , Shield} from "lucide-react";
+import { Target, ChevronLeft, ChevronRight, Map, Shield, Search, Database, Users, FileSearch, Globe, Settings } from "lucide-react";
 import { useState } from "react";
 
 interface LayoutProps {
@@ -15,19 +15,47 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Get HR dashboard components to determine the first visible tab name
+  // Get HR dashboard components to build navigation
   const hrComponents = useQuery(api.hrDashboardComponents.getAllComponents);
   const visibleComponentIds = useQuery(api.hrDashboardComponents.getVisibleComponents);
   
-  // Get the first visible component's name, or default to "HR Dashboard"
-  const getFirstVisibleTabName = () => {
-    if (!hrComponents || !visibleComponentIds || visibleComponentIds.length === 0) {
-      return "HR Dashboard"; // Default fallback
+  // Hide sidebar only on leads management page
+  const isLeadsManagement = location.pathname === '/leads-management';
+  
+  // Check if user is admin (either system admin or cobec admin)
+  const isAdmin = userRole === "admin" || isCobecAdmin === true;
+
+  // Component ID to route and icon mapping
+  const componentRouteMap: Record<string, { path: string; icon: typeof Target; defaultLabel: string }> = {
+    'procurement-links': { path: '/', icon: Globe, defaultLabel: 'Procurement Links' },
+    'overview': { path: '/hr-overview', icon: Target, defaultLabel: 'HR Overview' },
+    'search': { path: '/semantic-search', icon: Search, defaultLabel: 'Semantic Search' },
+    'leads-management': { path: '/leads-management', icon: FileSearch, defaultLabel: 'Leads Management' },
+    'kfc-management': { path: '/kfc-management', icon: Users, defaultLabel: 'KFC Management' },
+    'data-management': { path: '/data-management', icon: Database, defaultLabel: 'Data Management' },
+    'embeddings': { path: '/embedding-management', icon: Settings, defaultLabel: 'Embedding Management' },
+  };
+
+  // Build navigation items from visible components
+  const buildNavigationItems = () => {
+    const items: Array<{ to: string; icon: typeof Target; label: string; path: string }> = [];
+
+    if (!hrComponents || !visibleComponentIds) {
+      // While loading, show default items
+      return [
+        { to: '/', icon: Globe, label: 'Procurement Links', path: '/' },
+        { to: '/government-links', icon: Map, label: 'Government Links', path: '/government-links' },
+      ];
     }
-    
-    // Find the first visible component by matching IDs
-    const firstVisibleComponent = hrComponents
-      .filter(comp => visibleComponentIds.includes(comp.componentId))
+
+    // If no visible components, show all (backward compatibility)
+    const componentsToShow = visibleComponentIds.length === 0
+      ? Object.keys(componentRouteMap)
+      : visibleComponentIds;
+
+    // Get sorted visible components
+    const sortedComponents = hrComponents
+      .filter(comp => componentsToShow.includes(comp.componentId))
       .sort((a, b) => {
         // Sort by order if available, otherwise by creation time
         if (a.order !== undefined && b.order !== undefined) {
@@ -36,31 +64,33 @@ export function Layout({ children }: LayoutProps) {
         if (a.order !== undefined) return -1;
         if (b.order !== undefined) return 1;
         return a.createdAt - b.createdAt;
-      })[0];
-    
-    return firstVisibleComponent?.componentName || "HR Dashboard";
-  };
-  
-  // Hide sidebar only on leads management page
-  const isLeadsManagement = location.pathname === '/leads-management';
-  
-  // Check if user is admin (either system admin or cobec admin)
-  const isAdmin = userRole === "admin" || isCobecAdmin === true;
+      });
 
-  const navigationItems = [
-    {
-      to: "/hr-dashboard",
-      icon: Target,
-      label: getFirstVisibleTabName(), 
-      path: "/hr-dashboard"
-    },
-    {
-      to: "/government-links",
+    // Add navigation items for each visible component
+    sortedComponents.forEach(comp => {
+      const routeInfo = componentRouteMap[comp.componentId];
+      if (routeInfo) {
+        items.push({
+          to: routeInfo.path,
+          icon: routeInfo.icon,
+          label: comp.componentName || routeInfo.defaultLabel,
+          path: routeInfo.path,
+        });
+      }
+    });
+
+    // Always add Government Links
+    items.push({
+      to: '/government-links',
       icon: Map,
-      label: "Government Links",
-      path: "/government-links"
-    }
-  ];
+      label: 'Government Links',
+      path: '/government-links',
+    });
+
+    return items;
+  };
+
+  const navigationItems = buildNavigationItems();
 
   // Add admin panel if user is admin
   if (isAdmin) {

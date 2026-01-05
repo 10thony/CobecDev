@@ -980,6 +980,21 @@ const applicationTables = {
     .index("by_component_id", ["componentId"])
     .index("by_visible", ["isVisible"])
     .index("by_order", ["order"]),
+
+  // Procurement Data - stores scraped procurement data for review
+  procurementData: defineTable({
+    procurementUrlId: v.optional(v.id("procurementUrls")),
+    state: v.string(),
+    sourceUrl: v.string(),
+    data: v.array(v.any()),
+    rowCount: v.number(),
+    status: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_procurement_url", ["procurementUrlId"])
+    .index("by_state", ["state"])
+    .index("by_status", ["status"])
+    .index("by_creation", ["createdAt"]),
 };
 
 export default defineSchema({

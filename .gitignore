@@ -27,3 +27,6 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 bun.lockb
+
+# Playwright user data (contains browser cache, crash dumps, and potentially sensitive data)
+playwright_user_data/

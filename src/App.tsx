@@ -5,6 +5,7 @@ import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { Toaster } from "sonner";
 import { Layout } from "./components/Layout";
+import { VisibilityWrapper } from "./components/VisibilityWrapper";
 import { HomePage } from "./pages/HomePage";
 import { ThemeConfigPage } from "./pages/ThemeConfigPage";
 import { DataManagementPage } from "./pages/DataManagementPage";
@@ -19,6 +20,10 @@ import { QuestionsPage } from "./pages/QuestionsPage";
 import { CobeciumPage } from "./pages/CobeciumPage";
 import { AdminPanelPage } from "./pages/AdminPanelPage";
 import { GovernmentLinkHubPage } from "./pages/GovernmentLinkHubPage";
+import { ProcurementLinksPage } from "./pages/ProcurementLinksPage";
+import { HROverviewPage } from "./pages/HROverviewPage";
+import { SemanticSearchPage } from "./pages/SemanticSearchPage";
+import { EmbeddingManagementPage } from "./pages/EmbeddingManagementPage";
 import TempChatPage from "./pages/TempChatPage";
 import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider } from "./lib/ThemeContext";
@@ -81,9 +86,76 @@ function AuthenticatedApp() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<HRDashboardPage />} />
+        {/* ProcurementLinks is the homepage */}
+        <Route
+          path="/"
+          element={
+            <VisibilityWrapper componentId="procurement-links">
+              <ProcurementLinksPage />
+            </VisibilityWrapper>
+          }
+        />
+        {/* All components at the same level with visibility checks */}
+        <Route
+          path="/procurement-links"
+          element={
+            <VisibilityWrapper componentId="procurement-links">
+              <ProcurementLinksPage />
+            </VisibilityWrapper>
+          }
+        />
+        <Route
+          path="/hr-overview"
+          element={
+            <VisibilityWrapper componentId="overview">
+              <HROverviewPage />
+            </VisibilityWrapper>
+          }
+        />
+        <Route
+          path="/semantic-search"
+          element={
+            <VisibilityWrapper componentId="search">
+              <SemanticSearchPage />
+            </VisibilityWrapper>
+          }
+        />
+        <Route
+          path="/leads-management"
+          element={
+            <VisibilityWrapper componentId="leads-management">
+              <LeadsManagementPage />
+            </VisibilityWrapper>
+          }
+        />
+        <Route
+          path="/kfc-management"
+          element={
+            <VisibilityWrapper componentId="kfc-management">
+              <KfcManagementPage />
+            </VisibilityWrapper>
+          }
+        />
+        <Route
+          path="/data-management"
+          element={
+            <VisibilityWrapper componentId="data-management">
+              <DataManagementPage />
+            </VisibilityWrapper>
+          }
+        />
+        <Route
+          path="/embedding-management"
+          element={
+            <VisibilityWrapper componentId="embeddings">
+              <EmbeddingManagementPage />
+            </VisibilityWrapper>
+          }
+        />
+        {/* Legacy HR Dashboard route - redirects to first visible component */}
+        <Route path="/hr-dashboard" element={<Navigate to="/" replace />} />
+        {/* Other routes that don't need visibility checks */}
         <Route path="/home" element={<HomePage />} />
-        <Route path="/hr-dashboard" element={<HRDashboardPage />} />
         <Route path="/test-job" element={<div>Test Job Route Works!</div>} />
         <Route path="/job/:jobId" element={<JobDetailsPage />} />
         <Route path="/resume/:resumeId" element={<ResumeDetailsPage />} />
@@ -92,9 +164,6 @@ function AuthenticatedApp() {
         <Route path="/questions" element={<QuestionsPage />} />
         <Route path="/cobecium" element={<CobeciumPage />} />
         <Route path="/theme-config" element={<ThemeConfigPage />} />
-        <Route path="/data-management" element={<DataManagementPage />} />
-        <Route path="/kfc-management" element={<KfcManagementPage />} />
-        <Route path="/leads-management" element={<LeadsManagementPage />} />
         <Route path="/admin-panel" element={<AdminPanelPage />} />
         <Route path="/government-links" element={<GovernmentLinkHubPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
