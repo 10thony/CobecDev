@@ -232,7 +232,7 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; duplicates: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [stateFilter, setStateFilter] = useState<string[]>([]);
   const [stateFilterSticky, setStateFilterSticky] = useState(false);
   const [stateFilterHover, setStateFilterHover] = useState(false);
@@ -262,7 +262,7 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   });
 
   // Default section order (filter section is now merged into stats)
-  const defaultSectionOrder = ['stats', 'import', 'manualEntry', 'aiAgent', 'links'];
+  const defaultSectionOrder = ['stats', 'links', 'aiAgent', 'import', 'manualEntry'];
   
   // Load section order from localStorage
   const [sectionOrder, setSectionOrder] = useState<string[]>(() => {

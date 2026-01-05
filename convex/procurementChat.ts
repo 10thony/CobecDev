@@ -148,16 +148,16 @@ export const fetchAndSaveProcurementLinks = action({
             responseData: parsed,
           });
 
-          // Record analytics for successful response
-          const latencyMs = Date.now() - startTime;
-          // AI SDK uses inputTokens/outputTokens, fallback for safety
-          const usage = result.usage as { inputTokens?: number; outputTokens?: number; promptTokens?: number; completionTokens?: number } | undefined;
-          const requestTokens = usage?.inputTokens ?? usage?.promptTokens ?? 0;
-          const responseTokens = usage?.outputTokens ?? usage?.completionTokens ?? 0;
-          await ctx.runMutation(internal.procurementChatAnalytics.recordAnalytics, {
-            sessionId: args.sessionId,
-            userId: session.userId,
-            userPrompt: args.prompt,
+      // Record analytics for successful response
+      const latencyMs = Date.now() - startTime;
+      // AI SDK uses inputTokens/outputTokens, fallback for safety
+      const usage = result.usage as { inputTokens?: number; outputTokens?: number; promptTokens?: number; completionTokens?: number } | undefined;
+      const requestTokens = usage?.inputTokens ?? usage?.promptTokens ?? 0;
+      const responseTokens = usage?.outputTokens ?? usage?.completionTokens ?? 0;
+      await ctx.runMutation(internal.procurementChatAnalytics.recordAnalytics, {
+        sessionId: args.sessionId,
+        userId: session.userId || session.anonymousId || "unknown",
+        userPrompt: args.prompt,
             assistantResponse: summaryContent,
             model: PROCUREMENT_CHAT_MODEL,
             provider: "openai",
@@ -271,7 +271,7 @@ export const fetchAndSaveProcurementLinks = action({
       const responseTokens = usage?.outputTokens ?? usage?.completionTokens ?? 0;
       await ctx.runMutation(internal.procurementChatAnalytics.recordAnalytics, {
         sessionId: args.sessionId,
-        userId: session.userId,
+        userId: session.userId || session.anonymousId || "unknown",
         userPrompt: args.prompt,
         assistantResponse: summaryContent,
         model: PROCUREMENT_CHAT_MODEL,
@@ -305,7 +305,7 @@ export const fetchAndSaveProcurementLinks = action({
         if (session) {
           await ctx.runMutation(internal.procurementChatAnalytics.recordAnalytics, {
             sessionId: args.sessionId,
-            userId: session.userId,
+            userId: session.userId || session.anonymousId || "unknown",
             userPrompt: args.prompt,
             assistantResponse: "",
             model: PROCUREMENT_CHAT_MODEL,

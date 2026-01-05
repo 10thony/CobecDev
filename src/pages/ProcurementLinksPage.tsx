@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { ProcurementChat } from '../components/ProcurementChat';
 import { ProcurementLinkVerifier } from '../components/ProcurementLinkVerifier';
 import { ScrapedProcurementDataGrid } from '../components/ScrapedProcurementDataGrid';
+import { FeedbackComponent } from '../components/FeedbackComponent';
 
 export function ProcurementLinksPage() {
-  const [activeSubTab, setActiveSubTab] = useState<'chat' | 'verifier' | 'scraper'>('chat');
+  const [activeSubTab, setActiveSubTab] = useState<'chat' | 'verifier' | 'scraper' | 'feedback'>('chat');
 
   return (
     <div className="min-h-screen bg-tron-bg-deep">
@@ -42,6 +43,16 @@ export function ProcurementLinksPage() {
               >
                 AI Scraper
               </button>
+              <button
+                onClick={() => setActiveSubTab('feedback')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeSubTab === 'feedback'
+                    ? 'border-tron-cyan text-tron-cyan'
+                    : 'border-transparent text-tron-gray hover:text-tron-white hover:border-tron-cyan/40'
+                }`}
+              >
+                Feedback
+              </button>
             </nav>
           </div>
           {activeSubTab === 'chat' && (
@@ -51,6 +62,7 @@ export function ProcurementLinksPage() {
           )}
           {activeSubTab === 'verifier' && <ProcurementLinkVerifier />}
           {activeSubTab === 'scraper' && <ScrapedProcurementDataGrid />}
+          {activeSubTab === 'feedback' && <FeedbackComponent />}
         </div>
       </div>
     </div>

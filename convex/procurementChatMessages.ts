@@ -22,13 +22,37 @@ const responseDataValidator = v.object({
 
 // Get all messages for a chat session
 export const list = query({
-  args: { sessionId: v.id("procurementChatSessions") },
+  args: { 
+    sessionId: v.id("procurementChatSessions"),
+    anonymousId: v.optional(v.string()), // For unauthenticated users
+  },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
+    let userId: string | undefined;
+    let anonymousId: string | undefined;
+    
+    try {
+      userId = await getCurrentUserId(ctx);
+    } catch {
+      // Not authenticated - use anonymous ID if provided
+      if (args.anonymousId) {
+        anonymousId = args.anonymousId;
+      } else {
+        // Not authenticated and no anonymous ID, return empty array
+        return [];
+      }
+    }
     
     // Verify user owns the session
     const session = await ctx.db.get(args.sessionId);
-    if (!session || session.userId !== userId) {
+    if (!session) {
+      return [];
+    }
+    
+    // Check ownership: either userId matches or anonymousId matches
+    if (userId && session.userId !== userId) {
+      return [];
+    }
+    if (anonymousId && session.anonymousId !== anonymousId) {
       return [];
     }
     
@@ -45,13 +69,34 @@ export const addUserMessage = mutation({
   args: {
     sessionId: v.id("procurementChatSessions"),
     content: v.string(),
+    anonymousId: v.optional(v.string()), // For unauthenticated users
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
+    let userId: string | undefined;
+    let anonymousId: string | undefined;
+    
+    try {
+      userId = await getCurrentUserId(ctx);
+    } catch {
+      // Not authenticated - use anonymous ID if provided
+      if (args.anonymousId) {
+        anonymousId = args.anonymousId;
+      } else {
+        throw new Error("Authentication required or anonymousId must be provided");
+      }
+    }
     
     // Verify user owns the session
     const session = await ctx.db.get(args.sessionId);
-    if (!session || session.userId !== userId) {
+    if (!session) {
+      throw new Error("Chat session not found");
+    }
+    
+    // Check ownership: either userId matches or anonymousId matches
+    if (userId && session.userId !== userId) {
+      throw new Error("Chat session not found");
+    }
+    if (anonymousId && session.anonymousId !== anonymousId) {
       throw new Error("Chat session not found");
     }
     

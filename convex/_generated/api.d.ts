@@ -27,6 +27,7 @@ import type * as embeddingService from "../embeddingService.js";
 import type * as employees from "../employees.js";
 import type * as enhancedEmbeddingService from "../enhancedEmbeddingService.js";
 import type * as favorites from "../favorites.js";
+import type * as feedback from "../feedback.js";
 import type * as hrDashboardComponents from "../hrDashboardComponents.js";
 import type * as htmlParsingActions from "../htmlParsingActions.js";
 import type * as http from "../http.js";
@@ -111,6 +112,7 @@ declare const fullApi: ApiFromModules<{
   employees: typeof employees;
   enhancedEmbeddingService: typeof enhancedEmbeddingService;
   favorites: typeof favorites;
+  feedback: typeof feedback;
   hrDashboardComponents: typeof hrDashboardComponents;
   htmlParsingActions: typeof htmlParsingActions;
   http: typeof http;

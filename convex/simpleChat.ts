@@ -86,7 +86,7 @@ export const sendMessage = action({
       
       await ctx.runMutation(internal.procurementChatAnalytics.recordAnalytics, {
         sessionId: args.sessionId,
-        userId: session.userId,
+        userId: session.userId || session.anonymousId || "unknown",
         userPrompt: args.prompt,
         assistantResponse: analyticsContent,
         model: "gpt-5-mini", // From simpleChatAgent config
@@ -119,7 +119,7 @@ export const sendMessage = action({
       try {
         await ctx.runMutation(internal.procurementChatAnalytics.recordAnalytics, {
           sessionId: args.sessionId,
-          userId: session.userId,
+          userId: session.userId || session.anonymousId || "unknown",
           userPrompt: args.prompt,
           assistantResponse: "",
           model: "gpt-5-mini",

@@ -1,5 +1,6 @@
 import { useState, useTransition, useRef, useEffect } from 'react';
 import { useAction, useQuery, useMutation } from 'convex/react';
+import { useAuth } from '@clerk/clerk-react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { TronPanel } from './TronPanel';
@@ -29,7 +30,8 @@ import {
   Edit2,
   Star,
   Save,
-  Copy
+  Copy,
+  MessageCircle
 } from 'lucide-react';
 
 interface ProcurementLink {
@@ -75,6 +77,35 @@ interface ProcurementChatProps {
 }
 
 export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {}) {
+  const { isSignedIn } = useAuth();
+  
+  // Free message tracking constants and helpers (defined early so they can be used)
+  const FREE_MESSAGE_LIMIT = 5;
+  const STORAGE_KEY = 'procurement_chat_free_messages_used';
+  const ANONYMOUS_ID_KEY = 'procurement_chat_anonymous_id';
+  
+  const getFreeMessagesUsed = (): number => {
+    if (typeof window === 'undefined') return 0;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+  };
+  
+  const incrementFreeMessagesUsed = (): void => {
+    if (typeof window === 'undefined') return;
+    const current = getFreeMessagesUsed();
+    localStorage.setItem(STORAGE_KEY, (current + 1).toString());
+  };
+  
+  const getOrCreateAnonymousId = (): string => {
+    if (typeof window === 'undefined') return '';
+    let anonymousId = localStorage.getItem(ANONYMOUS_ID_KEY);
+    if (!anonymousId) {
+      anonymousId = `anon_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem(ANONYMOUS_ID_KEY, anonymousId);
+    }
+    return anonymousId;
+  };
+  
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -98,10 +129,14 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const [modalMessage, setModalMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Convex queries and mutations
-  const sessions = useQuery(api.procurementChatSessions.list, { includeArchived: false });
+  const anonymousId = !isSignedIn ? getOrCreateAnonymousId() : undefined;
+  const sessions = useQuery(
+    api.procurementChatSessions.list, 
+    { includeArchived: false, anonymousId }
+  );
   const sessionMessages = useQuery(
     api.procurementChatMessages.list, 
-    currentSessionId ? { sessionId: currentSessionId } : "skip"
+    currentSessionId ? { sessionId: currentSessionId, anonymousId } : "skip"
   );
   const createSession = useMutation(api.procurementChatSessions.create);
   const deleteSession = useMutation(api.procurementChatSessions.deleteSession);
@@ -125,10 +160,22 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const updatePrimaryWithApprovedLinks = useMutation(api.procurementChatSystemPrompts.updatePrimaryWithApprovedLinks);
   const [refreshingLinks, setRefreshingLinks] = useState(false);
   
+  // Free message tracking state
+  const [freeMessagesUsed, setFreeMessagesUsed] = useState(getFreeMessagesUsed());
+  const freeMessagesRemaining = FREE_MESSAGE_LIMIT - freeMessagesUsed;
+  const canSendFreeMessage = !isSignedIn && freeMessagesRemaining > 0;
+  
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sessionMessages]);
+  
+  // Sync free messages count from localStorage
+  useEffect(() => {
+    if (!isSignedIn) {
+      setFreeMessagesUsed(getFreeMessagesUsed());
+    }
+  }, [isSignedIn]);
   
   // Sync messages from database when session changes
   useEffect(() => {
@@ -148,6 +195,10 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   }, [sessionMessages, currentSessionId]);
 
   const handleNewChat = async () => {
+    if (!isSignedIn) {
+      setError('Please sign in to create a new chat');
+      return;
+    }
     try {
       const newSessionId = await createSession({});
       setCurrentSessionId(newSessionId);
@@ -179,15 +230,39 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) return;
+    
+    // Check free message limit for unauthenticated users
+    if (!isSignedIn) {
+      if (freeMessagesUsed >= FREE_MESSAGE_LIMIT) {
+        setError(`You've used all ${FREE_MESSAGE_LIMIT} free messages. Please sign in for unlimited access.`);
+        return;
+      }
+    }
 
     const userPrompt = prompt.trim();
     setError(null);
+    
+    // For unauthenticated users, increment message count
+    if (!isSignedIn) {
+      incrementFreeMessagesUsed();
+      const newCount = getFreeMessagesUsed();
+      setFreeMessagesUsed(newCount);
+    }
     
     // Create a session if we don't have one
     let sessionId = currentSessionId;
     if (!sessionId) {
       try {
-        sessionId = await createSession({ title: userPrompt.substring(0, 50) + (userPrompt.length > 50 ? "..." : "") });
+        if (isSignedIn) {
+          sessionId = await createSession({ title: userPrompt.substring(0, 50) + (userPrompt.length > 50 ? "..." : "") });
+        } else {
+          // For unauthenticated users, use anonymous ID
+          const anonymousId = getOrCreateAnonymousId();
+          sessionId = await createSession({ 
+            title: userPrompt.substring(0, 50) + (userPrompt.length > 50 ? "..." : ""),
+            anonymousId 
+          });
+        }
         setCurrentSessionId(sessionId);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to create chat session');
@@ -207,19 +282,33 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     
     startTransition(async () => {
       try {
-        // Add user message to database
-        await addUserMessage({ 
-          sessionId: sessionId!, 
-          content: userPrompt 
-        });
-        
-        // Send chat message (this also saves the assistant response)
-        await sendChatMessage({ 
-          prompt: userPrompt,
-          sessionId: sessionId!,
-        });
-        
-        // The response will be loaded via the sessionMessages query
+        if (sessionId) {
+          // Add user message to database
+          if (isSignedIn) {
+            await addUserMessage({ 
+              sessionId: sessionId, 
+              content: userPrompt 
+            });
+          } else {
+            // For unauthenticated users, include anonymous ID
+            const anonymousId = getOrCreateAnonymousId();
+            await addUserMessage({ 
+              sessionId: sessionId, 
+              content: userPrompt,
+              anonymousId
+            });
+          }
+          
+          // Send chat message (this also saves the assistant response)
+          await sendChatMessage({ 
+            prompt: userPrompt,
+            sessionId: sessionId,
+          });
+          
+          // The response will be loaded via the sessionMessages query
+        } else {
+          setError('Failed to create chat session');
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send message');
         // Add error message locally
@@ -639,7 +728,38 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
         >
           {/* Messages History */}
           <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[400px] max-h-[600px]">
-            {messages.length === 0 && !currentSessionId && (
+            {!isSignedIn && messages.length === 0 && (
+              <div className="text-center text-tron-gray py-12">
+                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg mb-2">Try the AI Chat Assistant</p>
+                <p className="text-sm mb-2">You have <span className="text-tron-cyan font-semibold">{freeMessagesRemaining}</span> free message{freeMessagesRemaining !== 1 ? 's' : ''} remaining</p>
+                <p className="text-xs mb-4 text-tron-gray/70">Sign in for unlimited access</p>
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <div className="flex gap-1">
+                    {Array.from({ length: FREE_MESSAGE_LIMIT }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full ${
+                          i < freeMessagesUsed
+                            ? 'bg-tron-cyan'
+                            : 'bg-tron-cyan/20 border border-tron-cyan/30'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-tron-gray">
+                    {freeMessagesUsed}/{FREE_MESSAGE_LIMIT} used
+                  </span>
+                </div>
+                <a
+                  href="/"
+                  className="inline-flex items-center px-4 py-2 bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30 rounded-lg hover:bg-tron-cyan/30 transition-colors text-sm"
+                >
+                  Sign In for Full Access
+                </a>
+              </div>
+            )}
+            {isSignedIn && messages.length === 0 && !currentSessionId && (
               <div className="text-center text-tron-gray py-12">
                 <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Start a conversation to find procurement links!</p>
@@ -657,7 +777,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
               </div>
             )}
             
-            {messages.length === 0 && currentSessionId && (
+            {isSignedIn && messages.length === 0 && currentSessionId && (
               <div className="text-center text-tron-gray py-12">
                 <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Ask about procurement links for any region!</p>
@@ -819,6 +939,45 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
 
           {/* Chat Input */}
           <form onSubmit={handleSubmit} className="space-y-4 border-t border-tron-cyan/10 pt-4">
+            {/* Free message indicator for unauthenticated users */}
+            {!isSignedIn && (
+              <div className="flex items-center justify-between p-3 bg-tron-bg-panel border border-tron-cyan/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="w-4 h-4 text-tron-cyan" />
+                  <div className="flex flex-col">
+                    <span className="text-xs text-tron-white font-medium">
+                      Free Messages: {freeMessagesRemaining} remaining
+                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex gap-1">
+                        {Array.from({ length: FREE_MESSAGE_LIMIT }).map((_, i) => (
+                          <div
+                            key={i}
+                            className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                              i < freeMessagesUsed
+                                ? 'bg-tron-cyan'
+                                : 'bg-tron-cyan/20 border border-tron-cyan/30'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-tron-gray">
+                        {freeMessagesUsed}/{FREE_MESSAGE_LIMIT} used
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {freeMessagesRemaining === 0 && (
+                  <a
+                    href="/"
+                    className="text-xs px-3 py-1.5 bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30 rounded-lg hover:bg-tron-cyan/30 transition-colors"
+                  >
+                    Sign In
+                  </a>
+                )}
+              </div>
+            )}
+            
             {error && (
               <div className="p-3 bg-neon-error/20 border border-neon-error rounded-lg">
                 <div className="flex items-start gap-2">
@@ -835,12 +994,18 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="e.g., 'How do I find procurement links for Texas cities?' or 'What are common patterns for government procurement portals?'"
+                placeholder={
+                  isSignedIn 
+                    ? "e.g., 'How do I find procurement links for Texas cities?' or 'What are common patterns for government procurement portals?'"
+                    : freeMessagesRemaining > 0
+                    ? `Try asking about procurement links! (${freeMessagesRemaining} free message${freeMessagesRemaining !== 1 ? 's' : ''} left)`
+                    : "Sign in to use the AI Chat Assistant"
+                }
                 className="w-full px-4 py-3 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg 
                            text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 
                            focus:ring-tron-cyan focus:border-tron-cyan resize-none"
                 rows={3}
-                disabled={isPending}
+                disabled={isPending || (!isSignedIn && freeMessagesRemaining === 0)}
               />
             </div>
             
@@ -848,10 +1013,10 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
               type="submit"
               variant="primary"
               color="cyan"
-              disabled={isPending || !prompt.trim()}
+              disabled={isPending || !prompt.trim() || (!isSignedIn && freeMessagesRemaining === 0)}
               icon={isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             >
-              {isPending ? 'Sending...' : 'Send Message'}
+              {isPending ? 'Sending...' : freeMessagesRemaining === 0 && !isSignedIn ? 'Sign In to Continue' : 'Send Message'}
             </TronButton>
           </form>
         </TronPanel>

@@ -7,25 +7,58 @@ import { components } from "./_generated/api";
 export const list = query({
   args: {
     includeArchived: v.optional(v.boolean()),
+    anonymousId: v.optional(v.string()), // For unauthenticated users
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
+    let userId: string | undefined;
+    let anonymousId: string | undefined;
     
-    if (args.includeArchived) {
-      return await ctx.db
-        .query("procurementChatSessions")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .order("desc")
-        .collect();
+    try {
+      userId = await getCurrentUserId(ctx);
+    } catch {
+      // Not authenticated - use anonymous ID if provided
+      if (args.anonymousId) {
+        anonymousId = args.anonymousId;
+      } else {
+        // Not authenticated and no anonymous ID, return empty array
+        return [];
+      }
     }
     
-    return await ctx.db
-      .query("procurementChatSessions")
-      .withIndex("by_user_archived", (q) => 
-        q.eq("userId", userId).eq("isArchived", false)
-      )
-      .order("desc")
-      .collect();
+    if (userId) {
+      // Authenticated user - query by userId
+      if (args.includeArchived) {
+        return await ctx.db
+          .query("procurementChatSessions")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .order("desc")
+          .collect();
+      }
+      
+      return await ctx.db
+        .query("procurementChatSessions")
+        .withIndex("by_user_archived", (q) => 
+          q.eq("userId", userId).eq("isArchived", false)
+        )
+        .order("desc")
+        .collect();
+    } else if (anonymousId) {
+      // Unauthenticated user - query by anonymousId
+      const allSessions = await ctx.db
+        .query("procurementChatSessions")
+        .withIndex("by_anonymous", (q) => q.eq("anonymousId", anonymousId))
+        .collect();
+      
+      if (args.includeArchived) {
+        return allSessions.sort((a, b) => b.createdAt - a.createdAt);
+      }
+      
+      return allSessions
+        .filter(s => !s.isArchived)
+        .sort((a, b) => b.createdAt - a.createdAt);
+    }
+    
+    return [];
   },
 });
 
@@ -48,13 +81,28 @@ export const get = query({
 export const create = mutation({
   args: {
     title: v.optional(v.string()),
+    anonymousId: v.optional(v.string()), // For unauthenticated users
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
+    let userId: string | undefined;
+    let anonymousId: string | undefined;
+    
+    try {
+      userId = await getCurrentUserId(ctx);
+    } catch {
+      // Not authenticated - use anonymous ID if provided
+      if (args.anonymousId) {
+        anonymousId = args.anonymousId;
+      } else {
+        throw new Error("Authentication required or anonymousId must be provided");
+      }
+    }
+    
     const now = Date.now();
     
     return await ctx.db.insert("procurementChatSessions", {
       userId,
+      anonymousId,
       title: args.title || "New Procurement Search",
       isArchived: false,
       createdAt: now,

@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "convex/react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { Toaster } from "sonner";
@@ -28,6 +28,7 @@ import TempChatPage from "./pages/TempChatPage";
 import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider } from "./lib/ThemeContext";
 import { LinksLegend } from "./components/LinksLegend";
+import { PublicNavigation } from "./components/PublicNavigation";
 // Global data service removed - using Convex real-time queries instead
 
 export default function App() {
@@ -48,7 +49,13 @@ export default function App() {
 
 function AppContent() {
   const { isSignedIn, isLoaded } = useAuth();
-  const location = window.location.pathname;
+  const location = useLocation().pathname;
+  
+  // Check if procurement-links requires auth
+  const procurementLinksRequiresAuth = useQuery(
+    api.hrDashboardComponents.getComponentAuthRequirement,
+    { componentId: "procurement-links" }
+  );
   
   if (!isLoaded) {
     return (
@@ -61,6 +68,20 @@ function AppContent() {
   // Allow public access to government-links page (read-only for unauthenticated users)
   if (location === "/government-links" && !isSignedIn) {
     return <PublicGovernmentLinksPage />;
+  }
+
+  // Always show ProcurementLinksPage for "/" and "/procurement-links" routes, even if unauthenticated
+  if ((location === "/" || location === "/procurement-links") && !isSignedIn) {
+    if (procurementLinksRequiresAuth === undefined) {
+      // Still loading, show loading state
+      return (
+        <div className="min-h-screen bg-tron-bg-deep flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tron-cyan"></div>
+        </div>
+      );
+    }
+    // Always show ProcurementLinksPage for these routes, regardless of auth requirement
+    return <PublicProcurementLinksPage />;
   }
 
   if (!isSignedIn) {
@@ -173,14 +194,44 @@ function AuthenticatedApp() {
 }
 
 function UnauthenticatedApp() {
-  return (
-    <div className="min-h-screen bg-tron-bg-deep tron-grid-bg flex items-center justify-center p-8">
-      <div className="w-full max-w-md mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-tron-white mb-4 tron-glow-text">Cobecium</h1>
-          <p className="text-xl text-tron-gray">Sign in to start chatting with AI</p>
+  const location = useLocation().pathname;
+  
+  // For routes other than "/" and "/procurement-links", show sign-in page
+  if (location !== "/" && location !== "/procurement-links") {
+    return (
+      <div className="min-h-screen bg-tron-bg-deep tron-grid-bg flex items-center justify-center p-8">
+        <div className="w-full max-w-md mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-tron-white mb-4 tron-glow-text">Cobecium</h1>
+            <p className="text-xl text-tron-gray">Sign in to start chatting with AI</p>
+          </div>
+          <SignInForm />
         </div>
-        <SignInForm />
+      </div>
+    );
+  }
+  
+  // For "/" and "/procurement-links", show ProcurementLinksPage with sign-in option
+  return (
+    <div className="h-screen bg-tron-bg-deep flex flex-col">
+      {/* Simple header for public access */}
+      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <h1 className="text-xl font-bold text-tron-white">Cobecium</h1>
+          <PublicNavigation />
+        </div>
+        <div className="flex items-center gap-3">
+          <a
+            href="/"
+            className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
+          >
+            Sign In for Full Access
+          </a>
+        </div>
+      </header>
+      {/* Render the ProcurementLinksPage */}
+      <div className="flex-1 overflow-auto">
+        <ProcurementLinksPage />
       </div>
     </div>
   );
@@ -196,10 +247,9 @@ function PublicGovernmentLinksPage() {
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
       <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <h1 className="text-xl font-bold text-tron-white">Cobecium</h1>
-          <span className="text-tron-gray">|</span>
-          <span className="text-tron-cyan">Government Link Hub</span>
+          <PublicNavigation />
         </div>
         <div className="flex items-center gap-3">
           <LinksLegend links={allLinks} />
@@ -214,6 +264,33 @@ function PublicGovernmentLinksPage() {
       {/* Render the page in read-only mode (isAdmin will be false) */}
       <div className="flex-1 overflow-auto">
         <GovernmentLinkHubPage isPublic={true} />
+      </div>
+    </div>
+  );
+}
+
+// Public version of Procurement Links page (no authentication required)
+function PublicProcurementLinksPage() {
+  return (
+    <div className="h-screen bg-tron-bg-deep flex flex-col">
+      {/* Simple header for public access */}
+      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <h1 className="text-xl font-bold text-tron-white">Cobecium</h1>
+          <PublicNavigation />
+        </div>
+        <div className="flex items-center gap-3">
+          <a
+            href="/"
+            className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
+          >
+            Sign In for Full Access
+          </a>
+        </div>
+      </header>
+      {/* Render the page in public mode */}
+      <div className="flex-1 overflow-auto">
+        <ProcurementLinksPage />
       </div>
     </div>
   );

@@ -504,7 +504,8 @@ const applicationTables = {
 
   // Procurement Chat Sessions for AI-powered procurement link discovery
   procurementChatSessions: defineTable({
-    userId: v.string(), // Clerk user ID
+    userId: v.optional(v.string()), // Clerk user ID (optional for unauthenticated users)
+    anonymousId: v.optional(v.string()), // Temporary ID for unauthenticated users
     title: v.string(), // Auto-generated or user-provided title
     isArchived: v.optional(v.boolean()),
     threadId: v.optional(v.string()), // Agent component thread ID
@@ -512,6 +513,7 @@ const applicationTables = {
     updatedAt: v.number(),
     lastMessageAt: v.optional(v.number()),
   }).index("by_user", ["userId"])
+    .index("by_anonymous", ["anonymousId"])
     .index("by_user_archived", ["userId", "isArchived"])
     .index("by_last_message", ["lastMessageAt"]),
 
@@ -547,7 +549,7 @@ const applicationTables = {
     // Request identification
     sessionId: v.id("procurementChatSessions"),
     messageId: v.optional(v.id("procurementChatMessages")),
-    userId: v.string(), // Clerk user ID
+    userId: v.string(), // Clerk user ID or anonymousId for unauthenticated users
     
     // Message content
     userPrompt: v.string(), // The user's input
@@ -972,6 +974,7 @@ const applicationTables = {
     componentId: v.string(), // Unique ID for the component (e.g., "overview", "search", "kfc-management")
     componentName: v.string(), // Display name (e.g., "HR Overview", "Semantic Search")
     isVisible: v.boolean(), // Whether this component is visible to users
+    requiresAuth: v.optional(v.boolean()), // Whether this component requires authentication (default: true)
     description: v.optional(v.string()), // Optional description
     order: v.optional(v.number()), // Optional ordering for display
     createdAt: v.number(),
@@ -995,6 +998,15 @@ const applicationTables = {
     .index("by_state", ["state"])
     .index("by_status", ["status"])
     .index("by_creation", ["createdAt"]),
+
+  // Feedback - stores user feedback for the procurement links feature
+  feedback: defineTable({
+    text: v.string(), // The feedback text
+    submittedBy: v.optional(v.string()), // Clerk user ID if authenticated, null if anonymous
+    createdAt: v.number(), // When feedback was submitted
+  })
+    .index("by_creation", ["createdAt"])
+    .index("by_user", ["submittedBy"]),
 };
 
 export default defineSchema({

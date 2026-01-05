@@ -1308,14 +1308,14 @@ export function USAMap({ isAdmin = false }: USAMapProps) {
           >
             <Geographies geography={GEO_URL}>
               {({ geographies }) =>
-                (geographies as PreparedFeature[]).map((geo) => {
+                (geographies as PreparedFeature[]).map((geo, index) => {
                   const stateName = geo.properties?.name as string | undefined;
                   const stateCode = stateName ? stateNameToCode[stateName] : undefined;
                   const isSelected = mapState.selectedState === stateCode;
 
                   return (
                     <Geography
-                      key={geo.rsmKey}
+                      key={geo.rsmKey || stateCode || `geo-${index}`}
                       geography={geo}
                       onClick={() => stateName && handleStateClick(stateName)}
                       onMouseEnter={(e) => handleStateHover(stateName ?? null, e)}

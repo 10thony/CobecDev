@@ -16,7 +16,9 @@ import {
   BarChart3,
   Settings,
   Eye,
-  EyeOff
+  EyeOff,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from "@clerk/clerk-react";
@@ -354,6 +356,9 @@ export function AdminPanelPage() {
                           Visibility
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
+                          Auth Required
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
@@ -390,38 +395,88 @@ export function AdminPanelPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await setComponentVisibilityMutation({
-                                    componentId: component.componentId,
-                                    isVisible: !component.isVisible,
-                                  });
-                                  toast.success(
-                                    `${component.componentName} is now ${!component.isVisible ? 'visible' : 'hidden'}`
-                                  );
-                                } catch (error: any) {
-                                  toast.error(`Failed to update: ${error.message}`);
-                                }
-                              }}
-                              className={`flex items-center space-x-2 px-3 py-1 rounded-md transition-colors text-sm ${
-                                component.isVisible
-                                  ? 'bg-tron-gray/20 text-tron-gray hover:bg-tron-gray/30'
-                                  : 'bg-tron-cyan/20 text-tron-cyan hover:bg-tron-cyan/30'
-                              }`}
-                            >
-                              {component.isVisible ? (
+                            <div className="flex items-center space-x-2">
+                              {component.requiresAuth !== false ? (
                                 <>
-                                  <EyeOff className="h-4 w-4" />
-                                  <span>Hide</span>
+                                  <Lock className="h-5 w-5 text-tron-cyan" />
+                                  <span className="text-sm text-tron-cyan font-medium">Required</span>
                                 </>
                               ) : (
                                 <>
-                                  <Eye className="h-4 w-4" />
-                                  <span>Show</span>
+                                  <Unlock className="h-5 w-5 text-tron-gray" />
+                                  <span className="text-sm text-tron-gray">Public</span>
                                 </>
                               )}
-                            </button>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await setComponentVisibilityMutation({
+                                      componentId: component.componentId,
+                                      isVisible: !component.isVisible,
+                                    });
+                                    toast.success(
+                                      `${component.componentName} is now ${!component.isVisible ? 'visible' : 'hidden'}`
+                                    );
+                                  } catch (error: any) {
+                                    toast.error(`Failed to update: ${error.message}`);
+                                  }
+                                }}
+                                className={`flex items-center space-x-2 px-3 py-1 rounded-md transition-colors text-sm ${
+                                  component.isVisible
+                                    ? 'bg-tron-gray/20 text-tron-gray hover:bg-tron-gray/30'
+                                    : 'bg-tron-cyan/20 text-tron-cyan hover:bg-tron-cyan/30'
+                                }`}
+                              >
+                                {component.isVisible ? (
+                                  <>
+                                    <EyeOff className="h-4 w-4" />
+                                    <span>Hide</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="h-4 w-4" />
+                                    <span>Show</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const newRequiresAuth = component.requiresAuth !== false;
+                                    await updateComponentMutation({
+                                      componentId: component.componentId,
+                                      requiresAuth: !newRequiresAuth,
+                                    });
+                                    toast.success(
+                                      `${component.componentName} ${!newRequiresAuth ? 'now requires' : 'no longer requires'} authentication`
+                                    );
+                                  } catch (error: any) {
+                                    toast.error(`Failed to update: ${error.message}`);
+                                  }
+                                }}
+                                className={`flex items-center space-x-2 px-3 py-1 rounded-md transition-colors text-sm ${
+                                  component.requiresAuth !== false
+                                    ? 'bg-tron-gray/20 text-tron-gray hover:bg-tron-gray/30'
+                                    : 'bg-tron-cyan/20 text-tron-cyan hover:bg-tron-cyan/30'
+                                }`}
+                              >
+                                {component.requiresAuth !== false ? (
+                                  <>
+                                    <Unlock className="h-4 w-4" />
+                                    <span>Make Public</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Lock className="h-4 w-4" />
+                                    <span>Require Auth</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -442,6 +497,11 @@ export function AdminPanelPage() {
                   <strong className="text-tron-white">Visibility Control:</strong> Toggle components on or off to 
                   control what users can access in the HR Dashboard. Hidden components will not appear in the 
                   navigation tabs.
+                </p>
+                <p>
+                  <strong className="text-tron-white">Auth Requirement:</strong> Control whether a component requires 
+                  authentication. Public components can be accessed by anyone, even without signing in. This is useful 
+                  for demo purposes or public-facing features.
                 </p>
                 <p>
                   <strong className="text-tron-white">Default Components:</strong> If no components are configured, 
