@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * dev-with-convex.js
  * Smart dev pipeline orchestrator
@@ -12,6 +12,8 @@ import { spawn } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 import http from 'http';
+import https from 'https';
+import { URL } from 'url';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
@@ -30,15 +32,23 @@ const CHECK_INTERVAL = 2000; // 2 seconds
  */
 function checkConvexHealth() {
   return new Promise((resolve) => {
-    const req = http.get(HEALTH_CHECK_ENDPOINT, { timeout: 3000 }, (res) => {
-      resolve(res.statusCode === 200);
-    });
+    try {
+      const url = new URL(HEALTH_CHECK_ENDPOINT);
+      const client = url.protocol === 'https:' ? https : http;
+      
+      const req = client.get(HEALTH_CHECK_ENDPOINT, { timeout: 3000 }, (res) => {
+        resolve(res.statusCode === 200);
+      });
 
-    req.on('error', () => resolve(false));
-    req.on('timeout', () => {
-      req.destroy();
+      req.on('error', () => resolve(false));
+      req.on('timeout', () => {
+        req.destroy();
+        resolve(false);
+      });
+    } catch (error) {
+      // Invalid URL, resolve as false
       resolve(false);
-    });
+    }
   });
 }
 
