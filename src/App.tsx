@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "convex/react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { Toaster } from "sonner";
@@ -221,12 +221,12 @@ function UnauthenticatedApp() {
           <PublicNavigation />
         </div>
         <div className="flex items-center gap-3">
-          <a
-            href="/"
+          <Link
+            to="/sign-in"
             className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
           >
             Sign In for Full Access
-          </a>
+          </Link>
         </div>
       </header>
       {/* Render the ProcurementLinksPage */}
@@ -253,12 +253,12 @@ function PublicGovernmentLinksPage() {
         </div>
         <div className="flex items-center gap-3">
           <LinksLegend links={allLinks} />
-          <a
-            href="/"
+          <Link
+            to="/sign-in"
             className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
           >
             Sign In for Full Access
-          </a>
+          </Link>
         </div>
       </header>
       {/* Render the page in read-only mode (isAdmin will be false) */}
@@ -280,12 +280,12 @@ function PublicProcurementLinksPage() {
           <PublicNavigation />
         </div>
         <div className="flex items-center gap-3">
-          <a
-            href="/"
+          <Link
+            to="/sign-in"
             className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
           >
             Sign In for Full Access
-          </a>
+          </Link>
         </div>
       </header>
       {/* Render the page in public mode */}

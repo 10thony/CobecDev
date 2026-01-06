@@ -1002,11 +1002,35 @@ const applicationTables = {
   // Feedback - stores user feedback for the procurement links feature
   feedback: defineTable({
     text: v.string(), // The feedback text
+    normalizedText: v.optional(v.string()), // Lowercase, trimmed, for clustering (optional for backward compatibility)
     submittedBy: v.optional(v.string()), // Clerk user ID if authenticated, null if anonymous
     createdAt: v.number(), // When feedback was submitted
+    clusterId: v.optional(v.id("feedbackClusters")), // Links to cluster
+    sentiment: v.optional(v.string()), // "positive" | "neutral" | "negative" | "suggestion"
+    tags: v.optional(v.array(v.string())),
   })
     .index("by_creation", ["createdAt"])
-    .index("by_user", ["submittedBy"]),
+    .index("by_user", ["submittedBy"])
+    .index("by_cluster", ["clusterId"])
+    .index("by_normalized", ["normalizedText"]),
+
+  // Feedback Clusters - groups similar/duplicate feedback
+  feedbackClusters: defineTable({
+    canonicalText: v.string(), // Representative text for the cluster
+    normalizedKey: v.string(), // Normalized string for matching
+    count: v.number(), // Total submissions
+    uniqueUsers: v.number(), // Distinct users who submitted
+    firstSubmittedAt: v.number(),
+    lastSubmittedAt: v.number(),
+    heat: v.number(), // Calculated "hotness" score
+    position: v.optional(v.object({ // Persisted position (optional)
+      x: v.number(),
+      y: v.number(),
+    })),
+  })
+    .index("by_count", ["count"])
+    .index("by_heat", ["heat"])
+    .index("by_normalized_key", ["normalizedKey"]),
 };
 
 export default defineSchema({
