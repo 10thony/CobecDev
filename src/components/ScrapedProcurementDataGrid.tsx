@@ -244,7 +244,7 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
     <div className={`space-y-6 ${className}`}>
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <TronStatCard
             title="Total Scraped"
             value={stats.total}
@@ -274,65 +274,68 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
       {/* Controls */}
       <TronPanel>
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
             <div className="flex-1 w-full min-w-0">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-tron-gray pointer-events-none" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-tron-gray pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search by state, city, URL, or data content..."
+                  placeholder="Search by state, city, URL..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2 bg-tron-bg border border-tron-border rounded-lg text-tron-text placeholder-tron-gray focus:outline-none focus:ring-2 focus:ring-tron-blue"
+                  className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 text-sm sm:text-base bg-tron-bg border border-tron-border rounded-lg text-tron-text placeholder-tron-gray focus:outline-none focus:ring-2 focus:ring-tron-blue"
                 />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-tron-gray hover:text-tron-text transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-tron-gray hover:text-tron-text transition-colors"
                     aria-label="Clear search"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-full h-full" />
                   </button>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
               {currentJob ? (
                 <>
                   <TronButton 
                     onClick={handleCancelJob} 
-                    className="flex items-center gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60"
+                    className="flex items-center gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 text-sm"
                     variant="outline"
                   >
                     <XCircle className="w-4 h-4" />
-                    Cancel
+                    <span className="hidden sm:inline">Cancel</span>
                   </TronButton>
                 </>
               ) : (
                 <>
                   <TronButton 
                     onClick={handleScrapeAll} 
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 text-sm"
                   >
                     <Play className="w-4 h-4" />
-                    Scrape All Approved Links
+                    <span className="hidden sm:inline">Scrape All Approved Links</span>
+                    <span className="sm:hidden">Scrape All</span>
                   </TronButton>
                   <TronButton 
                     onClick={() => setShowSanAntonioScraper(!showSanAntonioScraper)} 
-                    className="flex items-center gap-2 border-tron-cyan/40 text-tron-cyan hover:bg-tron-cyan/10 hover:border-tron-cyan/60"
+                    className="flex items-center gap-2 border-tron-cyan/40 text-tron-cyan hover:bg-tron-cyan/10 hover:border-tron-cyan/60 text-sm"
                     variant="outline"
                   >
                     <Play className="w-4 h-4" />
-                    Scrape San Antonio
+                    <span className="hidden md:inline">Scrape San Antonio</span>
+                    <span className="md:hidden">San Antonio</span>
                   </TronButton>
                   {scrapedData && scrapedData.length > 0 && (
                     <TronButton 
                       onClick={handleClearAll} 
-                      className="flex items-center gap-2 border-orange-500/40 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/60"
+                      className="flex items-center gap-2 border-orange-500/40 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/60 text-sm"
                       variant="outline"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Clear All Scraped Entries
+                      <span className="hidden sm:inline">Clear All Scraped Entries</span>
+                      <span className="sm:hidden">Clear All</span>
                     </TronButton>
                   )}
                 </>
@@ -405,138 +408,140 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
 
       {/* Table */}
       <TronPanel className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="tron-table w-full">
-            <thead>
-              <tr>
-                <th onClick={() => handleSort("state")} className="px-6 py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
-                  <div className="flex items-center gap-2">
-                    <span>State</span>
-                    {renderSortIcon("state")}
-                  </div>
-                </th>
-                <th onClick={() => handleSort("capital")} className="px-6 py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
-                  <div className="flex items-center gap-2">
-                    <span>City</span>
-                    {renderSortIcon("capital")}
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
-                  Source URL
-                </th>
-                <th onClick={() => handleSort("scrapingStatus")} className="px-6 py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
-                  <div className="flex items-center gap-2">
-                    <span>Status</span>
-                    {renderSortIcon("scrapingStatus")}
-                  </div>
-                </th>
-                <th onClick={() => handleSort("dataQuality")} className="px-6 py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
-                  <div className="flex items-center gap-2">
-                    <span>Quality</span>
-                    {renderSortIcon("dataQuality")}
-                  </div>
-                </th>
-                <th onClick={() => handleSort("scrapedAt")} className="px-6 py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
-                  <div className="flex items-center gap-2">
-                    <span>Scraped At</span>
-                    {renderSortIcon("scrapedAt")}
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
-                  Scraped Data
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSorted.length === 0 ? (
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="inline-block min-w-full align-middle">
+            <table className="tron-table w-full min-w-[800px]">
+              <thead>
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-tron-gray">
-                    {searchTerm ? "No results found" : "No scraped data yet. Click 'Scrape All Approved Links' to start."}
-                  </td>
+                  <th onClick={() => handleSort("state")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span>State</span>
+                      {renderSortIcon("state")}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort("capital")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span>City</span>
+                      {renderSortIcon("capital")}
+                    </div>
+                  </th>
+                  <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
+                    Source URL
+                  </th>
+                  <th onClick={() => handleSort("scrapingStatus")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span>Status</span>
+                      {renderSortIcon("scrapingStatus")}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort("dataQuality")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span>Quality</span>
+                      {renderSortIcon("dataQuality")}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort("scrapedAt")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span>Scraped At</span>
+                      {renderSortIcon("scrapedAt")}
+                    </div>
+                  </th>
+                  <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
+                    Scraped Data
+                  </th>
+                  <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ) : (
-                filteredAndSorted.map((item) => (
-                  <tr key={item._id} className="border-t border-tron-border hover:bg-tron-bg-card transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-tron-text">{item.state}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-tron-text">{item.capital}</td>
-                    <td className="px-6 py-4">
-                      <a
-                        href={item.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-tron-blue hover:underline flex items-center gap-1 max-w-xs truncate"
-                      >
-                        {item.sourceUrl}
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(item.scrapingStatus)}
-                        <span className="text-tron-text capitalize">{item.scrapingStatus.replace("_", " ")}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getQualityBadge(item.dataQuality)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-tron-gray text-sm">
-                      {new Date(item.scrapedAt).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="max-w-md">
-                        {item.scrapedData ? (
-                          <div className="text-tron-text text-sm">
-                            {typeof item.scrapedData === 'string' ? (
-                              <p className="truncate">{item.scrapedData}</p>
-                            ) : item.scrapedData.rawResponse ? (
-                              <p className="truncate text-tron-gray">{item.scrapedData.rawResponse}</p>
-                            ) : item.scrapedData.message ? (
-                              <p className="text-tron-gray italic">{item.scrapedData.message}</p>
-                            ) : (
-                              <pre className="text-xs bg-tron-bg-card p-2 rounded overflow-x-auto max-h-32 overflow-y-auto">
-                                {JSON.stringify(item.scrapedData, null, 2).substring(0, 200)}
-                                {JSON.stringify(item.scrapedData, null, 2).length > 200 && '...'}
-                              </pre>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-tron-gray text-sm italic">No data</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setSelectedRecord(item)}
-                          className="text-tron-blue hover:text-tron-blue-light transition-colors"
-                          title="View details"
-                        >
-                          <Eye className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteRecord(item._id)}
-                          className="text-red-400 hover:text-red-300 transition-colors"
-                          title="Delete record"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
+              </thead>
+              <tbody>
+                {filteredAndSorted.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-3 sm:px-6 py-8 text-center text-tron-gray text-sm">
+                      {searchTerm ? "No results found" : "No scraped data yet. Click 'Scrape All Approved Links' to start."}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredAndSorted.map((item) => (
+                    <tr key={item._id} className="border-t border-tron-border hover:bg-tron-bg-card transition-colors">
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-tron-text text-sm">{item.state}</td>
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-tron-text text-sm">{item.capital}</td>
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+                        <a
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-tron-blue hover:underline flex items-center gap-1 max-w-xs truncate text-sm"
+                        >
+                          {item.sourceUrl}
+                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        </a>
+                      </td>
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(item.scrapingStatus)}
+                          <span className="text-tron-text capitalize text-sm">{item.scrapingStatus.replace("_", " ")}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        {getQualityBadge(item.dataQuality)}
+                      </td>
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-tron-gray text-xs sm:text-sm">
+                        {new Date(item.scrapedAt).toLocaleString()}
+                      </td>
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+                        <div className="max-w-md">
+                          {item.scrapedData ? (
+                            <div className="text-tron-text text-xs sm:text-sm">
+                              {typeof item.scrapedData === 'string' ? (
+                                <p className="truncate">{item.scrapedData}</p>
+                              ) : item.scrapedData.rawResponse ? (
+                                <p className="truncate text-tron-gray">{item.scrapedData.rawResponse}</p>
+                              ) : item.scrapedData.message ? (
+                                <p className="text-tron-gray italic">{item.scrapedData.message}</p>
+                              ) : (
+                                <pre className="text-xs bg-tron-bg-card p-2 rounded overflow-x-auto max-h-32 overflow-y-auto">
+                                  {JSON.stringify(item.scrapedData, null, 2).substring(0, 200)}
+                                  {JSON.stringify(item.scrapedData, null, 2).length > 200 && '...'}
+                                </pre>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-tron-gray text-xs sm:text-sm italic">No data</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setSelectedRecord(item)}
+                            className="text-tron-blue hover:text-tron-blue-light transition-colors"
+                            title="View details"
+                          >
+                            <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRecord(item._id)}
+                            className="text-red-400 hover:text-red-300 transition-colors"
+                            title="Delete record"
+                          >
+                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </TronPanel>
 
       {/* Detail Modal */}
       {selectedRecord && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <TronPanel className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <TronPanel className="max-w-4xl w-full max-h-[90vh] overflow-y-auto mx-2 sm:mx-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-tron-text">Scraped Data Details</h2>
               <button

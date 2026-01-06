@@ -215,17 +215,18 @@ function UnauthenticatedApp() {
   return (
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
-      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <h1 className="text-xl font-bold text-tron-white">Cobecium</h1>
+      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
+        <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
+          <h1 className="text-lg sm:text-xl font-bold text-tron-white">Cobecium</h1>
           <PublicNavigation />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/sign-in"
-            className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
+            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-xs sm:text-sm whitespace-nowrap"
           >
-            Sign In for Full Access
+            <span className="hidden sm:inline">Sign In for Full Access</span>
+            <span className="sm:hidden">Sign In</span>
           </Link>
         </div>
       </header>
@@ -246,18 +247,21 @@ function PublicGovernmentLinksPage() {
   return (
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
-      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <h1 className="text-xl font-bold text-tron-white">Cobecium</h1>
+      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
+        <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
+          <h1 className="text-lg sm:text-xl font-bold text-tron-white">Cobecium</h1>
           <PublicNavigation />
         </div>
-        <div className="flex items-center gap-3">
-          <LinksLegend links={allLinks} />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <div className="hidden sm:block">
+            <LinksLegend links={allLinks} />
+          </div>
           <Link
             to="/sign-in"
-            className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
+            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-xs sm:text-sm whitespace-nowrap text-center"
           >
-            Sign In for Full Access
+            <span className="hidden sm:inline">Sign In for Full Access</span>
+            <span className="sm:hidden">Sign In</span>
           </Link>
         </div>
       </header>
@@ -274,17 +278,18 @@ function PublicProcurementLinksPage() {
   return (
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
-      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <h1 className="text-xl font-bold text-tron-white">Cobecium</h1>
+      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
+        <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
+          <h1 className="text-lg sm:text-xl font-bold text-tron-white">Cobecium</h1>
           <PublicNavigation />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/sign-in"
-            className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
+            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-xs sm:text-sm whitespace-nowrap"
           >
-            Sign In for Full Access
+            <span className="hidden sm:inline">Sign In for Full Access</span>
+            <span className="sm:hidden">Sign In</span>
           </Link>
         </div>
       </header>

@@ -45,7 +45,7 @@ export function TronPanel({
         ${variants[variant]}
         ${className}
       `}
-      style={{ borderColor: glowColors[glowColor] }}
+      style={{ borderColor: glowColors[glowColor], zIndex: 1 }}
     >
       {/* Top Neon Line */}
       <div 
@@ -56,12 +56,12 @@ export function TronPanel({
       />
       
       {title && (
-        <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-tron-cyan/10">
-          <div className="flex items-center gap-3">
-            {icon && <span className="text-tron-cyan tron-icon-glow">{icon}</span>}
-            <h3 className="text-lg font-semibold text-tron-white tron-glow-text">{title}</h3>
+        <div className="flex items-center justify-between gap-3 px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-tron-cyan/10 min-w-0 relative z-50">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
+            {icon && <span className="text-tron-cyan tron-icon-glow flex-shrink-0">{icon}</span>}
+            <h3 className="text-base sm:text-lg font-semibold text-tron-white tron-glow-text truncate">{title}</h3>
           </div>
-          {headerAction && <div>{headerAction}</div>}
+          {headerAction && <div className="flex-shrink-0 relative z-50">{headerAction}</div>}
         </div>
       )}
       

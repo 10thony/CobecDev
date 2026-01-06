@@ -18,45 +18,45 @@ export function ProcurementLinksPage() {
 
   return (
     <div className="min-h-screen bg-tron-bg-deep">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          <div className="border-b border-tron-cyan/20">
-            <nav className="-mb-px flex justify-center space-x-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="border-b border-tron-cyan/20 overflow-x-auto">
+            <nav className="-mb-px flex justify-center sm:justify-start space-x-2 sm:space-x-4 md:space-x-8 min-w-max">
               <button
                 onClick={() => setActiveSubTab('chat')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-2 sm:px-3 md:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeSubTab === 'chat'
                     ? 'border-tron-cyan text-tron-cyan'
                     : 'border-transparent text-tron-gray hover:text-tron-white hover:border-tron-cyan/40'
                 }`}
               >
-                AI Chat Assistant
+                AI Chat
               </button>
               <button
                 onClick={() => setActiveSubTab('verifier')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-2 sm:px-3 md:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeSubTab === 'verifier'
                     ? 'border-tron-cyan text-tron-cyan'
                     : 'border-transparent text-tron-gray hover:text-tron-white hover:border-tron-cyan/40'
                 }`}
               >
-                Link Verifier
+                Verifier
               </button>
               {isSignedIn && (
                 <button
                   onClick={() => setActiveSubTab('scraper')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-2 px-2 sm:px-3 md:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                     activeSubTab === 'scraper'
                       ? 'border-tron-cyan text-tron-cyan'
                       : 'border-transparent text-tron-gray hover:text-tron-white hover:border-tron-cyan/40'
                   }`}
                 >
-                  AI Scraper
+                  Scraper
                 </button>
               )}
               <button
                 onClick={() => setActiveSubTab('feedback')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-2 sm:px-3 md:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeSubTab === 'feedback'
                     ? 'border-tron-cyan text-tron-cyan'
                     : 'border-transparent text-tron-gray hover:text-tron-white hover:border-tron-cyan/40'

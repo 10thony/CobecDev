@@ -617,9 +617,20 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
 
   return (
     <div className="flex h-full relative">
+      {/* Mobile History Overlay - Only show when sidebar is open on mobile */}
+      {showHistory && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-[35]"
+          onClick={() => setShowHistory(false)}
+          style={{ pointerEvents: 'auto' }}
+        />
+      )}
+
       {/* History Sidebar */}
       <div className={`${showHistory ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden flex-shrink-0 relative`}>
-        <div className="h-full bg-tron-bg-card border-r border-tron-cyan/20 flex flex-col w-64">
+        <div className={`h-full bg-tron-bg-card border-r border-tron-cyan/20 flex flex-col w-64 ${
+          showHistory ? 'fixed lg:relative inset-y-0 left-0 z-[40] lg:z-auto' : 'lg:block hidden'
+        }`}>
           {/* Sidebar Header */}
           <div className="p-3 border-b border-tron-cyan/20">
             <div className="flex items-center justify-between mb-3">
@@ -627,6 +638,14 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                 <History className="w-4 h-4" />
                 <span className="text-sm font-medium">Chat History</span>
               </div>
+              {/* Close button for mobile */}
+              <button
+                onClick={() => setShowHistory(false)}
+                className="lg:hidden p-1 text-tron-gray hover:text-tron-white transition-colors"
+                aria-label="Close history"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <TronButton
               onClick={handleNewChat}
@@ -710,65 +729,71 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
             )}
           </div>
         </div>
-        
-        {/* Toggle History Button - positioned relative to sidebar */}
-        <button
-          onClick={() => setShowHistory(!showHistory)}
-          className={`absolute top-1/2 -translate-y-1/2 z-10 bg-tron-bg-card border border-tron-cyan/30 rounded-r-lg p-1 hover:bg-tron-cyan/10 transition-all ${
-            showHistory ? 'right-0 translate-x-full' : 'left-0'
-          }`}
-        >
-          {showHistory ? (
-            <ChevronLeft className="w-4 h-4 text-tron-cyan" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-tron-cyan" />
-          )}
-        </button>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <TronPanel 
           title="Procurement Link Assistant" 
           icon={<MessageSquare className="w-5 h-5" />}
           glowColor="cyan"
           className="flex-1 flex flex-col overflow-hidden"
           headerAction={
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <span className="text-xs text-tron-gray group-hover:text-tron-white transition-colors">
-                System Prompt
-              </span>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={injectSystemPrompt}
-                  onChange={(e) => setInjectSystemPrompt(e.target.checked)}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-11 h-6 rounded-full transition-all duration-200 ${
-                    injectSystemPrompt
-                      ? 'bg-tron-cyan'
-                      : 'bg-tron-bg-card border border-tron-cyan/30'
-                  }`}
-                >
-                  <div
-                    className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-tron-bg-deep transition-all duration-200 ${
-                      injectSystemPrompt ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                    style={{
-                      boxShadow: injectSystemPrompt
-                        ? '0 0 8px rgba(0, 212, 255, 0.6)'
-                        : 'none'
-                    }}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* History Toggle Button - Top Right - Always Visible */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowHistory(!showHistory);
+                }}
+                className={`p-1.5 sm:p-2 rounded-lg transition-colors flex-shrink-0 relative z-50 ${
+                  showHistory 
+                    ? 'text-tron-cyan bg-tron-cyan/20' 
+                    : 'text-tron-gray hover:text-tron-white hover:bg-tron-cyan/10'
+                }`}
+                aria-label={showHistory ? "Close chat history" : "Open chat history"}
+                title={showHistory ? "Close chat history" : "Open chat history"}
+              >
+                <History className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+              
+              {/* System Prompt Toggle */}
+              <label className="flex items-center gap-1 sm:gap-2 cursor-pointer group flex-shrink-0">
+                <span className="text-xs text-tron-gray group-hover:text-tron-white transition-colors hidden sm:inline">
+                  System Prompt
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={injectSystemPrompt}
+                    onChange={(e) => setInjectSystemPrompt(e.target.checked)}
+                    className="sr-only"
                   />
+                  <div
+                    className={`w-9 h-5 sm:w-11 sm:h-6 rounded-full transition-all duration-200 ${
+                      injectSystemPrompt
+                        ? 'bg-tron-cyan'
+                        : 'bg-tron-bg-card border border-tron-cyan/30'
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 left-0.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-tron-bg-deep transition-all duration-200 ${
+                        injectSystemPrompt ? 'translate-x-4 sm:translate-x-5' : 'translate-x-0'
+                      }`}
+                      style={{
+                        boxShadow: injectSystemPrompt
+                          ? '0 0 8px rgba(0, 212, 255, 0.6)'
+                          : 'none'
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            </label>
+              </label>
+            </div>
           }
         >
           {/* Messages History */}
-          <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[400px] max-h-[600px]">
+          <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[300px] sm:min-h-[400px] max-h-[500px] sm:max-h-[600px] px-2 sm:px-0">
             {!isSignedIn && messages.length === 0 && (
               <div className="text-center text-tron-gray py-12">
                 <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -832,7 +857,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] lg:max-w-[75%] rounded-lg p-4 ${
+                  className={`max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] rounded-lg p-3 sm:p-4 ${
                     message.role === 'user'
                       ? 'bg-tron-cyan/20 border border-tron-cyan/30 text-tron-white'
                       : message.isError
@@ -979,15 +1004,15 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
           </div>
 
           {/* Chat Input */}
-          <form onSubmit={handleSubmit} className="space-y-4 border-t border-tron-cyan/10 pt-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 border-t border-tron-cyan/10 pt-3 sm:pt-4 px-2 sm:px-0">
             {/* Free message indicator for unauthenticated users */}
             {!isSignedIn && (
-              <div className="flex items-center justify-between p-3 bg-tron-bg-panel border border-tron-cyan/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <MessageCircle className="w-4 h-4 text-tron-cyan" />
-                  <div className="flex flex-col">
-                    <span className="text-xs text-tron-white font-medium">
-                      Free Messages: {freeMessagesRemaining} remaining
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 p-2 sm:p-3 bg-tron-bg-panel border border-tron-cyan/20 rounded-lg">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <MessageCircle className="w-4 h-4 text-tron-cyan flex-shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs text-tron-white font-medium truncate">
+                      <span className="hidden sm:inline">Free Messages: </span>{freeMessagesRemaining} remaining
                     </span>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex gap-1">
@@ -1011,7 +1036,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                 {freeMessagesRemaining === 0 && (
                   <a
                     href="/"
-                    className="text-xs px-3 py-1.5 bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30 rounded-lg hover:bg-tron-cyan/30 transition-colors"
+                    className="text-xs px-3 py-1.5 bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30 rounded-lg hover:bg-tron-cyan/30 transition-colors whitespace-nowrap text-center"
                   >
                     Sign In
                   </a>
@@ -1020,16 +1045,16 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
             )}
             
             {error && (
-              <div className="p-3 bg-neon-error/20 border border-neon-error rounded-lg">
+              <div className="p-2 sm:p-3 bg-neon-error/20 border border-neon-error rounded-lg">
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-neon-error mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-neon-error">{error}</p>
+                  <p className="text-xs text-neon-error break-words">{error}</p>
                 </div>
               </div>
             )}
             
             <div>
-              <label className="block text-sm text-tron-gray mb-2">
+              <label className="block text-xs sm:text-sm text-tron-gray mb-2">
                 Ask about procurement links or portals:
               </label>
               <textarea
@@ -1042,7 +1067,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                     ? `Try asking about procurement links! (${freeMessagesRemaining} free message${freeMessagesRemaining !== 1 ? 's' : ''} left)`
                     : "Sign in to use the AI Chat Assistant"
                 }
-                className="w-full px-4 py-3 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg 
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base bg-tron-bg-deep border border-tron-cyan/20 rounded-lg 
                            text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 
                            focus:ring-tron-cyan focus:border-tron-cyan resize-none"
                 rows={3}
@@ -1056,8 +1081,14 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
               color="cyan"
               disabled={isPending || !prompt.trim() || (!isSignedIn && freeMessagesRemaining === 0)}
               icon={isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              className="w-full sm:w-auto"
             >
-              {isPending ? 'Sending...' : freeMessagesRemaining === 0 && !isSignedIn ? 'Sign In to Continue' : 'Send Message'}
+              <span className="hidden sm:inline">
+                {isPending ? 'Sending...' : freeMessagesRemaining === 0 && !isSignedIn ? 'Sign In to Continue' : 'Send Message'}
+              </span>
+              <span className="sm:hidden">
+                {isPending ? 'Sending...' : freeMessagesRemaining === 0 && !isSignedIn ? 'Sign In' : 'Send'}
+              </span>
             </TronButton>
           </form>
         </TronPanel>
