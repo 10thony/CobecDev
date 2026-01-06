@@ -28,7 +28,8 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  GripVertical
+  GripVertical,
+  Search
 } from 'lucide-react';
 import { TronPanel } from './TronPanel';
 import { TronButton } from './TronButton';
@@ -238,6 +239,7 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   const [stateFilterHover, setStateFilterHover] = useState(false);
   const stateFilterHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // State for editing corrected links
   const [editingId, setEditingId] = useState<Id<"procurementUrls"> | null>(null);
@@ -390,12 +392,23 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
     errors: number;
   } | null>(null);
 
-  // Filter URLs based on status and state
+  // Filter URLs based on status, state, and search query
   const filteredUrls = allUrls?.filter((url) => {
     // Status filter
     if (statusFilter !== 'all' && url.status !== statusFilter) return false;
     // State filter - if any states are selected, filter by them
     if (stateFilter.length > 0 && !stateFilter.includes(url.state)) return false;
+    // Search filter - search in state, capital, officialWebsite, and procurementLink
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      const matchesState = url.state.toLowerCase().includes(query);
+      const matchesCapital = url.capital.toLowerCase().includes(query);
+      const matchesOfficialWebsite = url.officialWebsite.toLowerCase().includes(query);
+      const matchesProcurementLink = url.procurementLink.toLowerCase().includes(query);
+      if (!matchesState && !matchesCapital && !matchesOfficialWebsite && !matchesProcurementLink) {
+        return false;
+      }
+    }
     return true;
   }) ?? [];
 
@@ -1565,6 +1578,27 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
               glowColor="cyan"
               headerAction={addDragHandle('links', (
                 <div className="flex items-center gap-2">
+                  {/* Search Bar */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tron-gray" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search links..."
+                      className="pl-9 pr-3 py-1.5 text-sm bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 focus:ring-tron-cyan/50 focus:border-tron-cyan/40 transition-all w-48"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-tron-gray hover:text-tron-white transition-colors"
+                        title="Clear search"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  
                   {/* State Filter Button */}
                   {uniqueStates.length > 0 && (
                     <div 
