@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useAction } from 'convex/react';
+import { useAuth } from '@clerk/clerk-react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { 
@@ -229,6 +230,7 @@ function ScrapedDataSection({ urlId }: { urlId: Id<"procurementUrls"> }) {
 }
 
 export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerifierProps) {
+  const { isSignedIn } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; duplicates: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1851,7 +1853,7 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
                     <span className="truncate group-hover:underline">Official Website</span>
                     <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </a>
-                  {editingOfficialWebsiteId !== url._id && (
+                  {isSignedIn && editingOfficialWebsiteId !== url._id && (
                     <button
                       onClick={() => handleStartEditOfficialWebsite(url._id, url.officialWebsite)}
                       className="p-1 text-tron-gray hover:text-tron-cyan transition-colors"
@@ -1908,7 +1910,7 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
                     <span className="truncate group-hover:underline">Procurement Link</span>
                     <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </a>
-                  {editingId !== url._id && (
+                  {isSignedIn && editingId !== url._id && (
                     <button
                       onClick={() => handleStartEdit(url._id, url.procurementLink)}
                       className="p-1 text-tron-gray hover:text-tron-cyan transition-colors"
@@ -2010,55 +2012,57 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
               <ScrapedDataSection urlId={url._id} />
 
               {/* Actions */}
-              <div className="flex gap-2 pt-3 border-t border-tron-cyan/10">
-                {url.status === 'pending' && (
-                  <>
-                    <TronButton
-                      onClick={() => handleDeny(url._id)}
-                      variant="outline"
-                      color="orange"
-                      size="sm"
-                      className="flex-1"
-                      icon={<XCircle className="w-4 h-4" />}
-                    >
-                      Deny
-                    </TronButton>
-                    <TronButton
-                      onClick={() => handleApprove(url._id)}
-                      variant="primary"
-                      color="cyan"
-                      size="sm"
-                      className="flex-1"
-                      icon={<CheckCircle className="w-4 h-4" />}
-                    >
-                      Approve
-                    </TronButton>
-                  </>
-                )}
-                {url.status !== 'pending' && (
-                  <>
-                    {modifiedLinks.has(url._id) && (
+              {isSignedIn && (
+                <div className="flex gap-2 pt-3 border-t border-tron-cyan/10">
+                  {url.status === 'pending' && (
+                    <>
                       <TronButton
-                        onClick={() => handleManualApprove(url._id)}
+                        onClick={() => handleDeny(url._id)}
+                        variant="outline"
+                        color="orange"
+                        size="sm"
+                        className="flex-1"
+                        icon={<XCircle className="w-4 h-4" />}
+                      >
+                        Deny
+                      </TronButton>
+                      <TronButton
+                        onClick={() => handleApprove(url._id)}
                         variant="primary"
                         color="cyan"
                         size="sm"
                         className="flex-1"
                         icon={<CheckCircle className="w-4 h-4" />}
                       >
-                        Manually Approve
+                        Approve
                       </TronButton>
-                    )}
-                    <TronButton
-                      onClick={() => handleRemove(url._id)}
-                      variant="outline"
-                      color="orange"
-                      size="sm"
-                      icon={<Trash2 className="w-4 h-4" />}
-                    />
-                  </>
-                )}
-              </div>
+                    </>
+                  )}
+                  {url.status !== 'pending' && (
+                    <>
+                      {modifiedLinks.has(url._id) && (
+                        <TronButton
+                          onClick={() => handleManualApprove(url._id)}
+                          variant="primary"
+                          color="cyan"
+                          size="sm"
+                          className="flex-1"
+                          icon={<CheckCircle className="w-4 h-4" />}
+                        >
+                          Manually Approve
+                        </TronButton>
+                      )}
+                      <TronButton
+                        onClick={() => handleRemove(url._id)}
+                        variant="outline"
+                        color="orange"
+                        size="sm"
+                        icon={<Trash2 className="w-4 h-4" />}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
