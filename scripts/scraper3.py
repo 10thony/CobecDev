@@ -39,7 +39,7 @@ except ImportError:
 client = None
 
 # User data directory for persistent sessions
-USER_DATA_DIR = Path("./firefox_user_data")
+USER_DATA_DIR = Path("./chromium_user_data")
 
 # Link-specific wait strategies
 LINK_WAIT_STRATEGIES = {
@@ -606,7 +606,7 @@ async def process_link(browser, link_obj, index, total):
         return False
 
     print("\n" + "═" * 70)
-    print(f"🦊 PROCESSING LINK {index + 1}/{total} (Firefox)")
+    print(f"🌐 PROCESSING LINK {index + 1}/{total} (Chromium)")
     print(f"   State: {state}")
     print(f"   URL: {url}")
     print("═" * 70)
@@ -873,7 +873,7 @@ def parse_html_to_records(html_content, source_url=None):
 
 
 async def main():
-    print("🦊 Firefox Stealth Scraper")
+    print("🌐 Chromium Stealth Scraper")
     print("=" * 50)
 
     try:
@@ -901,24 +901,33 @@ async def main():
         return 0
 
     async with async_playwright() as p:
-        # Updated Firefox user preferences
-        browser = await p.firefox.launch_persistent_context(
+        # Chromium launch with stealth arguments
+        browser = await p.chromium.launch_persistent_context(
             user_data_dir=str(USER_DATA_DIR),
             headless=False,
             viewport={"width": 1920, "height": 1080},
             locale="en-US",
             timezone_id="America/New_York",
-            firefox_user_prefs={
-                "toolkit.telemetry.enabled": False,
-                "datareporting.healthreport.uploadEnabled": False,
-                "privacy.trackingprotection.enabled": False,
-                "network.http.referer.XOriginPolicy": 0,
-                "devtools.selfxss.count": 100,
-                "media.peerconnection.enabled": False,
-                "media.navigator.enabled": False,
-                "webgl.disabled": False,
-                "general.useragent.override": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
-            },
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-infobars",
+                "--disable-dev-shm-usage",
+                "--disable-browser-side-navigation",
+                "--disable-gpu",
+                "--no-first-run",
+                "--no-default-browser-check",
+                "--disable-extensions",
+                "--disable-popup-blocking",
+                "--disable-background-networking",
+                "--disable-sync",
+                "--disable-translate",
+                "--metrics-recording-only",
+                "--safebrowsing-disable-auto-update",
+                "--password-store=basic",
+                "--use-mock-keychain",
+            ],
+            ignore_default_args=["--enable-automation"],
         )
 
         # Apply stealth to initial page if it exists
@@ -947,7 +956,7 @@ if __name__ == "__main__":
     print(
         "   pip install playwright playwright-stealth convex python-dotenv pandas"
     )
-    print("   playwright install firefox\n")
+    print("   playwright install chromium\n")
 
     exit_code = asyncio.run(main())
     sys.exit(exit_code if exit_code else 0)

@@ -11,6 +11,7 @@ export const sendMessage = action({
   args: {
     prompt: v.string(),
     sessionId: v.id("procurementChatSessions"),
+    injectSystemPrompt: v.optional(v.boolean()), // Controls whether system prompt is injected (default: true)
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
@@ -25,11 +26,14 @@ export const sendMessage = action({
     }
     
     try {
-      // Get the primary system prompt from the database
+      // Get the primary system prompt from the database only if injectSystemPrompt is true (default: true)
       // Pass user message to enable state filtering for approved links
-      const systemPrompt = await getPrimarySystemPrompt(ctx, args.prompt);
+      const shouldInjectPrompt = args.injectSystemPrompt !== false; // Default to true if not specified
+      const systemPrompt = shouldInjectPrompt 
+        ? await getPrimarySystemPrompt(ctx, args.prompt)
+        : ""; // Empty prompt when toggle is off
       
-      // Create agent with the fetched prompt
+      // Create agent with the fetched prompt (or empty string)
       const simpleChatAgent = createSimpleChatAgent(systemPrompt);
       
       // Create a new thread for each message (stateless for MVP)

@@ -113,6 +113,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const [currentSessionId, setCurrentSessionId] = useState<Id<"procurementChatSessions"> | null>(null);
   const [showHistory, setShowHistory] = useState(true);
   const [retryingMessageId, setRetryingMessageId] = useState<string | null>(null);
+  const [injectSystemPrompt, setInjectSystemPrompt] = useState(true); // Default: on
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // System Prompt Management State
@@ -303,6 +304,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
           await sendChatMessage({ 
             prompt: userPrompt,
             sessionId: sessionId,
+            injectSystemPrompt: injectSystemPrompt,
           });
           
           // The response will be loaded via the sessionMessages query
@@ -408,6 +410,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       await sendChatMessage({ 
         prompt: content,
         sessionId: currentSessionId,
+        injectSystemPrompt: injectSystemPrompt,
       });
       
       // The response will be loaded via the sessionMessages query which will
@@ -725,6 +728,39 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
           icon={<MessageSquare className="w-5 h-5" />}
           glowColor="cyan"
           className="flex-1 flex flex-col overflow-hidden"
+          headerAction={
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <span className="text-xs text-tron-gray group-hover:text-tron-white transition-colors">
+                System Prompt
+              </span>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={injectSystemPrompt}
+                  onChange={(e) => setInjectSystemPrompt(e.target.checked)}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-11 h-6 rounded-full transition-all duration-200 ${
+                    injectSystemPrompt
+                      ? 'bg-tron-cyan'
+                      : 'bg-tron-bg-card border border-tron-cyan/30'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-tron-bg-deep transition-all duration-200 ${
+                      injectSystemPrompt ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                    style={{
+                      boxShadow: injectSystemPrompt
+                        ? '0 0 8px rgba(0, 212, 255, 0.6)'
+                        : 'none'
+                    }}
+                  />
+                </div>
+              </div>
+            </label>
+          }
         >
           {/* Messages History */}
           <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[400px] max-h-[600px]">

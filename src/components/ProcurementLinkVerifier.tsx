@@ -262,6 +262,7 @@ export function ProcurementLinkVerifier({ className = '' }: ProcurementLinkVerif
   });
 
   // Default section order (filter section is now merged into stats)
+  // Order: 1. Statistics, 2. Procurement Links Grid, 3. AI Agent, 4. Import, 5. Manual Entry
   const defaultSectionOrder = ['stats', 'links', 'aiAgent', 'import', 'manualEntry'];
   
   // Load section order from localStorage
