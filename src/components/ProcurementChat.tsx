@@ -78,6 +78,7 @@ interface ProcurementChatProps {
 
 export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {}) {
   const { isSignedIn } = useAuth();
+  const isCobecAdmin = useQuery(api.cobecAdmins.checkIfUserIsCobecAdmin);
   
   // Free message tracking constants and helpers (defined early so they can be used)
   const FREE_MESSAGE_LIMIT = 5;
@@ -637,27 +638,31 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
             >
               New Chat
             </TronButton>
-            <TronButton
-              onClick={handleClearCorruptedThreadIds}
-              variant="outline"
-              color="orange"
-              size="sm"
-              icon={isClearing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wrench className="w-3 h-3" />}
-              className="w-full mt-2"
-              disabled={isClearing}
-            >
-              {isClearing ? 'Clearing...' : 'Fix Thread Errors'}
-            </TronButton>
-            <TronButton
-              onClick={handleOpenPromptSettings}
-              variant="outline"
-              color="cyan"
-              size="sm"
-              icon={<Settings className="w-3 h-3" />}
-              className="w-full mt-2"
-            >
-              System Prompts
-            </TronButton>
+            {isSignedIn && isCobecAdmin === true && (
+              <>
+                <TronButton
+                  onClick={handleClearCorruptedThreadIds}
+                  variant="outline"
+                  color="orange"
+                  size="sm"
+                  icon={isClearing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wrench className="w-3 h-3" />}
+                  className="w-full mt-2"
+                  disabled={isClearing}
+                >
+                  {isClearing ? 'Clearing...' : 'Fix Thread Errors'}
+                </TronButton>
+                <TronButton
+                  onClick={handleOpenPromptSettings}
+                  variant="outline"
+                  color="cyan"
+                  size="sm"
+                  icon={<Settings className="w-3 h-3" />}
+                  className="w-full mt-2"
+                >
+                  System Prompts
+                </TronButton>
+              </>
+            )}
           </div>
           
           {/* Session List */}
