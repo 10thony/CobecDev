@@ -106,30 +106,44 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const [totalLeads, setTotalLeads] = useState<number | null>(null);
   const BATCH_SIZE = 50; // Load 50 leads at a time
 
-  // Progressive loading: Load leads in batches
+  // Progressive loading: Load leads in batches automatically
   const leadsBatch = useQuery(
     api.leads.getLeadsPaginated,
-    hasMoreLeads ? { limit: BATCH_SIZE, lastId: lastLoadedId } : "skip"
+    hasMoreLeads ? { 
+      limit: BATCH_SIZE, 
+      lastId: lastLoadedId,
+      loadedCount: accumulatedLeads.length 
+    } : "skip"
   );
 
-  // Accumulate leads as batches come in
+  // Accumulate leads as batches come in and automatically load next batch
   useEffect(() => {
     if (leadsBatch) {
       setAccumulatedLeads(prev => {
         // Avoid duplicates by checking IDs
         const existingIds = new Set(prev.map(l => l._id));
         const newLeads = leadsBatch.leads.filter(l => !existingIds.has(l._id));
-        return [...prev, ...newLeads];
+        const updated = [...prev, ...newLeads];
+        
+        // Update hasMore based on total count if available
+        if (leadsBatch.total !== undefined) {
+          setTotalLeads(leadsBatch.total);
+          // If we have total, check if we've loaded all leads
+          setHasMoreLeads(updated.length < leadsBatch.total);
+        } else {
+          // Fallback to backend's hasMore determination
+          setHasMoreLeads(leadsBatch.hasMore);
+        }
+        
+        return updated;
       });
       
-      if (leadsBatch.total !== undefined) {
-        setTotalLeads(leadsBatch.total);
-      }
-      
-      setHasMoreLeads(leadsBatch.hasMore);
-      
-      // If there are more leads, set the lastId to trigger next batch
+      // Automatically trigger next batch if there are more leads
       if (leadsBatch.hasMore && leadsBatch.lastId) {
+        setLastLoadedId(leadsBatch.lastId);
+      } else if (totalLeads !== null && accumulatedLeads.length < totalLeads && leadsBatch.lastId) {
+        // Double-check: if we have total and haven't loaded all, continue
+        setHasMoreLeads(true);
         setLastLoadedId(leadsBatch.lastId);
       }
     }

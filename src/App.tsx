@@ -63,6 +63,12 @@ function AppContent() {
     { componentId: "government-links" }
   );
   
+  // Check if leads-management requires auth - MUST call all hooks before any conditional returns
+  const leadsManagementRequiresAuth = useQuery(
+    api.hrDashboardComponents.getComponentAuthRequirement,
+    { componentId: "leads-management" }
+  );
+  
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-tron-bg-deep flex items-center justify-center">
@@ -80,6 +86,25 @@ function AppContent() {
     } else {
       // Auth is not required (false or undefined), show public page
       return <PublicGovernmentLinksPage />;
+    }
+  }
+
+  // Allow public access to leads-management page if it doesn't require auth
+  if (location === "/leads-management" && !isSignedIn) {
+    if (leadsManagementRequiresAuth === undefined) {
+      // Still loading, show loading state
+      return (
+        <div className="min-h-screen bg-tron-bg-deep flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tron-cyan"></div>
+        </div>
+      );
+    }
+    // Only require auth if explicitly set to true
+    if (leadsManagementRequiresAuth === true) {
+      // Auth is required, fall through to sign-in
+    } else {
+      // Auth is not required (false or undefined), show public page
+      return <PublicLeadsManagementPage />;
     }
   }
 
@@ -316,6 +341,34 @@ function PublicProcurementLinksPage() {
       {/* Render the page in public mode */}
       <div className="flex-1 overflow-auto">
         <ProcurementLinksPage />
+      </div>
+    </div>
+  );
+}
+
+// Public version of Leads Management page (no authentication required)
+function PublicLeadsManagementPage() {
+  return (
+    <div className="h-screen bg-tron-bg-deep flex flex-col">
+      {/* Simple header for public access */}
+      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
+        <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
+          <h1 className="text-lg sm:text-xl font-bold text-tron-white">Cobecium</h1>
+          <PublicNavigation />
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            to="/sign-in"
+            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-xs sm:text-sm whitespace-nowrap"
+          >
+            <span className="hidden sm:inline">Sign In for Full Access</span>
+            <span className="sm:hidden">Sign In</span>
+          </Link>
+        </div>
+      </header>
+      {/* Render the page in public mode */}
+      <div className="flex-1 overflow-auto">
+        <LeadsManagementPage />
       </div>
     </div>
   );

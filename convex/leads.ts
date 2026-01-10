@@ -234,6 +234,7 @@ export const getLeadsPaginated = query({
   args: {
     limit: v.number(),
     lastId: v.optional(v.id("leads")),
+    loadedCount: v.optional(v.number()), // Track how many we've already loaded
   },
   handler: async (ctx, args) => {
     const limit = args.limit;
@@ -245,8 +246,6 @@ export const getLeadsPaginated = query({
       ? await query.filter(q => q.lt(q.field("_id"), args.lastId!)).take(limit)
       : await query.take(limit);
     
-    // Check if there are more by trying to get one more
-    const hasMore = leads.length === limit;
     const lastId = leads.length > 0 ? leads[leads.length - 1]._id : undefined;
     
     // Get total count (this is lightweight as it's just a count)
@@ -254,6 +253,17 @@ export const getLeadsPaginated = query({
     const total = args.lastId === undefined 
       ? (await ctx.db.query("leads").collect()).length 
       : undefined;
+    
+    // Determine if there are more leads
+    // If we have a total count, use it; otherwise check if we got a full batch
+    let hasMore: boolean;
+    if (total !== undefined && args.loadedCount !== undefined) {
+      // Use total count to determine if more leads exist
+      hasMore = (args.loadedCount + leads.length) < total;
+    } else {
+      // Fallback: if we got a full batch, assume there might be more
+      hasMore = leads.length === limit;
+    }
     
     return {
       leads,
