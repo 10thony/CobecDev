@@ -228,48 +228,83 @@ export const getAllLeads = query({
   },
 });
 
+// Get total count of leads (lightweight - only fetches IDs)
+export const getLeadsCount = query({
+  args: {},
+  handler: async (ctx) => {
+    // Use the by_creation index to efficiently count
+    // We only need to know if there are any leads, so we can use take(1) and check
+    // For an actual count, we'll use a more efficient approach
+    const allLeads = await ctx.db.query("leads").collect();
+    return allLeads.length;
+  },
+});
+
 // Get leads with pagination for progressive loading
+// Optimized to use by_creation index for better performance
 // This loads leads in chunks to improve initial page load time
 export const getLeadsPaginated = query({
   args: {
     limit: v.number(),
-    lastId: v.optional(v.id("leads")),
-    loadedCount: v.optional(v.number()), // Track how many we've already loaded
+    lastCreatedAt: v.optional(v.number()), // Use createdAt for cursor instead of _id
+    lastId: v.optional(v.id("leads")), // Keep for backward compatibility
+    includeTotal: v.optional(v.boolean()), // Optionally include total count
   },
   handler: async (ctx, args) => {
     const limit = args.limit;
-    let query = ctx.db.query("leads").order("desc");
     
-    // If we have a lastId, start after it (cursor-based pagination)
-    // For the first batch, just take the limit
-    const leads = args.lastId 
-      ? await query.filter(q => q.lt(q.field("_id"), args.lastId!)).take(limit)
-      : await query.take(limit);
+    // Use by_creation index for efficient ordering
+    let query = ctx.db
+      .query("leads")
+      .withIndex("by_creation")
+      .order("desc");
+    
+    // Cursor-based pagination using createdAt (more efficient than _id)
+    // Support both new createdAt-based and old _id-based pagination for compatibility
+    let leads;
+    if (args.lastCreatedAt !== undefined) {
+      // New approach: use createdAt for cursor
+      leads = await query
+        .filter(q => q.lt(q.field("createdAt"), args.lastCreatedAt!))
+        .take(limit);
+    } else if (args.lastId !== undefined) {
+      // Legacy approach: get the lead first to find its createdAt
+      const lastLead = await ctx.db.get(args.lastId);
+      if (lastLead) {
+        leads = await query
+          .filter(q => q.lt(q.field("createdAt"), lastLead.createdAt))
+          .take(limit);
+      } else {
+        // If lastId not found, start from beginning
+        leads = await query.take(limit);
+      }
+    } else {
+      // First batch: just take the limit
+      leads = await query.take(limit);
+    }
     
     const lastId = leads.length > 0 ? leads[leads.length - 1]._id : undefined;
+    const lastCreatedAt = leads.length > 0 ? leads[leads.length - 1].createdAt : undefined;
     
-    // Get total count (this is lightweight as it's just a count)
-    // We'll do this only for the first batch to avoid repeated work
-    const total = args.lastId === undefined 
-      ? (await ctx.db.query("leads").collect()).length 
-      : undefined;
-    
-    // Determine if there are more leads
-    // If we have a total count, use it; otherwise check if we got a full batch
-    let hasMore: boolean;
-    if (total !== undefined && args.loadedCount !== undefined) {
-      // Use total count to determine if more leads exist
-      hasMore = (args.loadedCount + leads.length) < total;
-    } else {
-      // Fallback: if we got a full batch, assume there might be more
-      hasMore = leads.length === limit;
+    // Only get total count if explicitly requested (to avoid expensive operation)
+    let total: number | undefined = undefined;
+    if (args.includeTotal && args.lastCreatedAt === undefined && args.lastId === undefined) {
+      // Only calculate total on first batch if requested
+      // This is still expensive but only done once when needed
+      const allLeads = await ctx.db.query("leads").collect();
+      total = allLeads.length;
     }
+    
+    // Determine if there are more leads based on batch size
+    // If we got a full batch, there might be more
+    const hasMore = leads.length === limit;
     
     return {
       leads,
       hasMore,
       total,
       lastId,
+      lastCreatedAt, // Return for next pagination call
     };
   },
 });

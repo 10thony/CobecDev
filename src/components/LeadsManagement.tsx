@@ -102,17 +102,20 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   // Progressive loading state
   const [accumulatedLeads, setAccumulatedLeads] = useState<Lead[]>([]);
   const [lastLoadedId, setLastLoadedId] = useState<Id<"leads"> | undefined>(undefined);
+  const [lastLoadedCreatedAt, setLastLoadedCreatedAt] = useState<number | undefined>(undefined);
   const [hasMoreLeads, setHasMoreLeads] = useState(true);
   const [totalLeads, setTotalLeads] = useState<number | null>(null);
   const BATCH_SIZE = 50; // Load 50 leads at a time
 
   // Progressive loading: Load leads in batches automatically
+  // Use lastCreatedAt for optimized pagination (uses index), fallback to lastId for compatibility
   const leadsBatch = useQuery(
     api.leads.getLeadsPaginated,
     hasMoreLeads ? { 
       limit: BATCH_SIZE, 
-      lastId: lastLoadedId,
-      loadedCount: accumulatedLeads.length 
+      lastCreatedAt: lastLoadedCreatedAt,
+      lastId: lastLoadedCreatedAt === undefined ? lastLoadedId : undefined, // Only use lastId if no createdAt
+      includeTotal: lastLoadedCreatedAt === undefined, // Only get total on first batch
     } : "skip"
   );
 
@@ -125,26 +128,31 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
         const newLeads = leadsBatch.leads.filter(l => !existingIds.has(l._id));
         const updated = [...prev, ...newLeads];
         
-        // Update hasMore based on total count if available
+        // Update hasMore based on backend's determination (more reliable than total count)
+        setHasMoreLeads(leadsBatch.hasMore);
+        
+        // Store total if provided (only on first batch)
         if (leadsBatch.total !== undefined) {
           setTotalLeads(leadsBatch.total);
-          // If we have total, check if we've loaded all leads
-          setHasMoreLeads(updated.length < leadsBatch.total);
-        } else {
-          // Fallback to backend's hasMore determination
-          setHasMoreLeads(leadsBatch.hasMore);
         }
         
         return updated;
       });
       
-      // Automatically trigger next batch if there are more leads
-      if (leadsBatch.hasMore && leadsBatch.lastId) {
-        setLastLoadedId(leadsBatch.lastId);
-      } else if (totalLeads !== null && accumulatedLeads.length < totalLeads && leadsBatch.lastId) {
-        // Double-check: if we have total and haven't loaded all, continue
-        setHasMoreLeads(true);
-        setLastLoadedId(leadsBatch.lastId);
+      // Update cursor for next batch - prefer lastCreatedAt for better performance
+      if (leadsBatch.hasMore) {
+        if (leadsBatch.lastCreatedAt !== undefined) {
+          setLastLoadedCreatedAt(leadsBatch.lastCreatedAt);
+          // Clear lastId when using createdAt
+          setLastLoadedId(undefined);
+        } else if (leadsBatch.lastId) {
+          // Fallback to lastId if createdAt not available
+          setLastLoadedId(leadsBatch.lastId);
+        }
+      } else {
+        // No more leads, clear cursors
+        setLastLoadedId(undefined);
+        setLastLoadedCreatedAt(undefined);
       }
     }
   }, [leadsBatch]);
