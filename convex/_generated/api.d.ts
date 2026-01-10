@@ -71,6 +71,7 @@ import type * as procurementScraperV2Mutations from "../procurementScraperV2Muta
 import type * as procurementScraperV2Queries from "../procurementScraperV2Queries.js";
 import type * as procurementScrapingServices from "../procurementScrapingServices.js";
 import type * as procurementUrls from "../procurementUrls.js";
+import type * as publicNavigation from "../publicNavigation.js";
 import type * as resumeEmbeddingPipeline from "../resumeEmbeddingPipeline.js";
 import type * as resumes from "../resumes.js";
 import type * as resumesActions from "../resumesActions.js";
@@ -160,6 +161,7 @@ declare const fullApi: ApiFromModules<{
   procurementScraperV2Queries: typeof procurementScraperV2Queries;
   procurementScrapingServices: typeof procurementScrapingServices;
   procurementUrls: typeof procurementUrls;
+  publicNavigation: typeof publicNavigation;
   resumeEmbeddingPipeline: typeof resumeEmbeddingPipeline;
   resumes: typeof resumes;
   resumesActions: typeof resumesActions;

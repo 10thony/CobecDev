@@ -18,7 +18,8 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Unlock
+  Unlock,
+  Navigation
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from "@clerk/clerk-react";
@@ -30,7 +31,7 @@ export function AdminPanelPage() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'hr-dashboard' | 'prompt-types'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'hr-dashboard' | 'prompt-types' | 'public-navigation'>('users');
 
   // Check if current user is admin
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
@@ -67,6 +68,22 @@ export function AdminPanelPage() {
   const initializePromptTypes = useMutation(api.chatSystemPromptTypes.initializeDefaults);
   
   const [editingType, setEditingType] = useState<any>(null);
+
+  // Public Navigation Items
+  const publicNavItems = useQuery(api.publicNavigation.getAll);
+  const createNavItem = useMutation(api.publicNavigation.create);
+  const updateNavItem = useMutation(api.publicNavigation.update);
+  const deleteNavItem = useMutation(api.publicNavigation.remove);
+  const initializeNavItems = useMutation(api.publicNavigation.initializeDefaults);
+  
+  const [editingNavItem, setEditingNavItem] = useState<any>(null);
+  const [navItemFormData, setNavItemFormData] = useState({
+    path: '',
+    label: '',
+    icon: 'Globe',
+    order: 0,
+    isVisible: true,
+  });
   const [typeFormData, setTypeFormData] = useState({
     name: '',
     displayName: '',
@@ -325,12 +342,304 @@ export function AdminPanelPage() {
                 Prompt Types
               </div>
             </button>
+            <button
+              onClick={() => setActiveTab('public-navigation')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'public-navigation'
+                  ? 'text-tron-cyan border-b-2 border-tron-cyan'
+                  : 'text-tron-gray hover:text-tron-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Navigation className="w-4 h-4" />
+                Public Navigation
+              </div>
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'analytics' ? (
           <ProcurementChatAnalytics />
+        ) : activeTab === 'public-navigation' ? (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-tron-white mb-2 flex items-center space-x-2">
+                    <Navigation className="h-5 w-5 text-tron-cyan" />
+                    <span>Public Navigation Items</span>
+                  </h2>
+                  <p className="text-sm text-tron-gray">
+                    Manage navigation items shown to unauthenticated users in the public header.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await initializeNavItems();
+                        toast.success("Default navigation items initialized");
+                      } catch (error: any) {
+                        toast.error(`Failed to initialize: ${error.message}`);
+                      }
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-tron-cyan/20 text-tron-white rounded-md hover:bg-tron-cyan/30 transition-colors"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    <span>Initialize Defaults</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingNavItem(null);
+                      setNavItemFormData({
+                        path: '',
+                        label: '',
+                        icon: 'Globe',
+                        order: (publicNavItems?.length || 0),
+                        isVisible: true,
+                      });
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80 transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>New Item</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Create/Edit Form */}
+            {editingNavItem !== null && (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6">
+                <h3 className="text-lg font-semibold text-tron-white mb-4">
+                  {editingNavItem ? 'Edit Navigation Item' : 'Create New Navigation Item'}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Path *</label>
+                    <input
+                      type="text"
+                      value={navItemFormData.path}
+                      onChange={(e) => setNavItemFormData(prev => ({ ...prev, path: e.target.value }))}
+                      placeholder="e.g., /, /government-links"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Label *</label>
+                    <input
+                      type="text"
+                      value={navItemFormData.label}
+                      onChange={(e) => setNavItemFormData(prev => ({ ...prev, label: e.target.value }))}
+                      placeholder="e.g., Procurement Links, Government Links"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Icon *</label>
+                    <input
+                      type="text"
+                      value={navItemFormData.icon}
+                      onChange={(e) => setNavItemFormData(prev => ({ ...prev, icon: e.target.value }))}
+                      placeholder="e.g., Globe, Map (from lucide-react)"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                    <p className="text-xs text-tron-gray mt-1">Icon name from lucide-react (e.g., Globe, Map, Home, Link)</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Order</label>
+                    <input
+                      type="number"
+                      value={navItemFormData.order}
+                      onChange={(e) => setNavItemFormData(prev => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                    <p className="text-xs text-tron-gray mt-1">Lower numbers appear first</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={navItemFormData.isVisible}
+                      onChange={(e) => setNavItemFormData(prev => ({ ...prev, isVisible: e.target.checked }))}
+                      className="w-4 h-4 rounded border-tron-cyan/30 bg-tron-bg-deep text-tron-cyan"
+                    />
+                    <label className="text-sm text-tron-white">Visible</label>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          if (editingNavItem) {
+                            await updateNavItem({
+                              id: editingNavItem._id,
+                              ...navItemFormData,
+                            });
+                            toast.success("Navigation item updated");
+                          } else {
+                            await createNavItem(navItemFormData);
+                            toast.success("Navigation item created");
+                          }
+                          setEditingNavItem(null);
+                          setNavItemFormData({
+                            path: '',
+                            label: '',
+                            icon: 'Globe',
+                            order: 0,
+                            isVisible: true,
+                          });
+                        } catch (error: any) {
+                          toast.error(`Failed: ${error.message}`);
+                        }
+                      }}
+                      className="px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80"
+                    >
+                      {editingNavItem ? 'Update' : 'Create'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingNavItem(null);
+                        setNavItemFormData({
+                          path: '',
+                          label: '',
+                          icon: 'Globe',
+                          order: 0,
+                          isVisible: true,
+                        });
+                      }}
+                      className="px-4 py-2 bg-tron-bg-card text-tron-white rounded-md hover:bg-tron-bg-elevated"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Items List */}
+            {publicNavItems === undefined ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-tron-cyan" />
+                <span className="ml-3 text-tron-gray">Loading navigation items...</span>
+              </div>
+            ) : publicNavItems.length === 0 ? (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6 text-center">
+                <AlertCircle className="h-8 w-8 text-tron-gray mx-auto mb-2" />
+                <p className="text-tron-gray mb-4">No navigation items configured yet.</p>
+                <button
+                  onClick={async () => {
+                    try {
+                      await initializeNavItems();
+                      toast.success("Default navigation items initialized");
+                    } catch (error: any) {
+                      toast.error(`Failed to initialize: ${error.message}`);
+                    }
+                  }}
+                  className="px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80"
+                >
+                  Initialize Default Navigation Items
+                </button>
+              </div>
+            ) : (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-tron-bg-elevated">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Path</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Label</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Icon</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Order</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Visible</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-tron-cyan/10">
+                    {publicNavItems.map((item) => (
+                      <tr key={item._id} className="hover:bg-tron-bg-elevated">
+                        <td className="px-6 py-4 text-sm text-tron-white font-mono">{item.path}</td>
+                        <td className="px-6 py-4 text-sm text-tron-white">{item.label}</td>
+                        <td className="px-6 py-4 text-sm text-tron-gray">{item.icon}</td>
+                        <td className="px-6 py-4 text-sm text-tron-gray">{item.order}</td>
+                        <td className="px-6 py-4 text-sm">
+                          {item.isVisible ? (
+                            <div className="flex items-center space-x-2">
+                              <Eye className="h-5 w-5 text-tron-cyan" />
+                              <span className="text-tron-cyan">Visible</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              <EyeOff className="h-5 w-5 text-tron-gray" />
+                              <span className="text-tron-gray">Hidden</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingNavItem(item);
+                                setNavItemFormData({
+                                  path: item.path,
+                                  label: item.label,
+                                  icon: item.icon,
+                                  order: item.order,
+                                  isVisible: item.isVisible,
+                                });
+                              }}
+                              className="text-tron-cyan hover:text-tron-cyan-bright"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (confirm('Are you sure you want to delete this navigation item?')) {
+                                  try {
+                                    await deleteNavItem({ id: item._id });
+                                    toast.success("Navigation item deleted");
+                                  } catch (error: any) {
+                                    toast.error(`Failed: ${error.message}`);
+                                  }
+                                }
+                              }}
+                              className="text-neon-error hover:text-neon-error-bright"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Info Section */}
+            <div className="bg-tron-bg-card border-tron-cyan/30 rounded-lg border p-6">
+              <h3 className="text-lg font-semibold text-tron-white mb-3 flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-tron-cyan" />
+                <span>About Public Navigation</span>
+              </h3>
+              <div className="space-y-2 text-sm text-tron-gray">
+                <p>
+                  <strong className="text-tron-white">Navigation Items:</strong> Configure which navigation links appear 
+                  in the header for unauthenticated users. Items are displayed in order based on the "Order" field.
+                </p>
+                <p>
+                  <strong className="text-tron-white">Icons:</strong> Use icon names from lucide-react (e.g., Globe, Map, 
+                  Home, Link, Navigation). The icon will be displayed next to the label.
+                </p>
+                <p>
+                  <strong className="text-tron-white">Visibility:</strong> Hidden items won't appear in the navigation 
+                  but can be kept for future use.
+                </p>
+                <p className="text-tron-gray/80 italic">
+                  Note: Changes take effect immediately for all unauthenticated users.
+                </p>
+              </div>
+            </div>
+          </div>
         ) : activeTab === 'prompt-types' ? (
           <div className="space-y-6">
             {/* Header */}
@@ -781,7 +1090,13 @@ export function AdminPanelPage() {
                 </p>
                 <p>
                   <strong className="text-tron-white">Default Components:</strong> If no components are configured, 
-                  click "Initialize Default Components" to set up the standard HR Dashboard tabs.
+                  click "Initialize Default Components" to set up the standard HR Dashboard tabs, including Government Links.
+                </p>
+                <p>
+                  <strong className="text-tron-white">Public Navigation:</strong> Components set to "Public" will be accessible 
+                  to unauthenticated users, but to appear in the public navigation bar, they must also be added in the 
+                  "Public Navigation" tab. For example, if you want Leads Management to appear in the public navigation, 
+                  add it to the Public Navigation items.
                 </p>
                 <p className="text-tron-gray/80 italic">
                   Note: Changes take effect immediately for all users.

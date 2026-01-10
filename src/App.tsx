@@ -51,10 +51,16 @@ function AppContent() {
   const { isSignedIn, isLoaded } = useAuth();
   const location = useLocation().pathname;
   
-  // Check if procurement-links requires auth
+  // Check if procurement-links requires auth - MUST call all hooks before any conditional returns
   const procurementLinksRequiresAuth = useQuery(
     api.hrDashboardComponents.getComponentAuthRequirement,
     { componentId: "procurement-links" }
+  );
+  
+  // Check if government-links requires auth - MUST call all hooks before any conditional returns
+  const governmentLinksRequiresAuth = useQuery(
+    api.hrDashboardComponents.getComponentAuthRequirement,
+    { componentId: "government-links" }
   );
   
   if (!isLoaded) {
@@ -65,9 +71,16 @@ function AppContent() {
     );
   }
 
-  // Allow public access to government-links page (read-only for unauthenticated users)
+  // Allow public access to government-links page if it doesn't require auth
   if (location === "/government-links" && !isSignedIn) {
-    return <PublicGovernmentLinksPage />;
+    // Default to allowing public access (government-links should be public by default)
+    // Only require auth if explicitly set to true
+    if (governmentLinksRequiresAuth === true) {
+      // Auth is required, fall through to sign-in
+    } else {
+      // Auth is not required (false or undefined), show public page
+      return <PublicGovernmentLinksPage />;
+    }
   }
 
   // Always show ProcurementLinksPage for "/" and "/procurement-links" routes, even if unauthenticated
@@ -186,7 +199,14 @@ function AuthenticatedApp() {
         <Route path="/cobecium" element={<CobeciumPage />} />
         <Route path="/theme-config" element={<ThemeConfigPage />} />
         <Route path="/admin-panel" element={<AdminPanelPage />} />
-        <Route path="/government-links" element={<GovernmentLinkHubPage />} />
+        <Route
+          path="/government-links"
+          element={
+            <VisibilityWrapper componentId="government-links">
+              <GovernmentLinkHubPage />
+            </VisibilityWrapper>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

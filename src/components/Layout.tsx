@@ -45,6 +45,7 @@ export function Layout({ children }: LayoutProps) {
     'overview': { path: '/hr-overview', icon: Target, defaultLabel: 'HR Overview' },
     'search': { path: '/semantic-search', icon: Search, defaultLabel: 'Semantic Search' },
     'leads-management': { path: '/leads-management', icon: FileSearch, defaultLabel: 'Leads Management' },
+    'government-links': { path: '/government-links', icon: Map, defaultLabel: 'Government Links' },
     'kfc-management': { path: '/kfc-management', icon: Users, defaultLabel: 'KFC Management' },
     'data-management': { path: '/data-management', icon: Database, defaultLabel: 'Data Management' },
     'embeddings': { path: '/embedding-management', icon: Settings, defaultLabel: 'Embedding Management' },
@@ -91,14 +92,6 @@ export function Layout({ children }: LayoutProps) {
           path: routeInfo.path,
         });
       }
-    });
-
-    // Always add Government Links
-    items.push({
-      to: '/government-links',
-      icon: Map,
-      label: 'Government Links',
-      path: '/government-links',
     });
 
     return items;

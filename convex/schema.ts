@@ -1094,6 +1094,20 @@ const applicationTables = {
     .index("by_count", ["count"])
     .index("by_heat", ["heat"])
     .index("by_normalized_key", ["normalizedKey"]),
+
+  // Public Navigation Items - configurable navigation items for unauthenticated users
+  publicNavigationItems: defineTable({
+    path: v.string(), // Route path (e.g., "/", "/government-links")
+    label: v.string(), // Display label (e.g., "Procurement Links", "Government Links")
+    icon: v.string(), // Icon name from lucide-react (e.g., "Globe", "Map")
+    order: v.number(), // Display order (lower numbers appear first)
+    isVisible: v.boolean(), // Whether this item is visible
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_order", ["order"])
+    .index("by_visible", ["isVisible"])
+    .index("by_path", ["path"]),
 };
 
 export default defineSchema({

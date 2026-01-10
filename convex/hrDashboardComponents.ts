@@ -81,6 +81,55 @@ export const getVisibleComponents = query({
   },
 });
 
+// Get public components (visible and don't require auth) for public navigation
+export const getPublicComponents = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      componentId: v.string(),
+      componentName: v.string(),
+      path: v.string(),
+      icon: v.string(),
+      order: v.optional(v.number()),
+    })
+  ),
+  handler: async (ctx) => {
+    const components = await ctx.db
+      .query("hrDashboardComponents")
+      .withIndex("by_visible", (q) => q.eq("isVisible", true))
+      .collect();
+    
+    // Filter to only public components (requiresAuth === false)
+    const publicComponents = components.filter(c => c.requiresAuth === false);
+    
+    // Component ID to route and icon mapping
+    const componentRouteMap: Record<string, { path: string; icon: string }> = {
+      'procurement-links': { path: '/', icon: 'Globe' },
+      'government-links': { path: '/government-links', icon: 'Map' },
+      'leads-management': { path: '/leads-management', icon: 'FileSearch' },
+    };
+    
+    // Map to navigation items
+    return publicComponents
+      .filter(c => componentRouteMap[c.componentId])
+      .map(c => ({
+        componentId: c.componentId,
+        componentName: c.componentName,
+        path: componentRouteMap[c.componentId].path,
+        icon: componentRouteMap[c.componentId].icon,
+        order: c.order,
+      }))
+      .sort((a, b) => {
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        if (a.order !== undefined) return -1;
+        if (b.order !== undefined) return 1;
+        return 0;
+      });
+  },
+});
+
 // Set component visibility (admin only)
 export const setComponentVisibility = mutation({
   args: {
@@ -181,9 +230,10 @@ export const initializeDefaultComponents = mutation({
       { id: "search", name: "Semantic Search", description: "AI-powered search across jobs and resumes", order: 2, requiresAuth: true },
       { id: "leads-management", name: "Leads Management", description: "Manage procurement opportunity leads", order: 3, requiresAuth: true },
       { id: "procurement-links", name: "Procurement Links", description: "Import and verify procurement URLs for the map", order: 4, requiresAuth: false },
-      { id: "kfc-management", name: "KFC Management", description: "Manage KFC points and employee nominations", order: 5, requiresAuth: true },
-      { id: "data-management", name: "Data Management", description: "Import, export, and manage job postings and resumes", order: 6, requiresAuth: true },
-      { id: "embeddings", name: "Embedding Management", description: "Manage AI embeddings and system optimization", order: 7, requiresAuth: true },
+      { id: "government-links", name: "Government Links", description: "Browse and manage government procurement links by state", order: 5, requiresAuth: false },
+      { id: "kfc-management", name: "KFC Management", description: "Manage KFC points and employee nominations", order: 6, requiresAuth: true },
+      { id: "data-management", name: "Data Management", description: "Import, export, and manage job postings and resumes", order: 7, requiresAuth: true },
+      { id: "embeddings", name: "Embedding Management", description: "Manage AI embeddings and system optimization", order: 8, requiresAuth: true },
     ];
     
     for (const component of defaultComponents) {
@@ -228,8 +278,19 @@ export const getComponentAuthRequirement = query({
       .withIndex("by_component_id", (q) => q.eq("componentId", args.componentId))
       .first();
     
-    // Default to requiring auth if component doesn't exist or requiresAuth is undefined
-    return component?.requiresAuth ?? true;
+    // If component doesn't exist, check if it's a known public component
+    if (!component) {
+      // Default public components that don't require auth
+      const publicComponents = ["procurement-links", "government-links"];
+      if (publicComponents.includes(args.componentId)) {
+        return false;
+      }
+      // Default to requiring auth for unknown components
+      return true;
+    }
+    
+    // Return the component's requiresAuth setting, defaulting to true if undefined
+    return component.requiresAuth ?? true;
   },
 });
 
