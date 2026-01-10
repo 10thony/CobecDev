@@ -1,4 +1,4 @@
-import { useState, useTransition, useRef, useEffect } from 'react';
+import { useState, useTransition, useRef, useEffect, useMemo } from 'react';
 import { useAction, useQuery, useMutation } from 'convex/react';
 import { useAuth } from '@clerk/clerk-react';
 import { api } from '../../convex/_generated/api';
@@ -32,7 +32,10 @@ import {
   Star,
   Save,
   Copy,
-  MessageCircle
+  MessageCircle,
+  Search,
+  Filter,
+  XCircle
 } from 'lucide-react';
 
 interface ProcurementLink {
@@ -135,6 +138,8 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   });
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [modalMessage, setModalMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [promptSearchQuery, setPromptSearchQuery] = useState('');
+  const [selectedPromptTypeFilter, setSelectedPromptTypeFilter] = useState<Id<"chatSystemPromptTypes"> | 'all' | 'primary'>('all');
   
   // Convex queries and mutations
   const anonymousId = !isSignedIn ? getOrCreateAnonymousId() : undefined;
@@ -513,6 +518,9 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   // System Prompt Handlers
   const handleOpenPromptSettings = async () => {
     setShowPromptSettings(true);
+    // Reset filters when opening
+    setPromptSearchQuery('');
+    setSelectedPromptTypeFilter('all');
     // Initialize default prompt if none exists
     if (systemPrompts && systemPrompts.length === 0) {
       try {
@@ -682,6 +690,34 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       setRefreshingLinks(false);
     }
   };
+
+  // Filter prompts based on search query and type filter
+  const filteredSystemPrompts = useMemo((): SystemPrompt[] | undefined => {
+    if (!systemPrompts) return undefined;
+    
+    let filtered: SystemPrompt[] = [...systemPrompts];
+    
+    // Filter by type
+    if (selectedPromptTypeFilter === 'primary') {
+      filtered = filtered.filter(p => p.isPrimarySystemPrompt);
+    } else if (selectedPromptTypeFilter !== 'all') {
+      filtered = filtered.filter(p => p.type === selectedPromptTypeFilter);
+    }
+    
+    // Filter by search query
+    if (promptSearchQuery.trim()) {
+      const query = promptSearchQuery.toLowerCase().trim();
+      filtered = filtered.filter((prompt: SystemPrompt) => {
+        const titleMatch = prompt.title.toLowerCase().includes(query);
+        const descriptionMatch = prompt.description?.toLowerCase().includes(query) ?? false;
+        const textMatch = prompt.systemPromptText.toLowerCase().includes(query);
+        const typeMatch = promptTypes?.find(t => t._id === prompt.type)?.displayName.toLowerCase().includes(query) ?? false;
+        return titleMatch || descriptionMatch || textMatch || typeMatch;
+      });
+    }
+    
+    return filtered;
+  }, [systemPrompts, promptSearchQuery, selectedPromptTypeFilter, promptTypes]);
 
   return (
     <div className="flex h-full relative">
@@ -1161,6 +1197,8 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                   setShowPromptSettings(false);
                   handleCancelPromptForm();
                   setModalMessage(null);
+                  setPromptSearchQuery('');
+                  setSelectedPromptTypeFilter('all');
                 }}
                 className="p-2 hover:bg-tron-cyan/10 rounded-lg transition-colors"
               >
@@ -1311,31 +1349,103 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
               ) : (
                 <>
                   {/* Prompt List Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-tron-gray">
-                      Manage system prompts for the Procurement Chat AI. The primary prompt will be used for all conversations.
-                    </p>
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-4 mb-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-tron-gray">
+                        Manage system prompts for the Procurement Chat AI. The primary prompt will be used for all conversations.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <TronButton
+                          onClick={handleRefreshApprovedLinks}
+                          variant="outline"
+                          color="cyan"
+                          size="sm"
+                          disabled={refreshingLinks}
+                          icon={refreshingLinks ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                          title="Update primary system prompt with approved procurement links"
+                        >
+                          {refreshingLinks ? 'Updating...' : 'Update Prompt with Links'}
+                        </TronButton>
+                        <TronButton
+                          onClick={handleStartCreatePrompt}
+                          variant="primary"
+                          color="cyan"
+                          size="sm"
+                          icon={<Plus className="w-4 h-4" />}
+                        >
+                          New Prompt
+                        </TronButton>
+                      </div>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tron-gray" />
+                      <input
+                        type="text"
+                        value={promptSearchQuery}
+                        onChange={(e) => setPromptSearchQuery(e.target.value)}
+                        placeholder="Search prompts by title, description, content, or type..."
+                        className="w-full pl-10 pr-10 py-2.5 text-sm bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 focus:ring-tron-cyan/50 focus:border-tron-cyan/40 transition-all"
+                      />
+                      {promptSearchQuery && (
+                        <button
+                          onClick={() => setPromptSearchQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-tron-gray hover:text-tron-white transition-colors"
+                          title="Clear search"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Quick Filters */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-xs text-tron-gray">
+                        <Filter className="w-3.5 h-3.5" />
+                        <span className="font-medium">Filter:</span>
+                      </div>
                       <TronButton
-                        onClick={handleRefreshApprovedLinks}
-                        variant="outline"
+                        onClick={() => setSelectedPromptTypeFilter('all')}
+                        variant={selectedPromptTypeFilter === 'all' ? 'primary' : 'outline'}
                         color="cyan"
                         size="sm"
-                        disabled={refreshingLinks}
-                        icon={refreshingLinks ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                        title="Update primary system prompt with approved procurement links"
                       >
-                        {refreshingLinks ? 'Updating...' : 'Update Prompt with Links'}
+                        All
                       </TronButton>
                       <TronButton
-                        onClick={handleStartCreatePrompt}
-                        variant="primary"
+                        onClick={() => setSelectedPromptTypeFilter('primary')}
+                        variant={selectedPromptTypeFilter === 'primary' ? 'primary' : 'outline'}
                         color="cyan"
                         size="sm"
-                        icon={<Plus className="w-4 h-4" />}
+                        icon={<Star className="w-3 h-3" />}
                       >
-                        New Prompt
+                        Primary
                       </TronButton>
+                      {promptTypes && promptTypes.map((type) => (
+                        <TronButton
+                          key={type._id}
+                          onClick={() => setSelectedPromptTypeFilter(type._id)}
+                          variant={selectedPromptTypeFilter === type._id ? 'primary' : 'outline'}
+                          color="cyan"
+                          size="sm"
+                        >
+                          {type.displayName}
+                        </TronButton>
+                      ))}
+                      {(promptSearchQuery || selectedPromptTypeFilter !== 'all') && (
+                        <button
+                          onClick={() => {
+                            setPromptSearchQuery('');
+                            setSelectedPromptTypeFilter('all');
+                          }}
+                          className="px-3 py-1.5 text-xs text-tron-gray hover:text-tron-cyan transition-colors flex items-center gap-1"
+                          title="Clear all filters"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          Clear Filters
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1345,14 +1455,26 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                       <div className="flex items-center justify-center py-8 text-tron-gray">
                         <Loader2 className="w-6 h-6 animate-spin" />
                       </div>
-                    ) : systemPrompts.length === 0 ? (
+                    ) : filteredSystemPrompts === undefined ? (
+                      <div className="flex items-center justify-center py-8 text-tron-gray">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      </div>
+                    ) : filteredSystemPrompts.length === 0 ? (
                       <div className="text-center py-8 text-tron-gray">
                         <Settings className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>No system prompts found.</p>
-                        <p className="text-sm mt-1">Click "New Prompt" to create one, or it will be initialized with defaults.</p>
+                        <p>
+                          {systemPrompts.length === 0 
+                            ? 'No system prompts found.'
+                            : 'No prompts match your search or filters.'}
+                        </p>
+                        <p className="text-sm mt-1">
+                          {systemPrompts.length === 0
+                            ? 'Click "New Prompt" to create one, or it will be initialized with defaults.'
+                            : 'Try adjusting your search query or filters.'}
+                        </p>
                       </div>
                     ) : (
-                      systemPrompts.map((prompt) => (
+                      filteredSystemPrompts.map((prompt: SystemPrompt) => (
                         <div
                           key={prompt._id}
                           className={`p-4 rounded-lg border transition-colors ${

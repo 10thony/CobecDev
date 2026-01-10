@@ -1405,35 +1405,77 @@ describe('importFromChatResponse', () => {
 ## Implementation Checklist
 
 ### Backend
-- [ ] Create `leads.importFromChatResponse` mutation
+- [ ] Create `leads.importFromChatResponse` mutation with complete implementation
+- [ ] Add duplicate detection logic (contractID priority, then title + URL)
+- [ ] Add helper functions: `normalizeUrl`, `normalizeTitle`, `generateSearchableText`
+- [ ] Add schema field mappings: `metadata`, `lastChecked`, `isActive`, `searchableText`
 - [ ] Add `chatSystemPrompts.getPromptType` query
 - [ ] Update `parseAgentResponse` to handle leads format
-- [ ] Add duplicate detection for leads (contractID + source.url)
+- [ ] Add `isLeadsResponse` and `normalizeLeads` functions
+- [ ] Add URL and date validation functions
 - [ ] Create default LEADS system prompt template
+- [ ] Add `ensureLeadsPromptType` internal mutation
+- [ ] Add `initializeDefaultLeadsPrompt` internal mutation
+- [ ] Add database indexes for performance (contractID, source.url) - if supported
+- [ ] Add error handling for partial failures
+- [ ] Add logging for import attempts and results
 
 ### Frontend
 - [ ] Add `importToLeads` mutation hook
 - [ ] Add prompt type query hook
-- [ ] Create `handleExportToLeads` function
+- [ ] Add React Router `useNavigate` hook
+- [ ] Create proper TypeScript types (remove `any` types)
+- [ ] Add `LeadsResponse` and `ProcurementLinksResponse` types
+- [ ] Add type guard functions: `isLeadsResponse`, `isProcurementLinksResponse`
+- [ ] Add `detectResponseType` function with priority order
+- [ ] Create `handleExportToLeads` function with complete error handling
 - [ ] Update `handleExportToVerifier` with conditional routing
-- [ ] Update `ChatResponse` interface
+- [ ] Add `validateLeadsData` validation function
+- [ ] Add `getExportButtonConfig` helper function
+- [ ] Update `ChatResponse` interface with proper types
+- [ ] Create `LeadsPreview` component
 - [ ] Update message rendering for leads display
-- [ ] Add "To Leads Management" button
+- [ ] Add "To Leads Management" button with loading states
 - [ ] Update button text based on response type
-- [ ] Add navigation callback prop
+- [ ] Add navigation callback prop `onExportToLeads`
+- [ ] Add success/error feedback UI components
+- [ ] Add loading indicators during import
+- [ ] Import required icons (Briefcase, Building2, Calendar, DollarSign)
 
 ### Testing
+- [ ] Create test data examples (valid, invalid, edge cases)
+- [ ] Test `parseAgentResponse` with leads format
+- [ ] Test `parseAgentResponse` with mixed response
+- [ ] Test leads normalization function
 - [ ] Test leads import mutation
+- [ ] Test duplicate detection by contractID
+- [ ] Test duplicate detection by title + URL
 - [ ] Test prompt type detection
+- [ ] Test response type detection priority order
 - [ ] Test conditional routing logic
 - [ ] Test UI rendering for both response types
 - [ ] Test navigation callbacks
-- [ ] Test backward compatibility
+- [ ] Test React Router navigation fallback
+- [ ] Test validation function with various inputs
+- [ ] Test error handling scenarios
+- [ ] Test backward compatibility (procurement links flow)
+- [ ] Test large batch imports (100+ leads)
+- [ ] Test network failure scenarios
+- [ ] Test prompt type switching mid-conversation
+- [ ] Test concurrent exports
+- [ ] Performance testing (verify benchmarks)
 
 ### Documentation
 - [ ] Update system prompt documentation
 - [ ] Document LEADS response format
+- [ ] Document duplicate detection strategy
+- [ ] Document response type detection priority
+- [ ] Document navigation implementation
+- [ ] Document error handling scenarios
+- [ ] Document authorization requirements
 - [ ] Update user guide for new feature
+- [ ] Add troubleshooting guide
+- [ ] Document API contract for `importFromChatResponse`
 
 ## Error Handling
 

@@ -10,7 +10,8 @@ import {
   CheckCircle,
   Lightbulb,
   Search,
-  Filter
+  Filter,
+  XCircle
 } from 'lucide-react';
 
 interface PromptManagementProps {
@@ -46,13 +47,13 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
   const deletePrompt = useMutation(api.vectorSearchPrompts.deleteVectorSearchPrompt);
   const markAsRegenerated = useMutation(api.vectorSearchPrompts.markPromptsAsRegenerated);
   const initializeDefaults = useMutation(api.vectorSearchPrompts.initializeDefaultPrompts);
-  const forceRegenerateAll = useMutation(api.vectorSearchPrompts.forceRegenerateAllEmbeddings);
 
   // Filter and search prompts
   const filteredPrompts = prompts?.prompts?.filter((prompt: VectorSearchPrompt) => {
     const matchesCategory = filterCategory === 'All' || prompt.category === filterCategory;
     const matchesSearch = searchTerm === '' || 
-      prompt.text.toLowerCase().includes(searchTerm.toLowerCase());
+      prompt.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prompt.category.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   }) || [];
 
@@ -123,18 +124,6 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
     }
   };
 
-  const handleForceRegenerateAll = async () => {
-    if (!confirm('This will regenerate ALL embeddings. This may take several minutes. Continue?')) return;
-    
-    try {
-      const result = await forceRegenerateAll({ batchSize: 5 });
-      alert(`Regeneration completed! Processed ${result.results.jobPostings.processed} job postings and ${result.results.resumes.processed} resumes.`);
-    } catch (error) {
-      console.error('Error forcing regeneration:', error);
-      alert('Error during regeneration. Check console for details.');
-    }
-  };
-
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
@@ -167,20 +156,12 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
                   Regenerate embeddings for optimal search results.
                 </p>
               </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleMarkAsRegenerated}
-                  className="px-3 py-1 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700"
-                >
-                  Mark as Regenerated
-                </button>
-                <button
-                  onClick={handleForceRegenerateAll}
-                  className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
-                >
-                  Force Regenerate All
-                </button>
-              </div>
+              <button
+                onClick={handleMarkAsRegenerated}
+                className="px-3 py-1 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700"
+              >
+                Mark as Regenerated
+              </button>
             </div>
           </div>
         )}
@@ -301,41 +282,61 @@ export function PromptManagement({ className = '' }: PromptManagementProps) {
           Manage Prompts
         </h3>
         
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-mint-cream-500 mb-2">
-              Search Prompts
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-mint-cream-700" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search prompt text..."
-                className="w-full pl-10 pr-3 py-2 border border-yale-blue-400 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-powder-blue-600 text-mint-cream-DEFAULT"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-mint-cream-500 mb-2">
-              Filter by Category
-            </label>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-mint-cream-700" />
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="pl-10 pr-8 py-2 border border-yale-blue-400 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-powder-blue-600 text-mint-cream-DEFAULT"
+        {/* Quick Filter Buttons */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-mint-cream-500 mb-2">
+            Filter by Category
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterCategory('All')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-all ${
+                filterCategory === 'All'
+                  ? 'bg-yale-blue-DEFAULT text-white border-yale-blue-600 shadow-sm'
+                  : 'bg-mint-cream-900 text-mint-cream-300 border-yale-blue-400 hover:bg-yale-blue-500/20 hover:text-mint-cream-DEFAULT hover:border-yale-blue-500'
+              }`}
+            >
+              All Categories
+            </button>
+            {categories.filter(cat => cat !== 'All').map((category) => (
+              <button
+                key={category}
+                onClick={() => setFilterCategory(category)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-all ${
+                  filterCategory === category
+                    ? 'bg-yale-blue-DEFAULT text-white border-yale-blue-600 shadow-sm'
+                    : 'bg-mint-cream-900 text-mint-cream-300 border-yale-blue-400 hover:bg-yale-blue-500/20 hover:text-mint-cream-DEFAULT hover:border-yale-blue-500'
+                }`}
               >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-mint-cream-500 mb-2">
+            Search Prompts
+          </label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-mint-cream-700" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search prompt text, category, or keywords..."
+              className="w-full pl-10 pr-10 py-2 border border-yale-blue-400 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yale-blue-500 focus:border-powder-blue-600 text-mint-cream-DEFAULT bg-mint-cream-900"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-0.5 text-mint-cream-700 hover:text-mint-cream-DEFAULT transition-colors"
+                title="Clear search"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
