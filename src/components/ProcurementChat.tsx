@@ -5,6 +5,7 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { TronPanel } from './TronPanel';
 import { TronButton } from './TronButton';
+import { SystemPromptSelect } from './SystemPromptSelect';
 import { 
   MessageSquare, 
   Send, 
@@ -118,6 +119,8 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const [retryingMessageId, setRetryingMessageId] = useState<string | null>(null);
   const [selectedSystemPromptId, setSelectedSystemPromptId] = useState<Id<"chatSystemPrompts"> | null | undefined>(undefined); // undefined = use primary, null = none
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mainChatAreaRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   
   // System Prompt Management State
   const [showPromptSettings, setShowPromptSettings] = useState(false);
@@ -175,6 +178,41 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sessionMessages]);
+
+  // Match sidebar height to main chat area height on desktop
+  useEffect(() => {
+    if (!showHistory || !mainChatAreaRef.current || !sidebarRef.current) return;
+    
+    const updateSidebarHeight = () => {
+      if (window.innerWidth >= 1024) { // lg breakpoint
+        const mainChatHeight = mainChatAreaRef.current?.offsetHeight;
+        if (mainChatHeight && sidebarRef.current) {
+          sidebarRef.current.style.height = `${mainChatHeight}px`;
+          sidebarRef.current.style.maxHeight = `${mainChatHeight}px`;
+        }
+      } else {
+        // On mobile, use full viewport height for fixed positioning
+        if (sidebarRef.current) {
+          sidebarRef.current.style.height = '100vh';
+          sidebarRef.current.style.maxHeight = '100vh';
+        }
+      }
+    };
+
+    updateSidebarHeight();
+    window.addEventListener('resize', updateSidebarHeight);
+    
+    // Use ResizeObserver to watch for changes in main chat area height
+    const resizeObserver = new ResizeObserver(updateSidebarHeight);
+    if (mainChatAreaRef.current) {
+      resizeObserver.observe(mainChatAreaRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateSidebarHeight);
+      resizeObserver.disconnect();
+    };
+  }, [showHistory, messages, sessionMessages]);
   
   // Sync free messages count from localStorage
   useEffect(() => {
@@ -638,10 +676,13 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       )}
 
       {/* History Sidebar */}
-      <div className={`${showHistory ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden flex-shrink-0 relative`}>
-        <div className={`h-full bg-tron-bg-card border-r border-tron-cyan/20 flex flex-col w-64 ${
-          showHistory ? 'fixed lg:relative inset-y-0 left-0 z-[40] lg:z-auto' : 'lg:block hidden'
-        }`}>
+      <div className={`${showHistory ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden flex-shrink-0 relative flex flex-col`}>
+        <div 
+          ref={sidebarRef}
+          className={`bg-tron-bg-card border-r border-tron-cyan/20 flex flex-col w-64 ${
+            showHistory ? 'fixed lg:relative inset-y-0 left-0 z-[40] lg:z-auto' : 'lg:block hidden'
+          }`}
+        >
           {/* Sidebar Header */}
           <div className="p-3 border-b border-tron-cyan/20">
             <div className="flex items-center justify-between mb-3">
@@ -743,7 +784,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+      <div ref={mainChatAreaRef} className="flex-1 flex flex-col min-w-0 relative z-10">
         <TronPanel 
           title="Procurement Link Assistant" 
           icon={<MessageSquare className="w-5 h-5" />}
@@ -773,35 +814,13 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                 <span className="text-xs text-tron-gray group-hover:text-tron-white transition-colors hidden sm:inline">
                   System Prompt
                 </span>
-                <select
-                  value={selectedSystemPromptId === undefined ? 'primary' : selectedSystemPromptId === null ? 'none' : selectedSystemPromptId}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === 'primary') {
-                      setSelectedSystemPromptId(undefined);
-                    } else if (value === 'none') {
-                      setSelectedSystemPromptId(null);
-                    } else {
-                      setSelectedSystemPromptId(value as Id<"chatSystemPrompts">);
-                    }
-                  }}
+                <SystemPromptSelect
+                  value={selectedSystemPromptId}
+                  onChange={setSelectedSystemPromptId}
+                  systemPrompts={systemPrompts}
+                  promptTypes={promptTypes}
                   disabled={systemPrompts === undefined}
-                  className="px-2 py-1 text-xs bg-tron-bg-deep border border-tron-cyan/30 rounded-lg 
-                             text-tron-white focus:outline-none focus:ring-2 focus:ring-tron-cyan 
-                             focus:border-tron-cyan cursor-pointer min-w-[120px] sm:min-w-[150px]
-                             disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="primary">Primary (Default)</option>
-                  <option value="none">None</option>
-                    {systemPrompts && systemPrompts.map((prompt) => {
-                      const promptType = promptTypes?.find(t => t._id === prompt.type);
-                      return (
-                        <option key={prompt._id} value={prompt._id}>
-                          {prompt.title}{prompt.isPrimarySystemPrompt ? ' (Primary)' : ''}{promptType ? ` - ${promptType.displayName}` : ''}
-                        </option>
-                      );
-                    })}
-                </select>
+                />
               </div>
             </div>
           }
