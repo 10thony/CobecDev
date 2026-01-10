@@ -3,7 +3,7 @@
 import { Agent } from "@convex-dev/agent";
 import { openai } from "@ai-sdk/openai";
 import { components, internal } from "./_generated/api";
-import { DEFAULT_SYSTEM_PROMPT } from "./procurementChatSystemPrompts";
+import { DEFAULT_SYSTEM_PROMPT } from "./chatSystemPrompts";
 
 // Type for the approved link structure from lookup table
 interface ApprovedLink {
@@ -31,24 +31,44 @@ export function createSimpleChatAgent(systemPrompt: string): Agent {
 }
 
 /**
- * Gets the primary system prompt from the database or returns the default.
+ * Gets a system prompt by ID from the database or returns the default.
  * Optionally injects approved procurement links based on user message context.
  * 
  * This function should be called from an action context.
  * 
  * @param ctx - The action context
+ * @param promptId - Optional ID of the system prompt to use. If not provided, uses primary prompt.
  * @param userMessage - Optional user message for state detection
  */
-export async function getPrimarySystemPrompt(
+export async function getSystemPrompt(
   ctx: any,
+  promptId?: string | null,
   userMessage?: string
 ): Promise<string> {
-  // Get the primary system prompt from database
-  const primaryPrompt = await ctx.runQuery(
-    internal.procurementChatSystemPrompts.getPrimaryInternal,
-    {}
-  );
-  let basePrompt = primaryPrompt?.systemPromptText || DEFAULT_SYSTEM_PROMPT;
+  // If promptId is explicitly null, return empty string (no prompt)
+  if (promptId === null) {
+    return "";
+  }
+  
+  let basePrompt = DEFAULT_SYSTEM_PROMPT;
+  
+  if (promptId) {
+    // Get the specific prompt by ID
+    const selectedPrompt = await ctx.runQuery(
+      internal.chatSystemPrompts.getByIdInternal,
+      { id: promptId as any }
+    );
+    if (selectedPrompt) {
+      basePrompt = selectedPrompt.systemPromptText;
+    }
+  } else {
+    // promptId is undefined - use primary system prompt from database
+    const primaryPrompt = await ctx.runQuery(
+      internal.chatSystemPrompts.getPrimaryInternal,
+      {}
+    );
+    basePrompt = primaryPrompt?.systemPromptText || DEFAULT_SYSTEM_PROMPT;
+  }
   
   // Get approved procurement links from the lookup table
   let approvedLinks: ApprovedLink[] = [];

@@ -3,7 +3,7 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { createSimpleChatAgent, getPrimarySystemPrompt } from "./simpleChatAgent";
+import { createSimpleChatAgent, getSystemPrompt } from "./simpleChatAgent";
 import { parseAgentResponse } from "./lib/parseAgentResponse";
 
 // Simple synchronous chat - MVP version
@@ -11,7 +11,7 @@ export const sendMessage = action({
   args: {
     prompt: v.string(),
     sessionId: v.id("procurementChatSessions"),
-    injectSystemPrompt: v.optional(v.boolean()), // Controls whether system prompt is injected (default: true)
+    systemPromptId: v.optional(v.union(v.id("chatSystemPrompts"), v.null())), // ID of system prompt to use, or null for none
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
@@ -26,12 +26,13 @@ export const sendMessage = action({
     }
     
     try {
-      // Get the primary system prompt from the database only if injectSystemPrompt is true (default: true)
-      // Pass user message to enable state filtering for approved links
-      const shouldInjectPrompt = args.injectSystemPrompt !== false; // Default to true if not specified
-      const systemPrompt = shouldInjectPrompt 
-        ? await getPrimarySystemPrompt(ctx, args.prompt)
-        : ""; // Empty prompt when toggle is off
+      // Get the system prompt from the database
+      // If systemPromptId is null, use empty string (no prompt)
+      // If systemPromptId is provided, use that specific prompt
+      // If systemPromptId is undefined, default to primary prompt
+      const systemPrompt = args.systemPromptId === null
+        ? "" // Empty prompt when "None" is selected
+        : await getSystemPrompt(ctx, args.systemPromptId, args.prompt);
       
       // Create agent with the fetched prompt (or empty string)
       const simpleChatAgent = createSimpleChatAgent(systemPrompt);

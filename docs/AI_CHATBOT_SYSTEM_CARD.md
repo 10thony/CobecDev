@@ -94,12 +94,11 @@ The AI Chatbot is a multi-provider, real-time conversational interface built on 
 5. Real-time updates through Convex reactive queries
 
 #### 2. ChatComponent (`src/components/ChatComponent.tsx`)
-**MongoDB-based chat component (legacy/migration)**
+**Legacy chat component**
 
 **Responsibilities:**
-- Client-side MongoDB chat interface
-- Uses `mongoChatService` for embeddings and search
-- Currently in migration state (returns placeholders)
+- Legacy chat interface
+- Currently being phased out in favor of Convex-based chat
 
 #### 3. Chat (`src/components/Chat.tsx`)
 **Simple chat component with streaming**
@@ -471,10 +470,10 @@ src/
 │       └── chat.ts            # Legacy SSE streaming endpoint
 ├── components/
 │   ├── Chat.tsx               # Simple chat component
-│   ├── ChatComponent.tsx      # MongoDB chat (migration)
+│   ├── ChatComponent.tsx      # Legacy chat component
 │   └── ProcurementChat.tsx    # Procurement chat UI
 └── lib/
-    └── mongoChatService.ts    # MongoDB chat service (legacy)
+    └── mongoChatService.ts    # Legacy chat service (deprecated)
 ```
 
 ## Integration Points
@@ -545,7 +544,6 @@ src/
 1. Vector search currently uses text-based fallback
 2. Hugging Face models return mock responses
 3. Some legacy endpoints still in use
-4. MongoDB migration in progress
 
 ## Usage Examples
 

@@ -142,70 +142,6 @@ const applicationTables = {
     .index("by_embedding_model", ["embeddingModel"])
     .index("by_embedding_generated", ["embeddingGeneratedAt"]),
 
-  // Job Postings - migrated from MongoDB with proper vector support
-  jobpostings: defineTable({
-    jobTitle: v.string(),
-    location: v.string(),
-    salary: v.string(),
-    openDate: v.string(),
-    closeDate: v.string(),
-    jobLink: v.string(),
-    jobType: v.string(),
-    jobSummary: v.string(),
-    duties: v.string(),
-    requirements: v.string(),
-    qualifications: v.string(),
-    education: v.array(v.string()),
-    howToApply: v.string(),
-    additionalInformation: v.string(),
-    department: v.string(),
-    seriesGrade: v.string(),
-    travelRequired: v.string(),
-    workSchedule: v.string(),
-    securityClearance: v.string(),
-    experienceRequired: v.string(),
-    educationRequired: v.string(),
-    applicationDeadline: v.string(),
-    contactInfo: v.string(),
-    searchableText: v.optional(v.string()),
-    extractedSkills: v.optional(v.array(v.string())),
-    // Complete searchable text for semantic search (aggregated, deduplicated content)
-    completeSearchableText: v.optional(v.string()),
-    // Enhanced embedding fields for semantic search
-    embedding: v.optional(v.array(v.float64())), // Gemini MRL 2048 embedding dimension
-    embeddingModel: v.optional(v.string()), // Track which model generated embedding
-    embeddingGeneratedAt: v.optional(v.number()), // Timestamp for embedding freshness
-    // Additional fields for migration compatibility
-    _id: v.optional(v.string()), // MongoDB ObjectId compatibility
-    _index: v.optional(v.number()), // Source data index
-    metadata: v.optional(v.object({
-      originalIndex: v.optional(v.number()),
-      importedAt: v.number(),
-      sourceFile: v.optional(v.string()),
-      dataType: v.string(),
-      embeddingModel: v.optional(v.string()),
-      parsedAt: v.optional(v.number()),
-      processedAt: v.optional(v.object({
-        date: v.string(),
-      })),
-    })),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_jobTitle", ["jobTitle"])
-    .index("by_location", ["location"])
-    .index("by_department", ["department"])
-    .index("by_creation", ["createdAt"])
-    .index("by_metadata_import", ["metadata.importedAt"])
-    .index("by_metadata_source", ["metadata.sourceFile"])
-    // Vector similarity search index (for future v.vector() migration)
-    .index("by_embedding_model", ["embeddingModel"])
-    .index("by_embedding_generated", ["embeddingGeneratedAt"])
-    .vectorIndex("by_embedding", {
-      vectorField: "embedding",
-      dimensions: 1536,
-      filterFields: ["department", "location", "jobType"],
-    }),
-
   // Resumes - migrated from MongoDB with proper vector support
   resumes: defineTable({
     filename: v.string(),
@@ -366,29 +302,31 @@ const applicationTables = {
     .index("by_estimated_value", ["estimatedValueUSD"]),
 
   // Texas leads data - matches texasLeadsTierOne.json format
+  // Consolidated with jobpostings table - includes all fields from both
   leads: defineTable({
-    opportunityType: v.string(), // "Public Sector", "Private Subcontract", etc.
-    opportunityTitle: v.string(), // Title of the opportunity
+    opportunityType: v.string(), // "Public Sector", "Private Subcontract", "Job Posting", etc.
+    opportunityTitle: v.string(), // Title of the opportunity (or jobTitle for job postings)
     contractID: v.optional(v.string()), // Contract ID if available
     issuingBody: v.object({
-      name: v.string(), // Name of the issuing organization
+      name: v.string(), // Name of the issuing organization (or department for job postings)
       level: v.string(), // State, Regional, City, County, etc.
     }),
     location: v.object({
       city: v.optional(v.string()), // City name
       county: v.optional(v.string()), // County name
       region: v.string(), // Geographic region (Dallas–Fort Worth, Houston, Austin, etc.)
+      // For job postings: location string is stored here as city or region
     }),
     status: v.string(), // "Active / Open for Task Orders", "Open for Bidding", etc.
     estimatedValueUSD: v.optional(v.number()), // Estimated value in USD
     keyDates: v.object({
-      publishedDate: v.optional(v.string()), // Date when opportunity was published
-      bidDeadline: v.optional(v.string()), // Bid deadline if available
+      publishedDate: v.optional(v.string()), // Date when opportunity was published (or openDate for job postings)
+      bidDeadline: v.optional(v.string()), // Bid deadline if available (or closeDate/applicationDeadline for job postings)
       projectedStartDate: v.optional(v.string()), // Projected start date
     }),
     source: v.object({
       documentName: v.string(), // Name of the source document
-      url: v.string(), // URL to the source
+      url: v.string(), // URL to the source (or jobLink for job postings)
     }),
     contacts: v.array(v.object({
       name: v.optional(v.string()), // Contact person name (can be null)
@@ -397,7 +335,7 @@ const applicationTables = {
       phone: v.optional(v.string()), // Contact phone
       url: v.optional(v.string()), // Contact URL
     })),
-    summary: v.string(), // Detailed summary of the opportunity
+    summary: v.string(), // Detailed summary of the opportunity (or jobSummary for job postings)
     verificationStatus: v.optional(v.string()), // Verification status (e.g., "Verified", "Pending – Requires Portal Login")
     // Additional fields for enhanced functionality
     category: v.optional(v.string()), // Opportunity category
@@ -406,15 +344,42 @@ const applicationTables = {
     lastChecked: v.optional(v.number()), // Timestamp of last data check
     // Search and embedding fields for future semantic search
     searchableText: v.optional(v.string()), // Aggregated searchable content
-    embedding: v.optional(v.array(v.number())), // Vector embedding for semantic search
+    completeSearchableText: v.optional(v.string()), // Complete searchable text for semantic search
+    extractedSkills: v.optional(v.array(v.string())), // Extracted skills from job postings
+    embedding: v.optional(v.array(v.float64())), // Vector embedding for semantic search (Gemini MRL 2048 embedding dimension)
     embeddingModel: v.optional(v.string()), // Model used for embedding
     embeddingGeneratedAt: v.optional(v.number()), // When embedding was generated
+    // Job posting specific fields (optional, for migrated job postings)
+    salary: v.optional(v.string()), // Salary information
+    jobType: v.optional(v.string()), // Job type (full-time, part-time, etc.)
+    duties: v.optional(v.string()), // Job duties
+    requirements: v.optional(v.string()), // Job requirements
+    qualifications: v.optional(v.string()), // Job qualifications
+    education: v.optional(v.array(v.string())), // Education requirements
+    howToApply: v.optional(v.string()), // How to apply instructions
+    additionalInformation: v.optional(v.string()), // Additional information
+    seriesGrade: v.optional(v.string()), // Series/grade for government jobs
+    travelRequired: v.optional(v.string()), // Travel requirements
+    workSchedule: v.optional(v.string()), // Work schedule
+    securityClearance: v.optional(v.string()), // Security clearance requirements
+    experienceRequired: v.optional(v.string()), // Experience requirements
+    educationRequired: v.optional(v.string()), // Education requirements (string format)
+    applicationDeadline: v.optional(v.string()), // Application deadline
+    contactInfo: v.optional(v.string()), // Contact information (string format, can be parsed into contacts array)
+    // Additional fields for migration compatibility
+    _id: v.optional(v.string()), // MongoDB ObjectId compatibility
+    _index: v.optional(v.number()), // Source data index
     // Metadata
     metadata: v.optional(v.object({
       sourceFile: v.optional(v.string()),
       importedAt: v.number(),
-      dataType: v.string(),
+      dataType: v.string(), // "lead", "job_posting", "bulk_import", etc.
       originalIndex: v.optional(v.number()),
+      embeddingModel: v.optional(v.string()),
+      parsedAt: v.optional(v.number()),
+      processedAt: v.optional(v.object({
+        date: v.string(),
+      })),
     })),
     // Additional flexible field for imported data
     adHoc: v.optional(v.any()), // For any additional data from imports
@@ -429,9 +394,77 @@ const applicationTables = {
     .index("by_verification_status", ["verificationStatus"])
     .index("by_creation", ["createdAt"])
     .index("by_metadata_import", ["metadata.importedAt"])
-    .index("by_embedding", ["embedding"])
+    .index("by_metadata_source", ["metadata.sourceFile"])
     .index("by_embedding_model", ["embeddingModel"])
-    .index("by_estimated_value", ["estimatedValueUSD"]),
+    .index("by_embedding_generated", ["embeddingGeneratedAt"])
+    .index("by_estimated_value", ["estimatedValueUSD"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["category", "location.region", "opportunityType"],
+    }),
+
+  // Job Postings - TEMPORARY: Kept for migration purposes only
+  // TODO: Remove this table after migrateJobPostingsToLeads migration completes successfully
+  // This table exists temporarily to allow the migration to access existing job posting data
+  jobpostings: defineTable({
+    jobTitle: v.string(),
+    location: v.string(),
+    salary: v.string(),
+    openDate: v.string(),
+    closeDate: v.string(),
+    jobLink: v.string(),
+    jobType: v.string(),
+    jobSummary: v.string(),
+    duties: v.string(),
+    requirements: v.string(),
+    qualifications: v.string(),
+    education: v.array(v.string()),
+    howToApply: v.string(),
+    additionalInformation: v.string(),
+    department: v.string(),
+    seriesGrade: v.string(),
+    travelRequired: v.string(),
+    workSchedule: v.string(),
+    securityClearance: v.string(),
+    experienceRequired: v.string(),
+    educationRequired: v.string(),
+    applicationDeadline: v.string(),
+    contactInfo: v.string(),
+    searchableText: v.optional(v.string()),
+    extractedSkills: v.optional(v.array(v.string())),
+    completeSearchableText: v.optional(v.string()),
+    embedding: v.optional(v.array(v.float64())),
+    embeddingModel: v.optional(v.string()),
+    embeddingGeneratedAt: v.optional(v.number()),
+    _id: v.optional(v.string()),
+    _index: v.optional(v.number()),
+    metadata: v.optional(v.object({
+      originalIndex: v.optional(v.number()),
+      importedAt: v.number(),
+      sourceFile: v.optional(v.string()),
+      dataType: v.string(),
+      embeddingModel: v.optional(v.string()),
+      parsedAt: v.optional(v.number()),
+      processedAt: v.optional(v.object({
+        date: v.string(),
+      })),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_jobTitle", ["jobTitle"])
+    .index("by_location", ["location"])
+    .index("by_department", ["department"])
+    .index("by_creation", ["createdAt"])
+    .index("by_metadata_import", ["metadata.importedAt"])
+    .index("by_metadata_source", ["metadata.sourceFile"])
+    .index("by_embedding_model", ["embeddingModel"])
+    .index("by_embedding_generated", ["embeddingGeneratedAt"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["department", "location", "jobType"],
+    }),
 
   // Semantic Questions for better embeddings
   semanticQuestions: defineTable({
@@ -585,7 +618,37 @@ const applicationTables = {
     .index("by_creation", ["createdAt"])
     .index("by_user_creation", ["userId", "createdAt"]),
 
-  // Procurement Chat System Prompts - configurable system prompts for procurement chat
+  // Chat System Prompts - configurable system prompts for chat
+  chatSystemPrompts: defineTable({
+    systemPromptText: v.string(), // The full system prompt text
+    isPrimarySystemPrompt: v.boolean(), // Whether this is the active/primary prompt
+    title: v.string(), // A descriptive title for this prompt
+    description: v.optional(v.string()), // Optional description
+    type: v.id("chatSystemPromptTypes"), // The type of prompt (basic, leads, procurementHubs)
+    createdBy: v.optional(v.string()), // Clerk user ID who created this
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_primary", ["isPrimarySystemPrompt"])
+    .index("by_creation", ["createdAt"])
+    .index("by_type", ["type"])
+    .index("by_type_primary", ["type", "isPrimarySystemPrompt"]),
+
+  // Chat System Prompt Types - manageable types for system prompts
+  chatSystemPromptTypes: defineTable({
+    name: v.string(), // Type name: "basic", "leads", "procurementHubs"
+    displayName: v.string(), // Display name: "Basic", "Leads", "Procurement Hubs"
+    description: v.optional(v.string()), // Optional description
+    isDefault: v.boolean(), // Whether this is the default type
+    order: v.number(), // Display order
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_name", ["name"])
+    .index("by_order", ["order"]),
+
+  // Procurement Chat System Prompts - DEPRECATED: Use chatSystemPrompts instead
+  // Kept for migration purposes
   procurementChatSystemPrompts: defineTable({
     systemPromptText: v.string(), // The full system prompt text
     isPrimarySystemPrompt: v.boolean(), // Whether this is the active/primary prompt

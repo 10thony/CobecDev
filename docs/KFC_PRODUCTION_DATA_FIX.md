@@ -51,7 +51,7 @@ node scripts/copy-kfc-data.js
 **File**: `convex/kfcData.ts`
 - Created Convex functions to serve KFC data from backend
 - Provides a more reliable data source
-- Can be extended to connect to actual MongoDB cluster
+- All data is stored in Convex
 
 ## Files Modified
 
@@ -88,9 +88,9 @@ node scripts/copy-kfc-data.js
 
 ## Future Improvements
 
-1. **MongoDB Integration**: Connect Convex functions to actual MongoDB cluster
-2. **API Endpoints**: Create proper REST API endpoints for KFC data
-3. **Caching**: Implement proper caching mechanisms
+1. **API Endpoints**: Create proper REST API endpoints for KFC data
+2. **Caching**: Implement proper caching mechanisms
+3. **Performance Optimization**: Optimize queries for large datasets
 4. **Real-time Updates**: Use Convex real-time subscriptions for live data
 
 ## Debug Commands

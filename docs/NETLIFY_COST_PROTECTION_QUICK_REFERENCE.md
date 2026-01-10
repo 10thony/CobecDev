@@ -79,3 +79,5 @@ Watch for:
 
 **Remember**: Your app uses Convex for backend, not Netlify Functions. Most costs will be bandwidth, not compute.
 
+
+

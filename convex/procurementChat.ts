@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import OpenAI from "openai";
 import { internal } from "./_generated/api";
 import { procurementAgent } from "./procurementAgent";
-import { DEFAULT_SYSTEM_PROMPT } from "./procurementChatSystemPrompts";
+import { DEFAULT_SYSTEM_PROMPT } from "./chatSystemPrompts";
 
 // Model to use for procurement chat
 const PROCUREMENT_CHAT_MODEL = "gpt-5-mini";
@@ -28,7 +28,7 @@ export const fetchProcurementLinks = action({
     
     try {
       // Fetch the primary system prompt from the database
-      const primaryPrompt = await ctx.runQuery(internal.procurementChatSystemPrompts.getPrimaryInternal, {});
+      const primaryPrompt = await ctx.runQuery(internal.chatSystemPrompts.getPrimaryInternal, {});
       const systemPromptText = primaryPrompt?.systemPromptText || DEFAULT_SYSTEM_PROMPT;
       
       const response = await openai.chat.completions.create({

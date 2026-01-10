@@ -78,22 +78,42 @@ Remember: Respond ONLY with valid JSON. No markdown code blocks, no explanations
 
 // Get all system prompts
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    typeId: v.optional(v.id("chatSystemPromptTypes")), // Optional filter by type
+  },
+  handler: async (ctx, args) => {
+    if (args.typeId) {
+      return await ctx.db
+        .query("chatSystemPrompts")
+        .withIndex("by_type", (q) => q.eq("type", args.typeId!))
+        .order("desc")
+        .collect();
+    }
     const prompts = await ctx.db
-      .query("procurementChatSystemPrompts")
+      .query("chatSystemPrompts")
       .order("desc")
       .collect();
     return prompts;
   },
 });
 
-// Get the primary/active system prompt
+// Get the primary/active system prompt for a specific type
 export const getPrimary = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    typeId: v.optional(v.id("chatSystemPromptTypes")), // Optional: get primary for specific type
+  },
+  handler: async (ctx, args) => {
+    if (args.typeId) {
+      return await ctx.db
+        .query("chatSystemPrompts")
+        .withIndex("by_type_primary", (q) => 
+          q.eq("type", args.typeId!).eq("isPrimarySystemPrompt", true)
+        )
+        .first();
+    }
+    // Get any primary prompt if no type specified
     const primary = await ctx.db
-      .query("procurementChatSystemPrompts")
+      .query("chatSystemPrompts")
       .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
       .first();
     return primary;
@@ -102,10 +122,20 @@ export const getPrimary = query({
 
 // Internal query for getting the primary prompt (for use in actions)
 export const getPrimaryInternal = internalQuery({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    typeId: v.optional(v.id("chatSystemPromptTypes")),
+  },
+  handler: async (ctx, args) => {
+    if (args.typeId) {
+      return await ctx.db
+        .query("chatSystemPrompts")
+        .withIndex("by_type_primary", (q) => 
+          q.eq("type", args.typeId!).eq("isPrimarySystemPrompt", true)
+        )
+        .first();
+    }
     const primary = await ctx.db
-      .query("procurementChatSystemPrompts")
+      .query("chatSystemPrompts")
       .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
       .first();
     return primary;
@@ -114,7 +144,7 @@ export const getPrimaryInternal = internalQuery({
 
 // Get a single prompt by ID
 export const get = query({
-  args: { id: v.id("procurementChatSystemPrompts") },
+  args: { id: v.id("chatSystemPrompts") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
   },
@@ -122,7 +152,7 @@ export const get = query({
 
 // Internal query for getting a prompt by ID (for use in actions)
 export const getByIdInternal = internalQuery({
-  args: { id: v.id("procurementChatSystemPrompts") },
+  args: { id: v.id("chatSystemPrompts") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
   },
@@ -133,16 +163,23 @@ export const getByIdInternal = internalQuery({
  * This always includes the complete list of approved links, not summaries
  */
 export const getFullPromptWithLinks = query({
-  args: {},
+  args: {
+    promptId: v.optional(v.id("chatSystemPrompts")), // Optional: specific prompt, otherwise uses primary
+  },
   returns: v.string(),
-  handler: async (ctx) => {
-    // Get the primary system prompt
-    const primaryPrompt = await ctx.db
-      .query("procurementChatSystemPrompts")
-      .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
-      .first();
+  handler: async (ctx, args) => {
+    // Get the system prompt
+    let prompt;
+    if (args.promptId) {
+      prompt = await ctx.db.get(args.promptId);
+    } else {
+      prompt = await ctx.db
+        .query("chatSystemPrompts")
+        .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
+        .first();
+    }
     
-    let basePrompt = primaryPrompt?.systemPromptText || DEFAULT_SYSTEM_PROMPT;
+    let basePrompt = prompt?.systemPromptText || DEFAULT_SYSTEM_PROMPT;
     
     // Get approved procurement links from the lookup table
     const lookup = await ctx.db
@@ -174,15 +211,18 @@ export const create = mutation({
     isPrimarySystemPrompt: v.boolean(),
     title: v.string(),
     description: v.optional(v.string()),
+    type: v.id("chatSystemPromptTypes"),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     
-    // If this is being set as primary, unset any existing primary
+    // If this is being set as primary, unset any existing primary for this type
     if (args.isPrimarySystemPrompt) {
       const existingPrimary = await ctx.db
-        .query("procurementChatSystemPrompts")
-        .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
+        .query("chatSystemPrompts")
+        .withIndex("by_type_primary", (q) => 
+          q.eq("type", args.type).eq("isPrimarySystemPrompt", true)
+        )
         .first();
       
       if (existingPrimary) {
@@ -193,11 +233,12 @@ export const create = mutation({
       }
     }
     
-    const id = await ctx.db.insert("procurementChatSystemPrompts", {
+    const id = await ctx.db.insert("chatSystemPrompts", {
       systemPromptText: args.systemPromptText,
       isPrimarySystemPrompt: args.isPrimarySystemPrompt,
       title: args.title,
       description: args.description,
+      type: args.type,
       createdAt: now,
       updatedAt: now,
     });
@@ -209,21 +250,31 @@ export const create = mutation({
 // Update an existing system prompt
 export const update = mutation({
   args: {
-    id: v.id("procurementChatSystemPrompts"),
+    id: v.id("chatSystemPrompts"),
     systemPromptText: v.optional(v.string()),
     isPrimarySystemPrompt: v.optional(v.boolean()),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
+    type: v.optional(v.id("chatSystemPromptTypes")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const { id, ...updates } = args;
     
-    // If setting as primary, unset any existing primary
+    const currentPrompt = await ctx.db.get(id);
+    if (!currentPrompt) {
+      throw new Error("Prompt not found");
+    }
+    
+    const typeId = updates.type ?? currentPrompt.type;
+    
+    // If setting as primary, unset any existing primary for this type
     if (updates.isPrimarySystemPrompt) {
       const existingPrimary = await ctx.db
-        .query("procurementChatSystemPrompts")
-        .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
+        .query("chatSystemPrompts")
+        .withIndex("by_type_primary", (q) => 
+          q.eq("type", typeId).eq("isPrimarySystemPrompt", true)
+        )
         .first();
       
       if (existingPrimary && existingPrimary._id !== id) {
@@ -245,22 +296,29 @@ export const update = mutation({
 
 // Delete a system prompt
 export const remove = mutation({
-  args: { id: v.id("procurementChatSystemPrompts") },
+  args: { id: v.id("chatSystemPrompts") },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
   },
 });
 
-// Set a prompt as the primary prompt
+// Set a prompt as the primary prompt for its type
 export const setPrimary = mutation({
-  args: { id: v.id("procurementChatSystemPrompts") },
+  args: { id: v.id("chatSystemPrompts") },
   handler: async (ctx, args) => {
     const now = Date.now();
     
-    // Unset any existing primary
+    const prompt = await ctx.db.get(args.id);
+    if (!prompt) {
+      throw new Error("Prompt not found");
+    }
+    
+    // Unset any existing primary for this type
     const existingPrimary = await ctx.db
-      .query("procurementChatSystemPrompts")
-      .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
+      .query("chatSystemPrompts")
+      .withIndex("by_type_primary", (q) => 
+        q.eq("type", prompt.type).eq("isPrimarySystemPrompt", true)
+      )
       .first();
     
     if (existingPrimary) {
@@ -282,10 +340,56 @@ export const setPrimary = mutation({
 
 // Initialize with default prompt if none exists
 export const initializeDefault = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    typeId: v.optional(v.id("chatSystemPromptTypes")), // Optional: initialize for specific type
+  },
+  handler: async (ctx, args) => {
+    // Get or create default type
+    let typeId = args.typeId;
+    if (!typeId) {
+      // Get default type by querying directly
+      const types = await ctx.db
+        .query("chatSystemPromptTypes")
+        .collect();
+      const defaultType = types.find(t => t.isDefault) || types[0];
+      
+      if (!defaultType) {
+        // Initialize types first - create them directly
+        const now = Date.now();
+        const defaultTypes = [
+          { name: "basic", displayName: "Basic", description: "Default basic chat system prompt", isDefault: true, order: 0 },
+          { name: "leads", displayName: "Leads", description: "System prompt for lead generation", isDefault: false, order: 1 },
+          { name: "procurementHubs", displayName: "Procurement Hubs", description: "System prompt for procurement hub discovery", isDefault: false, order: 2 },
+        ];
+        
+        for (const dt of defaultTypes) {
+          await ctx.db.insert("chatSystemPromptTypes", {
+            ...dt,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+        
+        // Get the default type after creation
+        const typesAfter = await ctx.db
+          .query("chatSystemPromptTypes")
+          .collect();
+        const defaultTypeAfter = typesAfter.find(t => t.isDefault) || typesAfter[0];
+        if (!defaultTypeAfter) {
+          throw new Error("Failed to initialize default prompt type");
+        }
+        typeId = defaultTypeAfter._id;
+      } else {
+        typeId = defaultType._id;
+      }
+    }
+    
+    // Check if a primary prompt already exists for this type
     const existing = await ctx.db
-      .query("procurementChatSystemPrompts")
+      .query("chatSystemPrompts")
+      .withIndex("by_type_primary", (q) => 
+        q.eq("type", typeId).eq("isPrimarySystemPrompt", true)
+      )
       .first();
     
     if (existing) {
@@ -293,11 +397,12 @@ export const initializeDefault = mutation({
     }
     
     const now = Date.now();
-    const id = await ctx.db.insert("procurementChatSystemPrompts", {
+    const id = await ctx.db.insert("chatSystemPrompts", {
       systemPromptText: DEFAULT_SYSTEM_PROMPT,
       isPrimarySystemPrompt: true,
       title: "Default Procurement Agent Prompt",
       description: "The default system prompt for the Procurement Data Intelligence Agent. Optimized for finding government procurement portals with accurate URL-city matching.",
+      type: typeId,
       createdAt: now,
       updatedAt: now,
     });
@@ -504,14 +609,16 @@ function injectApprovedLinksIntoPrompt(basePrompt: string, linksSection: string)
  * This mutation refreshes the lookup table and then updates the primary prompt
  */
 export const updatePrimaryWithApprovedLinks = mutation({
-  args: {},
+  args: {
+    typeId: v.optional(v.id("chatSystemPromptTypes")), // Optional: update primary for specific type
+  },
   returns: v.object({
     success: v.boolean(),
     message: v.string(),
     linkCount: v.number(),
     promptUpdated: v.boolean(),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const now = Date.now();
     
     // First, refresh the lookup table
@@ -568,10 +675,20 @@ export const updatePrimaryWithApprovedLinks = mutation({
     }
     
     // Get the primary system prompt
-    const primaryPrompt = await ctx.db
-      .query("procurementChatSystemPrompts")
-      .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
-      .first();
+    let primaryPrompt;
+    if (args.typeId) {
+      primaryPrompt = await ctx.db
+        .query("chatSystemPrompts")
+        .withIndex("by_type_primary", (q) => 
+          q.eq("type", args.typeId!).eq("isPrimarySystemPrompt", true)
+        )
+        .first();
+    } else {
+      primaryPrompt = await ctx.db
+        .query("chatSystemPrompts")
+        .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
+        .first();
+    }
     
     if (!primaryPrompt) {
       return {

@@ -2,14 +2,14 @@
 
 ## Overview
 
-The enhanced nomination system provides a complete workflow for submitting, reviewing, and approving KFC nominations using MongoDB cluster integration. The system includes a pending approval workflow where nominations are reviewed by Cobec admins before affecting KFC points.
+The enhanced nomination system provides a complete workflow for submitting, reviewing, and approving KFC nominations using Convex. The system includes a pending approval workflow where nominations are reviewed by Cobec admins before affecting KFC points.
 
 ## Key Features
 
-### 1. MongoDB Cluster Integration
-- All nomination data is stored in the MongoDB cluster (`workdemos` database)
-- Uses Convex actions for server-side operations
-- Automatic collection creation and indexing
+### 1. Convex Integration
+- All nomination data is stored in Convex
+- Uses Convex mutations and queries for server-side operations
+- Real-time updates across all connected users
 
 ### 2. Pending Approval Workflow
 - Nominations are created with "pending" status by default
@@ -92,7 +92,7 @@ Server-side functions:
 ### 1. Nomination Submission
 1. User fills out nomination form
 2. System creates nomination with "pending" status
-3. Nomination is stored in MongoDB cluster
+3. Nomination is stored in Convex
 4. No KFC points are awarded yet
 
 ### 2. Admin Review
@@ -123,9 +123,7 @@ node scripts/setup-nominations.js
 ### 2. Environment Variables
 Ensure your `.env.local` file contains:
 ```
-MONGODB_USERNAME=your_username
-MONGODB_PASSWORD=your_password
-MONGODB_CLUSTER=your_cluster_url
+VITE_CONVEX_URL=https://your-deployment.convex.cloud
 ```
 
 ### 3. Convex Deployment
@@ -166,15 +164,14 @@ npx convex deploy
 
 The system includes comprehensive error handling:
 - Form validation for required fields
-- Network error handling for MongoDB operations
+- Network error handling for Convex operations
 - Loading states for all async operations
 - User-friendly error messages
 - Retry functionality for failed operations
 
 ## Security Considerations
 
-- All database operations go through Convex actions
-- No direct client-side MongoDB access
+- All database operations go through Convex mutations and queries
 - Input validation and sanitization
 - Audit trail for all nomination changes
 

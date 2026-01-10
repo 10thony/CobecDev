@@ -1,0 +1,292 @@
+[
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "Next Generation Aviation Strategic Plan for New York State",
+      "contractID": "RFP-ESD-2025-AAM",
+      "issuingBody": {
+        "name": "Empire State Development (ESD)",
+        "level": "State"
+      },
+      "location": {
+        "region": "All NYS Counties",
+        "city": "Albany/New York City"
+      },
+      "status": "Open for Bidding",
+      "estimatedValueUSD": 750000,
+      "keyDates": {
+        "publishedDate": "2025-05-15",
+        "bidDeadline": "2025-06-30",
+        "projectedStartDate": "2025-08-01"
+      },
+      "source": {
+        "documentName": "NYSCR - New York State Contract Reporter",
+        "url": "https://www.highergov.com/sl/contract-opportunity/ny-next-generation-aviation-strategic-plan-51645219/"
+      },
+      "summary": "Development of a comprehensive strategic plan to position NYS as a leader in Advanced Air Mobility (AAM) and Uncrewed Aerial Systems (UAS). Requires market analysis, asset mapping of aerospace infrastructure, economic impact modeling, and policy recommendations for vertiport integration.",
+      "category": "AAM Infrastructure",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "IT Operations and Maintenance Service Provider - JFK New Terminal One",
+      "contractID": "NTO-RFP-ITO&M-SP-202501",
+      "issuingBody": {
+        "name": "The New Terminal One at JFK / PANYNJ",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Queens",
+        "region": "New York City"
+      },
+      "status": "Open for Bidding",
+      "estimatedValueUSD": 25000000,
+      "keyDates": {
+        "publishedDate": "2025-01-15",
+        "bidDeadline": "2025-03-25",
+        "projectedStartDate": "2026-06-01"
+      },
+      "source": {
+        "documentName": "Port Authority Builds - JFK Redevelopment",
+        "url": "https://www.portauthoritybuilds.com/redevelopment/us/en/jfk/planned-projects/terminal-1/news/the-new-terminal-one-at-jfk-announces-rfps-for-it-operations-and.html"
+      },
+      "summary": "Full-scale IT operations for a state-of-the-art international terminal. Scope includes Network Operations Center (NOC), Security Operations Center (SOC), passenger processing systems, and airside/safety infrastructure. Requires experience with high-availability systems and 30% MWBE participation goals.",
+      "category": "Network Admin",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    },
+    {
+      "opportunityType": "Forecasted Opportunity",
+      "opportunityTitle": "City-wide E-Procurement Performance Optimization (PASSPort 2026 Enhancement)",
+      "contractID": "00225P0002",
+      "issuingBody": {
+        "name": "NYC Mayor's Office of Contract Services (MOCS)",
+        "level": "City"
+      },
+      "location": {
+        "city": "New York City",
+        "region": "New York City"
+      },
+      "status": "Projected/Forecast",
+      "estimatedValueUSD": 230940954,
+      "keyDates": {
+        "publishedDate": "2025-10-01",
+        "bidDeadline": "2025-10-24",
+        "projectedStartDate": "2026-04-28"
+      },
+      "source": {
+        "documentName": "NYC PASSPort Public Portal",
+        "url": "https://passport.cityofnewyork.us/page.aspx/en/bpm/process_manage_extranet/26900"
+      },
+      "summary": "Large-scale software enhancement and system optimization for the PASSPort e-procurement platform. Technical requirements include system scalability improvements, software replacement for legacy modules, and performance optimization for 6-year term. Focus on cloud-native architecture.",
+      "category": "Software Development",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    },
+    {
+      "opportunityType": "Private Subcontract",
+      "opportunityTitle": "BVLOS Surveillance-as-a-Service Digital Infrastructure Expansion",
+      "contractID": "NUAIR-SaaS-2026",
+      "issuingBody": {
+        "name": "NUAIR Alliance",
+        "level": "Private"
+      },
+      "location": {
+        "city": "Syracuse/Rome",
+        "region": "Central New York"
+      },
+      "status": "Active / Open for Task Orders",
+      "estimatedValueUSD": 5000000,
+      "keyDates": {
+        "publishedDate": "2025-07-31",
+        "bidDeadline": "2026-02-01",
+        "projectedStartDate": "2026-03-01"
+      },
+      "source": {
+        "documentName": "NUAIR Newsroom / FAA LOA",
+        "url": "https://www.nuair.org/post/nuair-receives-faa-letter-of-acceptance-for-surveillance-as-a-service-opening-a-new-era-in-drone-in"
+      },
+      "summary": "Following the FAA Letter of Acceptance (LOA) for Surveillance-as-a-Service, NUAIR is seeking technical partners to scale digital infrastructure across the 50-mile corridor. Subcontracting opportunities for ground-based sensor integration, data fusion, and cybersecurity auditing for BVLOS operations.",
+      "category": "AAM Infrastructure",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "NY Cybersecurity Compliance and Restricted Technology Audit",
+      "contractID": "AB-A2237-COMP",
+      "issuingBody": {
+        "name": "NYS Office of Information Technology Services (ITS)",
+        "level": "State"
+      },
+      "location": {
+        "city": "Albany",
+        "region": "Capital District"
+      },
+      "status": "Projected/Forecast",
+      "estimatedValueUSD": 1200000,
+      "keyDates": {
+        "publishedDate": "2025-12-30",
+        "bidDeadline": "2026-03-15",
+        "projectedStartDate": "2026-05-01"
+      },
+      "source": {
+        "documentName": "StateScoop / NY Legislation",
+        "url": "https://statescoop.com/new-york-cybersecurity-law-tech-products-agencies-buying/"
+      },
+      "summary": "Consulting and software tools required to implement the new NY Cybersecurity Law (AB A2237) barring restricted foreign technologies (drones, chips, webcams). Requires development of restricted list database and state-wide agency audit capabilities. NIST 800-53 alignment required.",
+      "category": "Cybersecurity",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    },
+    {
+      "opportunityType": "Forecasted Opportunity",
+      "opportunityTitle": "Phase B Design-Build Services - JFK New Terminal One",
+      "contractID": "NTO-RFP-PHB-DB-202510",
+      "issuingBody": {
+        "name": "The New Terminal One at JFK",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Queens",
+        "region": "New York City"
+      },
+      "status": "Projected/Forecast",
+      "estimatedValueUSD": 100000000,
+      "keyDates": {
+        "publishedDate": "2025-10-01",
+        "bidDeadline": "2025-11-30",
+        "projectedStartDate": "2026-02-01"
+      },
+      "source": {
+        "documentName": "NTO JFK Work With Us",
+        "url": "https://portauthoritybuilds.com/redevelopment/us/en/jfk/planned-projects/terminal-1/work-with-us.html"
+      },
+      "summary": "Design-Build services for 700,000 sq ft expansion. Includes nine additional aircraft gates, civil infrastructure, and advanced terminal technology integration. Highly technical requirement for AAM/EVTOL-ready power and data systems.",
+      "category": "AAM Infrastructure",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "JFK New Terminal One - IT Service Management (ITSM) Support Services",
+      "contractID": "NTO-RFP-ITSM-SP-202501",
+      "issuingBody": {
+        "name": "The New Terminal One at JFK",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Jamaica",
+        "region": "New York City"
+      },
+      "status": "Open for Bidding",
+      "estimatedValueUSD": 5000000,
+      "keyDates": {
+        "publishedDate": "2025-01-16",
+        "bidDeadline": "2025-03-25",
+        "projectedStartDate": "2026-01-01"
+      },
+      "source": {
+        "documentName": "PR Newswire / Port Authority Builds",
+        "url": "https://www.prnewswire.com/news-releases/jfk-terminal-1-seeks-it-operations--service-management-rfps-302332156.html"
+      },
+      "summary": "Delivery of comprehensive Service Desk support, Incident, Change, Asset, and Problem Management. Technical environment includes enterprise licensing management and ITIL-aligned workflows for high-volume airport environment.",
+      "category": "Network Admin",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    },
+    {
+      "opportunityType": "Public Sector",
+      "opportunityTitle": "FY26 Unmanned Aerial Systems (UAS) Training and Equipment",
+      "contractID": "SAM-2026-UAS-EQP",
+      "issuingBody": {
+        "name": "NYS Department of Police",
+        "level": "State"
+      },
+      "location": {
+        "city": "Albany",
+        "region": "Capital District"
+      },
+      "status": "Projected/Forecast",
+      "estimatedValueUSD": 350000,
+      "keyDates": {
+        "publishedDate": "2025-11-01",
+        "bidDeadline": "2026-01-15",
+        "projectedStartDate": "2026-03-01"
+      },
+      "source": {
+        "documentName": "SAM.gov / NYSCR",
+        "url": "https://sam.gov/workspace/contract/opp/dee39b8806c74993a5b083f135a7f6a9/view"
+      },
+      "summary": "Renewal for tactical UAS flight equipment and specialized training. Requires equipment from approved domestic manufacturers (Blue UAS compliant) and certified Part 107 instructors for emergency response scenarios.",
+      "category": "AAM Infrastructure",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    },
+    {
+      "opportunityType": "Private Subcontract",
+      "opportunityTitle": "Micron RAM (Rural Air Mobility) Logistics Network Design",
+      "contractID": "MICRON-RAM-01",
+      "issuingBody": {
+        "name": "Micron Technology / NUAIR Partnership",
+        "level": "Private"
+      },
+      "location": {
+        "city": "Clay",
+        "region": "Central New York"
+      },
+      "status": "Projected/Forecast",
+      "estimatedValueUSD": 10000000,
+      "keyDates": {
+        "publishedDate": "2025-03-06",
+        "bidDeadline": "2026-04-01",
+        "projectedStartDate": "2027-01-01"
+      },
+      "source": {
+        "documentName": "DroneLife / Empire State Development",
+        "url": "https://dronelife.com/2025/03/06/nuair-expands-bvlos-airspace-in-central-new-york-doubling-operational-capacity/"
+      },
+      "summary": "Design and implementation of RAM network for transporting microchips via hybrid/electric aircraft. Subcontracting needs for autonomous flight control systems and secure cargo-integrated software at Syracuse Hancock International.",
+      "category": "Software Development",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    },
+    {
+      "opportunityType": "Forecasted Opportunity",
+      "opportunityTitle": "Mobility and Passenger Requiring Assistance (PRA) Digital Systems",
+      "contractID": "NTO-RFP-OPS-PRA-2505",
+      "issuingBody": {
+        "name": "The New Terminal One at JFK",
+        "level": "Regional"
+      },
+      "location": {
+        "city": "Queens",
+        "region": "New York City"
+      },
+      "status": "Projected/Forecast",
+      "estimatedValueUSD": 2500000,
+      "keyDates": {
+        "publishedDate": "2025-05-01",
+        "bidDeadline": "2025-06-11",
+        "projectedStartDate": "2026-01-15"
+      },
+      "source": {
+        "documentName": "PR Newswire JFK NTO",
+        "url": "https://www.prnewswire.com/news-releases/the-new-terminal-one-at-jfk-announces-rfps-for-guest-experience-and-passenger-requiring-assistance-services-302437672.html"
+      },
+      "summary": "Integration of digital accessibility and sensory systems. Scope includes reservation management software and real-time PRA tracking services within the 2.6 million sq ft terminal. Requires compliance with 30% MWBE goals.",
+      "category": "Software Development",
+      "isActive": true,
+      "createdAt": 1736445600000,
+      "updatedAt": 1736445600000
+    }
+  ]

@@ -73,9 +73,7 @@ export const MIN_TEXT_LENGTH_FOR_SUCCESS = 100;
 /**
  * Maximum HTML size to store (in characters)
  */
-export const MAX_HTML_SIZE = 100000;
-
-/**
+export const MAX_HTML_SIZE = 100000;/**
  * Maximum text size for AI processing (in characters)
  */
 export const MAX_TEXT_SIZE = 50000;
@@ -88,4 +86,3 @@ export const ENV_VARS = {
   BROWSERLESS_API_KEY: "BROWSERLESS_API_KEY",
   OPENAI_API_KEY: "OPENAI_API_KEY",
 } as const;
-

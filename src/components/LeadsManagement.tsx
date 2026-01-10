@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -98,10 +98,51 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [showJsonUpload, setShowJsonUpload] = useState(false);
+  
+  // Progressive loading state
+  const [accumulatedLeads, setAccumulatedLeads] = useState<Lead[]>([]);
+  const [lastLoadedId, setLastLoadedId] = useState<Id<"leads"> | undefined>(undefined);
+  const [hasMoreLeads, setHasMoreLeads] = useState(true);
+  const [totalLeads, setTotalLeads] = useState<number | null>(null);
+  const BATCH_SIZE = 50; // Load 50 leads at a time
 
-  // Queries
-  const allLeads = useQuery(api.leads.getAllLeads);
-  const leadsStats = useQuery(api.leads.getLeadsStats);
+  // Progressive loading: Load leads in batches
+  const leadsBatch = useQuery(
+    api.leads.getLeadsPaginated,
+    hasMoreLeads ? { limit: BATCH_SIZE, lastId: lastLoadedId } : "skip"
+  );
+
+  // Accumulate leads as batches come in
+  useEffect(() => {
+    if (leadsBatch) {
+      setAccumulatedLeads(prev => {
+        // Avoid duplicates by checking IDs
+        const existingIds = new Set(prev.map(l => l._id));
+        const newLeads = leadsBatch.leads.filter(l => !existingIds.has(l._id));
+        return [...prev, ...newLeads];
+      });
+      
+      if (leadsBatch.total !== undefined) {
+        setTotalLeads(leadsBatch.total);
+      }
+      
+      setHasMoreLeads(leadsBatch.hasMore);
+      
+      // If there are more leads, set the lastId to trigger next batch
+      if (leadsBatch.hasMore && leadsBatch.lastId) {
+        setLastLoadedId(leadsBatch.lastId);
+      }
+    }
+  }, [leadsBatch]);
+
+  // Use accumulated leads instead of allLeads
+  const allLeads = accumulatedLeads;
+
+  // Only load stats after we have some leads loaded
+  const leadsStats = useQuery(
+    api.leads.getLeadsStats,
+    accumulatedLeads.length > 0 ? {} : "skip"
+  );
   const selectedLead = useQuery(
     api.leads.getLeadById, 
     selectedLeadId ? { id: selectedLeadId } : "skip"
@@ -275,17 +316,11 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
     return <AlertCircle className="w-4 h-4 text-neon-error" />;
   };
 
-  if (!allLeads) {
-    return (
-      <div className={`flex items-center justify-center h-64 ${className}`}>
-        <RefreshCw className="w-8 h-8 animate-spin text-tron-cyan" />
-        <span className="ml-2 text-tron-gray">Loading leads...</span>
-      </div>
-    );
-  }
+  // Show page structure immediately, even if no leads loaded yet
+  // The page will populate as leads come in
 
   return (
-    <div className={`p-6 space-y-8 min-h-screen ${className}`}>
+    <div className={`space-y-8 ${className}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div className="space-y-1">
@@ -323,34 +358,51 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
       </div>
 
       {/* Stats Cards */}
-      {leadsStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 flex-shrink-0">
-          <TronStatCard
-            title="Total Leads"
-            value={leadsStats.total}
-            icon={<Briefcase className="w-8 h-8" />}
-            color="cyan"
-          />
-          <TronStatCard
-            title="Active Leads"
-            value={leadsStats.active}
-            icon={<CheckCircle className="w-8 h-8" />}
-            color="green"
-          />
-          <TronStatCard
-            title="Public Sector"
-            value={leadsStats.byOpportunityType['Public Sector'] || 0}
-            icon={<Building className="w-8 h-8" />}
-            color="blue"
-          />
-          <TronStatCard
-            title="Private Subcontract"
-            value={leadsStats.byOpportunityType['Private Subcontract'] || 0}
-            icon={<ExternalLink className="w-8 h-8" />}
-            color="orange"
-          />
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 flex-shrink-0">
+        {leadsStats ? (
+          <>
+            <TronStatCard
+              title="Total Leads"
+              value={leadsStats.total}
+              icon={<Briefcase className="w-8 h-8" />}
+              color="cyan"
+            />
+            <TronStatCard
+              title="Active Leads"
+              value={leadsStats.active}
+              icon={<CheckCircle className="w-8 h-8" />}
+              color="green"
+            />
+            <TronStatCard
+              title="Public Sector"
+              value={leadsStats.byOpportunityType['Public Sector'] || 0}
+              icon={<Building className="w-8 h-8" />}
+              color="blue"
+            />
+            <TronStatCard
+              title="Private Subcontract"
+              value={leadsStats.byOpportunityType['Private Subcontract'] || 0}
+              icon={<ExternalLink className="w-8 h-8" />}
+              color="orange"
+            />
+          </>
+        ) : (
+          <>
+            <TronPanel className="flex items-center justify-center h-24">
+              <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan" />
+            </TronPanel>
+            <TronPanel className="flex items-center justify-center h-24">
+              <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan" />
+            </TronPanel>
+            <TronPanel className="flex items-center justify-center h-24">
+              <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan" />
+            </TronPanel>
+            <TronPanel className="flex items-center justify-center h-24">
+              <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan" />
+            </TronPanel>
+          </>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Leads List */}
@@ -480,7 +532,10 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
           {/* Leads List */}
           <TronPanel>
             <div className="flex items-center justify-between text-sm text-tron-gray px-6 py-4 border-b border-tron-cyan/20">
-              <span className="font-medium">Showing {filteredLeads.length} of {allLeads.length} leads</span>
+              <span className="font-medium">
+                Showing {filteredLeads.length} of {totalLeads !== null ? totalLeads : accumulatedLeads.length} leads
+                {hasMoreLeads && ` (loading more...)`}
+              </span>
             </div>
             <div 
               className="overflow-y-auto"
@@ -490,6 +545,12 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
               }}
             >
               <div className="p-4 space-y-3">
+              {filteredLeads.length === 0 && accumulatedLeads.length === 0 && (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan mr-2" />
+                  <span className="text-tron-gray">Loading leads...</span>
+                </div>
+              )}
               {filteredLeads.map((lead) => (
                 <div
                   key={lead._id}
@@ -577,6 +638,12 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                   </div>
                 </div>
               ))}
+              {hasMoreLeads && (
+                <div className="flex items-center justify-center py-6">
+                  <RefreshCw className="w-5 h-5 animate-spin text-tron-cyan mr-2" />
+                  <span className="text-tron-gray">Loading more leads...</span>
+                </div>
+              )}
               </div>
             </div>
           </TronPanel>

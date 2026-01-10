@@ -63,11 +63,12 @@ interface ChatMessage {
 }
 
 interface SystemPrompt {
-  _id: Id<"procurementChatSystemPrompts">;
+  _id: Id<"chatSystemPrompts">;
   systemPromptText: string;
   isPrimarySystemPrompt: boolean;
   title: string;
   description?: string;
+  type: Id<"chatSystemPromptTypes">;
   createdAt: number;
   updatedAt: number;
 }
@@ -78,6 +79,7 @@ interface ProcurementChatProps {
 
 export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {}) {
   const { isSignedIn } = useAuth();
+  // @ts-ignore - Type instantiation is excessively deep due to Convex type inference, but the query works correctly at runtime
   const isCobecAdmin = useQuery(api.cobecAdmins.checkIfUserIsCobecAdmin);
   
   // Free message tracking constants and helpers (defined early so they can be used)
@@ -114,7 +116,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const [currentSessionId, setCurrentSessionId] = useState<Id<"procurementChatSessions"> | null>(null);
   const [showHistory, setShowHistory] = useState(true);
   const [retryingMessageId, setRetryingMessageId] = useState<string | null>(null);
-  const [injectSystemPrompt, setInjectSystemPrompt] = useState(true); // Default: on
+  const [selectedSystemPromptId, setSelectedSystemPromptId] = useState<Id<"chatSystemPrompts"> | null | undefined>(undefined); // undefined = use primary, null = none
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // System Prompt Management State
@@ -126,6 +128,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     description: '',
     systemPromptText: '',
     isPrimarySystemPrompt: false,
+    type: '' as Id<"chatSystemPromptTypes"> | '',
   });
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [modalMessage, setModalMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -152,14 +155,15 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const [exportResult, setExportResult] = useState<{ messageId: string; result: { imported: number; skipped: number } } | null>(null);
   
   // System Prompt queries and mutations
-  const systemPrompts = useQuery(api.procurementChatSystemPrompts.list, {});
-  const fullPromptWithLinks = useQuery(api.procurementChatSystemPrompts.getFullPromptWithLinks);
-  const createSystemPrompt = useMutation(api.procurementChatSystemPrompts.create);
-  const updateSystemPrompt = useMutation(api.procurementChatSystemPrompts.update);
-  const deleteSystemPrompt = useMutation(api.procurementChatSystemPrompts.remove);
-  const setPromptAsPrimary = useMutation(api.procurementChatSystemPrompts.setPrimary);
-  const initializeDefaultPrompt = useMutation(api.procurementChatSystemPrompts.initializeDefault);
-  const updatePrimaryWithApprovedLinks = useMutation(api.procurementChatSystemPrompts.updatePrimaryWithApprovedLinks);
+  const systemPrompts = useQuery(api.chatSystemPrompts.list, {});
+  const promptTypes = useQuery(api.chatSystemPromptTypes.list, {});
+  const fullPromptWithLinks = useQuery(api.chatSystemPrompts.getFullPromptWithLinks, {});
+  const createSystemPrompt = useMutation(api.chatSystemPrompts.create);
+  const updateSystemPrompt = useMutation(api.chatSystemPrompts.update);
+  const deleteSystemPrompt = useMutation(api.chatSystemPrompts.remove);
+  const setPromptAsPrimary = useMutation(api.chatSystemPrompts.setPrimary);
+  const initializeDefaultPrompt = useMutation(api.chatSystemPrompts.initializeDefault);
+  const updatePrimaryWithApprovedLinks = useMutation(api.chatSystemPrompts.updatePrimaryWithApprovedLinks);
   const [refreshingLinks, setRefreshingLinks] = useState(false);
   
   // Free message tracking state
@@ -305,7 +309,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
           await sendChatMessage({ 
             prompt: userPrompt,
             sessionId: sessionId,
-            injectSystemPrompt: injectSystemPrompt,
+            systemPromptId: selectedSystemPromptId,
           });
           
           // The response will be loaded via the sessionMessages query
@@ -411,7 +415,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       await sendChatMessage({ 
         prompt: content,
         sessionId: currentSessionId,
-        injectSystemPrompt: injectSystemPrompt,
+        systemPromptId: selectedSystemPromptId,
       });
       
       // The response will be loaded via the sessionMessages query which will
@@ -484,11 +488,13 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const handleStartCreatePrompt = () => {
     setIsCreatingPrompt(true);
     setEditingPrompt(null);
+    const defaultType = promptTypes?.find(t => t.isDefault) || promptTypes?.[0];
     setPromptFormData({
       title: '',
       description: '',
       systemPromptText: '',
       isPrimarySystemPrompt: false,
+      type: defaultType?._id || '',
     });
   };
 
@@ -500,17 +506,20 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       description: prompt.description || '',
       systemPromptText: prompt.systemPromptText,
       isPrimarySystemPrompt: prompt.isPrimarySystemPrompt,
+      type: prompt.type,
     });
   };
 
   const handleCancelPromptForm = () => {
     setIsCreatingPrompt(false);
     setEditingPrompt(null);
+    const defaultType = promptTypes?.find(t => t.isDefault) || promptTypes?.[0];
     setPromptFormData({
       title: '',
       description: '',
       systemPromptText: '',
       isPrimarySystemPrompt: false,
+      type: defaultType?._id || '',
     });
     setModalMessage(null);
   };
@@ -536,8 +545,8 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   };
 
   const handleSavePrompt = async () => {
-    if (!promptFormData.title.trim() || !promptFormData.systemPromptText.trim()) {
-      setError("Title and System Prompt Text are required");
+    if (!promptFormData.title.trim() || !promptFormData.systemPromptText.trim() || !promptFormData.type) {
+      setError("Title, System Prompt Text, and Type are required");
       return;
     }
 
@@ -551,6 +560,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
           description: promptFormData.description || undefined,
           systemPromptText: promptFormData.systemPromptText,
           isPrimarySystemPrompt: promptFormData.isPrimarySystemPrompt,
+          type: promptFormData.type as Id<"chatSystemPromptTypes">,
         });
       } else {
         // Create new prompt
@@ -559,6 +569,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
           description: promptFormData.description || undefined,
           systemPromptText: promptFormData.systemPromptText,
           isPrimarySystemPrompt: promptFormData.isPrimarySystemPrompt,
+          type: promptFormData.type as Id<"chatSystemPromptTypes">,
         });
       }
       handleCancelPromptForm();
@@ -569,7 +580,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     }
   };
 
-  const handleDeletePrompt = async (id: Id<"procurementChatSystemPrompts">) => {
+  const handleDeletePrompt = async (id: Id<"chatSystemPrompts">) => {
     try {
       await deleteSystemPrompt({ id });
     } catch (err) {
@@ -577,7 +588,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     }
   };
 
-  const handleSetPrimary = async (id: Id<"procurementChatSystemPrompts">) => {
+  const handleSetPrimary = async (id: Id<"chatSystemPrompts">) => {
     try {
       await setPromptAsPrimary({ id });
     } catch (err) {
@@ -757,38 +768,41 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                 <History className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               
-              {/* System Prompt Toggle */}
-              <label className="flex items-center gap-1 sm:gap-2 cursor-pointer group flex-shrink-0">
+              {/* System Prompt Selector */}
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <span className="text-xs text-tron-gray group-hover:text-tron-white transition-colors hidden sm:inline">
                   System Prompt
                 </span>
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={injectSystemPrompt}
-                    onChange={(e) => setInjectSystemPrompt(e.target.checked)}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`w-9 h-5 sm:w-11 sm:h-6 rounded-full transition-all duration-200 ${
-                      injectSystemPrompt
-                        ? 'bg-tron-cyan'
-                        : 'bg-tron-bg-card border border-tron-cyan/30'
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 left-0.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-tron-bg-deep transition-all duration-200 ${
-                        injectSystemPrompt ? 'translate-x-4 sm:translate-x-5' : 'translate-x-0'
-                      }`}
-                      style={{
-                        boxShadow: injectSystemPrompt
-                          ? '0 0 8px rgba(0, 212, 255, 0.6)'
-                          : 'none'
-                      }}
-                    />
-                  </div>
-                </div>
-              </label>
+                <select
+                  value={selectedSystemPromptId === undefined ? 'primary' : selectedSystemPromptId === null ? 'none' : selectedSystemPromptId}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'primary') {
+                      setSelectedSystemPromptId(undefined);
+                    } else if (value === 'none') {
+                      setSelectedSystemPromptId(null);
+                    } else {
+                      setSelectedSystemPromptId(value as Id<"chatSystemPrompts">);
+                    }
+                  }}
+                  disabled={systemPrompts === undefined}
+                  className="px-2 py-1 text-xs bg-tron-bg-deep border border-tron-cyan/30 rounded-lg 
+                             text-tron-white focus:outline-none focus:ring-2 focus:ring-tron-cyan 
+                             focus:border-tron-cyan cursor-pointer min-w-[120px] sm:min-w-[150px]
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="primary">Primary (Default)</option>
+                  <option value="none">None</option>
+                    {systemPrompts && systemPrompts.map((prompt) => {
+                      const promptType = promptTypes?.find(t => t._id === prompt.type);
+                      return (
+                        <option key={prompt._id} value={prompt._id}>
+                          {prompt.title}{prompt.isPrimarySystemPrompt ? ' (Primary)' : ''}{promptType ? ` - ${promptType.displayName}` : ''}
+                        </option>
+                      );
+                    })}
+                </select>
+              </div>
             </div>
           }
         >
@@ -1176,6 +1190,25 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                   </div>
 
                   <div>
+                    <label className="block text-sm text-tron-gray mb-2">Type *</label>
+                    <select
+                      value={promptFormData.type}
+                      onChange={(e) => setPromptFormData(prev => ({ ...prev, type: e.target.value as Id<"chatSystemPromptTypes"> }))}
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg 
+                                 text-tron-white focus:outline-none focus:ring-2 
+                                 focus:ring-tron-cyan focus:border-tron-cyan"
+                      disabled={promptTypes === undefined}
+                    >
+                      <option value="">Select a type...</option>
+                      {promptTypes && promptTypes.map((type) => (
+                        <option key={type._id} value={type._id}>
+                          {type.displayName}{type.isDefault ? ' (Default)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm text-tron-gray">System Prompt Text *</label>
                       <TronButton
@@ -1230,7 +1263,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                       onClick={handleSavePrompt}
                       variant="primary"
                       color="cyan"
-                      disabled={savingPrompt || !promptFormData.title.trim() || !promptFormData.systemPromptText.trim()}
+                      disabled={savingPrompt || !promptFormData.title.trim() || !promptFormData.systemPromptText.trim() || !promptFormData.type}
                       icon={savingPrompt ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     >
                       {savingPrompt ? 'Saving...' : 'Save Prompt'}
@@ -1300,14 +1333,26 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                                     Primary
                                   </span>
                                 )}
+                                {promptTypes && (() => {
+                                  const promptType = promptTypes.find(t => t._id === prompt.type);
+                                  return promptType ? (
+                                    <span className="px-2 py-0.5 bg-tron-bg-card text-tron-gray text-xs rounded-full border border-tron-cyan/20">
+                                      {promptType.displayName}
+                                    </span>
+                                  ) : null;
+                                })()}
                               </div>
                               {prompt.description && (
                                 <p className="text-sm text-tron-gray mb-2">{prompt.description}</p>
                               )}
-                              <p className="text-xs text-tron-gray/70">
-                                Updated: {new Date(prompt.updatedAt).toLocaleDateString()} • 
-                                {prompt.systemPromptText.length.toLocaleString()} characters
-                              </p>
+                    <p className="text-xs text-tron-gray/70">
+                              Updated: {new Date(prompt.updatedAt).toLocaleDateString()} • 
+                              {prompt.systemPromptText.length.toLocaleString()} characters
+                              {promptTypes && (() => {
+                                const type = promptTypes.find(t => t._id === prompt.type);
+                                return type ? ` • Type: ${type.displayName}` : '';
+                              })()}
+                            </p>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {!prompt.isPrimarySystemPrompt && (

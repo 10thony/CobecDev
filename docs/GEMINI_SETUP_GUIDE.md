@@ -38,10 +38,6 @@ Ensure your `.env.local` file contains:
 # Gemini AI API Key (using OPENAI_API_KEY variable name for compatibility)
 OPENAI_API_KEY=your_gemini_api_key_here
 
-# MongoDB credentials
-MONGODB_USERNAME=your_mongodb_username
-MONGODB_PASSWORD=your_mongodb_password
-MONGODB_CLUSTER=your_mongodb_cluster
 ```
 
 ### 2. Install Dependencies
@@ -77,103 +73,7 @@ This script will:
 - Read the Excel file (`usajobs_data_formatted.xlsx`)
 - Analyze data structure using Gemini AI for optimal chunking
 - Generate multiple embeddings for each job posting
-- Store optimized data structure in MongoDB
-
-### 5. MongoDB Atlas Vector Search Setup
-
-Create vector search indexes for the new multi-embedding structure:
-
-#### For Job Postings Collection:
-```json
-{
-  "mappings": {
-    "dynamic": true,
-    "fields": {
-      "embeddings.titleEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "embeddings.summaryEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "embeddings.requirementsEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "embeddings.dutiesEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "embeddings.combinedEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "jobTitle": {
-        "type": "string"
-      },
-      "location": {
-        "type": "string"
-      },
-      "department": {
-        "type": "string"
-      }
-    }
-  }
-}
-```
-
-#### For Resumes Collection:
-```json
-{
-  "mappings": {
-    "dynamic": true,
-    "fields": {
-      "embeddings.nameEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "embeddings.summaryEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "embeddings.skillsEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "embeddings.experienceEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "embeddings.educationEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "embeddings.combinedEmbedding": {
-        "dimensions": 768,
-        "similarity": "cosine",
-        "type": "knnVector"
-      },
-      "processedMetadata.name": {
-        "type": "string"
-      },
-      "processedMetadata.email": {
-        "type": "string"
-      }
-    }
-  }
-}
-```
+- Store optimized data structure in Convex
 
 ## Usage Examples
 
@@ -294,7 +194,6 @@ Consider implementing embedding caching for frequently accessed content.
 - [ ] Update environment variables with Gemini API key
 - [ ] Test Gemini embeddings functionality
 - [ ] Run new import script with multi-embedding structure
-- [ ] Update MongoDB Atlas vector search indexes
 - [ ] Test new search functions
 - [ ] Update frontend to use new search endpoints
 - [ ] Monitor performance and adjust similarity thresholds

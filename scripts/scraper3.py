@@ -66,7 +66,7 @@ def load_convex_url():
     if env_path.exists() and DOTENV_AVAILABLE:
         load_dotenv(env_path)
 
-    convex_url = os.getenv("VITE_CONVEX_URL") or os.getenv("CONVEX_URL")
+    convex_url = os.getenv("VITE_CONVEX_URL") or os.getenv("CONVEX_URL") or os.getenv("convex_url")
     return convex_url
 
 

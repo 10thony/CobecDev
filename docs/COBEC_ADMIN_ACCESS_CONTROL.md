@@ -2,7 +2,7 @@
 
 ## Overview
 
-The KFC Management page now implements role-based access control using the `cobecadmins` collection in MongoDB. Users who are in this collection have full access to all KFC management features, while other users can only access the nominations functionality.
+The KFC Management page now implements role-based access control using the `cobecAdmins` table in Convex. Users who are in this table have full access to all KFC management features, while other users can only access the nominations functionality.
 
 ## How It Works
 
@@ -97,9 +97,8 @@ To add a new cobec admin, you can:
    });
    ```
 
-2. **Directly insert into MongoDB** (for initial setup):
-   ```javascript
-   db.cobecadmins.insertOne({
+2. **Add via Convex dashboard** (for initial setup):
+   Navigate to the Convex dashboard and add an admin record to the `cobecAdmins` table:
      clerkUserId: "user_clerk_id_here",
      name: "Admin Name",
      email: "admin@example.com",
@@ -113,9 +112,9 @@ To add a new cobec admin, you can:
 
 ### Common Issues
 
-1. **User not showing as admin**: Check if the Clerk user ID is correctly added to the cobecadmins collection
+1. **User not showing as admin**: Check if the Clerk user ID is correctly added to the `cobecAdmins` table in Convex
 2. **Access denied errors**: Ensure the user is properly authenticated with Clerk
-3. **Database connection issues**: Verify MongoDB connection and collection exists
+3. **Database connection issues**: Verify Convex connection and table exists
 
 ### Debug Steps
 

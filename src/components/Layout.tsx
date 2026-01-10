@@ -36,9 +36,6 @@ export function Layout({ children }: LayoutProps) {
   const hrComponents = useQuery(api.hrDashboardComponents.getAllComponents);
   const visibleComponentIds = useQuery(api.hrDashboardComponents.getVisibleComponents);
   
-  // Hide sidebar only on leads management page
-  const isLeadsManagement = location.pathname === '/leads-management';
-  
   // Check if user is admin (either system admin or cobec admin)
   const isAdmin = userRole === "admin" || isCobecAdmin === true;
 
@@ -123,15 +120,15 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="flex h-screen bg-tron-bg-deep">
       {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && !isLeadsManagement && (
+      {isMobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Sidebar - Hidden only on Leads Management */}
-      {!isLeadsManagement && (
+      {/* Sidebar */}
+      {(
         <>
           {/* Desktop Sidebar */}
           <div className={`hidden lg:flex relative flex-col transition-all duration-300 ease-in-out ${
@@ -251,20 +248,18 @@ export function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header with Menu Button */}
-        {!isLeadsManagement && (
-          <div className="lg:hidden bg-tron-bg-panel border-b border-tron-cyan/20 px-4 py-3 flex items-center">
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 text-tron-gray hover:text-tron-white transition-colors"
-              aria-label="Open menu"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <Link to="/" className="ml-3 text-lg font-bold text-tron-white">
-              Cobecium
-            </Link>
-          </div>
-        )}
+        <div className="lg:hidden bg-tron-bg-panel border-b border-tron-cyan/20 px-4 py-3 flex items-center">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 text-tron-gray hover:text-tron-white transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <Link to="/" className="ml-3 text-lg font-bold text-tron-white">
+            Cobecium
+          </Link>
+        </div>
         
         <main className="flex-1 overflow-auto bg-tron-bg-deep">
           {children}

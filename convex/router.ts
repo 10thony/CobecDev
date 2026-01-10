@@ -31,6 +31,7 @@ import * as procurementScraperMutations from "./procurementScraperMutations";
 import * as procurementScraperQueries from "./procurementScraperQueries";
 import * as procurementScraperSystemPrompts from "./procurementScraperSystemPrompts";
 import * as procurementScraperBatchJobs from "./procurementScraperBatchJobs";
+import * as htmlParsingActions from "./htmlParsingActions";
 
 // Export all functions as a single API object
 export default {
@@ -65,4 +66,5 @@ export default {
   procurementScraperQueries,
   procurementScraperSystemPrompts,
   procurementScraperBatchJobs,
+  htmlParsingActions,
 };

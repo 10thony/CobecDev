@@ -378,6 +378,8 @@ export const getClerkUsers = action({
   handler: async (ctx) => {
     try {
       // Ensure admin exists first (auto-promote if none)
+      // @ts-ignore - TypeScript has deep type inference issues with Convex validators
+      // This is a known limitation when using complex validator types
       await ctx.runMutation(api.userRoles.ensureAdminExists, {});
       
       // Check if current user is admin using query

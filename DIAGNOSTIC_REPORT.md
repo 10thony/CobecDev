@@ -78,3 +78,5 @@ Ensure `package.json` exists at the project root and is accessible during the bu
 - The agent component may not be essential for basic functionality
 
 
+
+

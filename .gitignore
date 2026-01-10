@@ -31,3 +31,6 @@ bun.lockb
 
 # Playwright user data (contains browser cache, crash dumps, and potentially sensitive data)
 playwright_user_data/
+
+# Chromium user data (contains browser cache, profiles, etc.)
+chromium_user_data/

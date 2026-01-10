@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useQuery, useAction, useMutation } from 'convex/react';
-import { useAuth } from '@clerk/clerk-react';
-import { api } from '../../convex/_generated/api';
-import { 
-  Search, 
-  ArrowUpDown, 
-  ArrowUp, 
+import React, { useState, useMemo, useEffect } from "react";
+import { useQuery, useAction, useMutation } from "convex/react";
+import { useAuth } from "@clerk/clerk-react";
+import { api } from "../../convex/_generated/api";
+import {
+  Search,
+  ArrowUpDown,
+  ArrowUp,
   ArrowDown,
   RefreshCw,
   Play,
@@ -17,13 +17,15 @@ import {
   Eye,
   Square,
   X,
-  Trash2
-} from 'lucide-react';
-import { TronPanel } from './TronPanel';
-import { TronButton } from './TronButton';
-import { TronStatCard } from './TronStatCard';
-import { BrowserScraperPanel } from './BrowserScraperPanel';
-import { Id } from '../../convex/_generated/dataModel';
+  Trash2,
+  Upload,
+  Table,
+} from "lucide-react";
+import { TronPanel } from "./TronPanel";
+import { TronButton } from "./TronButton";
+import { TronStatCard } from "./TronStatCard";
+import { BrowserScraperPanel } from "./BrowserScraperPanel";
+import { Id } from "../../convex/_generated/dataModel";
 
 interface ScrapedProcurementData {
   _id: Id<"scrapedProcurementData">;
@@ -41,29 +43,56 @@ interface ScrapedProcurementData {
 type SortField = keyof ScrapedProcurementData;
 type SortDirection = "asc" | "desc" | null;
 
-export function ScrapedProcurementDataGrid({ className = '' }: { className?: string }) {
-  const [searchTerm, setSearchTerm] = useState('');
+export function ScrapedProcurementDataGrid({
+  className = "",
+}: {
+  className?: string;
+}) {
+  const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [selectedRecord, setSelectedRecord] = useState<ScrapedProcurementData | null>(null);
+  const [selectedRecord, setSelectedRecord] =
+    useState<ScrapedProcurementData | null>(null);
   const [showSanAntonioScraper, setShowSanAntonioScraper] = useState(false);
+  const [showHtmlParser, setShowHtmlParser] = useState(false);
+  const [htmlContent, setHtmlContent] = useState("");
+  const [sourceUrlInput, setSourceUrlInput] = useState("");
+  const [parsing, setParsing] = useState(false);
+  const [parsedResult, setParsedResult] = useState<{
+    data: any[];
+    rowCount: number;
+    columnCount: number;
+    notes?: string;
+  } | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const { userId } = useAuth();
 
   // Fetch data
-  const scrapedData = useQuery(api.procurementScraperQueries.getAllScrapedData, {});
+  const scrapedData = useQuery(
+    api.procurementScraperQueries.getAllScrapedData,
+    {},
+  );
   const stats = useQuery(api.procurementScraperQueries.getScrapingStats, {});
-  
+
   // Fetch active batch jobs for this user
   const activeJobs = useQuery(
     api.procurementScraperBatchJobs.getActiveJobs,
-    userId ? { userId } : "skip"
+    userId ? { userId } : "skip",
   );
-  
+
   // Actions
-  const scrapeAll = useAction(api.procurementScraperActions.scrapeAllApprovedLinks);
+  const scrapeAll = useAction(
+    api.procurementScraperActions.scrapeAllApprovedLinks,
+  );
   const cancelJob = useMutation(api.procurementScraperBatchJobs.cancelBatchJob);
-  const deleteRecord = useMutation(api.procurementScraperMutations.deleteScrapingRecord);
-  const deleteAllScrapedData = useMutation(api.procurementScraperMutations.deleteAllScrapedData);
+  const deleteRecord = useMutation(
+    api.procurementScraperMutations.deleteScrapingRecord,
+  );
+  const deleteAllScrapedData = useMutation(
+    api.procurementScraperMutations.deleteAllScrapedData,
+  );
+  const parseHtml = useAction(api.htmlParsingActions.parseHtmlIntelligently);
 
   // Filter and sort
   const filteredAndSorted = useMemo(() => {
@@ -74,11 +103,12 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
     // Search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((item) =>
-        item.state.toLowerCase().includes(term) ||
-        item.capital.toLowerCase().includes(term) ||
-        item.sourceUrl.toLowerCase().includes(term) ||
-        JSON.stringify(item.scrapedData).toLowerCase().includes(term)
+      filtered = filtered.filter(
+        (item) =>
+          item.state.toLowerCase().includes(term) ||
+          item.capital.toLowerCase().includes(term) ||
+          item.sourceUrl.toLowerCase().includes(term) ||
+          JSON.stringify(item.scrapedData).toLowerCase().includes(term),
       );
     }
 
@@ -145,7 +175,9 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
       low: "bg-red-500/20 text-red-400",
     };
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[quality as keyof typeof colors]}`}>
+      <span
+        className={`px-2 py-1 rounded text-xs font-medium ${colors[quality as keyof typeof colors]}`}
+      >
         {quality.toUpperCase()}
       </span>
     );
@@ -188,7 +220,7 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
 
   const handleCancelJob = async () => {
     if (!currentJob) return;
-    
+
     try {
       await cancelJob({ jobId: currentJob._id });
       console.log("Job cancelled successfully");
@@ -202,15 +234,21 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
     if (recordCount === 0) {
       return;
     }
-    
-    if (!confirm(`Are you sure you want to delete all ${recordCount} scraped entries? This action cannot be undone.`)) {
+
+    if (
+      !confirm(
+        `Are you sure you want to delete all ${recordCount} scraped entries? This action cannot be undone.`,
+      )
+    ) {
       return;
     }
-    
+
     try {
       const result = await deleteAllScrapedData({});
       if (result.success) {
-        console.log(`Successfully deleted ${result.deletedCount} scraped entries`);
+        console.log(
+          `Successfully deleted ${result.deletedCount} scraped entries`,
+        );
       }
     } catch (error) {
       console.error("Error deleting all scraped entries:", error);
@@ -219,16 +257,43 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
   };
 
   const handleDeleteRecord = async (recordId: Id<"scrapedProcurementData">) => {
-    if (!confirm("Are you sure you want to delete this scraped result? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this scraped result? This action cannot be undone.",
+      )
+    ) {
       return;
     }
-    
+
     try {
       await deleteRecord({ recordId });
       console.log("Record deleted successfully");
     } catch (error) {
       console.error("Error deleting record:", error);
       alert("Failed to delete record. Please try again.");
+    }
+  };
+
+  const handleParseHtml = async () => {
+    try {
+      setParseError(null);
+      setParsedResult(null);
+      if (!htmlContent.trim()) return;
+      setParsing(true);
+      const res = await parseHtml({
+        htmlContent,
+        sourceUrl: sourceUrlInput || undefined,
+      });
+      setParsedResult({
+        data: res.data || [],
+        rowCount: res.rowCount || 0,
+        columnCount: res.columnCount || 0,
+        notes: (res as any).notes,
+      });
+    } catch (err: any) {
+      setParseError(err?.message || "Failed to parse HTML");
+    } finally {
+      setParsing(false);
     }
   };
 
@@ -287,7 +352,7 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
                 />
                 {searchTerm && (
                   <button
-                    onClick={() => setSearchTerm('')}
+                    onClick={() => setSearchTerm("")}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-tron-gray hover:text-tron-text transition-colors"
                     aria-label="Clear search"
                   >
@@ -299,8 +364,8 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
             <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
               {currentJob ? (
                 <>
-                  <TronButton 
-                    onClick={handleCancelJob} 
+                  <TronButton
+                    onClick={handleCancelJob}
                     className="flex items-center gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 text-sm"
                     variant="outline"
                   >
@@ -310,16 +375,20 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
                 </>
               ) : (
                 <>
-                  <TronButton 
-                    onClick={handleScrapeAll} 
+                  <TronButton
+                    onClick={handleScrapeAll}
                     className="flex items-center gap-2 text-sm"
                   >
                     <Play className="w-4 h-4" />
-                    <span className="hidden sm:inline">Scrape All Approved Links</span>
+                    <span className="hidden sm:inline">
+                      Scrape All Approved Links
+                    </span>
                     <span className="sm:hidden">Scrape All</span>
                   </TronButton>
-                  <TronButton 
-                    onClick={() => setShowSanAntonioScraper(!showSanAntonioScraper)} 
+                  <TronButton
+                    onClick={() =>
+                      setShowSanAntonioScraper(!showSanAntonioScraper)
+                    }
                     className="flex items-center gap-2 border-tron-cyan/40 text-tron-cyan hover:bg-tron-cyan/10 hover:border-tron-cyan/60 text-sm"
                     variant="outline"
                   >
@@ -327,14 +396,25 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
                     <span className="hidden md:inline">Scrape San Antonio</span>
                     <span className="md:hidden">San Antonio</span>
                   </TronButton>
+                  <TronButton
+                    onClick={() => setShowHtmlParser(!showHtmlParser)}
+                    className="flex items-center gap-2 border-tron-cyan/40 text-tron-cyan hover:bg-tron-cyan/10 hover:border-tron-cyan/60 text-sm"
+                    variant="outline"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span className="hidden md:inline">Parse HTML</span>
+                    <span className="md:hidden">HTML Parser</span>
+                  </TronButton>
                   {scrapedData && scrapedData.length > 0 && (
-                    <TronButton 
-                      onClick={handleClearAll} 
+                    <TronButton
+                      onClick={handleClearAll}
                       className="flex items-center gap-2 border-orange-500/40 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/60 text-sm"
                       variant="outline"
                     >
                       <Trash2 className="w-4 h-4" />
-                      <span className="hidden sm:inline">Clear All Scraped Entries</span>
+                      <span className="hidden sm:inline">
+                        Clear All Scraped Entries
+                      </span>
                       <span className="sm:hidden">Clear All</span>
                     </TronButton>
                   )}
@@ -342,13 +422,14 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
               )}
             </div>
           </div>
-          
+
           {/* Progress Bar */}
           {currentJob && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm text-tron-gray">
                 <span>
-                  Scraping {currentJob.completedUrls + currentJob.failedUrls} of {currentJob.totalUrls} URLs
+                  Scraping {currentJob.completedUrls + currentJob.failedUrls} of{" "}
+                  {currentJob.totalUrls} URLs
                 </span>
                 <span>{progressPercentage}%</span>
               </div>
@@ -380,7 +461,9 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
         <TronPanel>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-tron-text">San Antonio Procurement Scraper</h3>
+              <h3 className="text-lg font-semibold text-tron-text">
+                San Antonio Procurement Scraper
+              </h3>
               <button
                 onClick={() => setShowSanAntonioScraper(false)}
                 className="text-tron-gray hover:text-tron-text transition-colors"
@@ -394,7 +477,7 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
               state="Texas"
               capital="San Antonio"
               onComplete={(result) => {
-                console.log('San Antonio scraping completed:', result);
+                console.log("San Antonio scraping completed:", result);
                 // The data will automatically refresh via Convex queries
                 // Close the panel after a short delay to show completion
                 setTimeout(() => {
@@ -406,6 +489,139 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
         </TronPanel>
       )}
 
+      {/* HTML Parser Panel */}
+      {showHtmlParser && (
+        <TronPanel>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-tron-text">
+                HTML Parser (GPT-5 Mini)
+              </h3>
+              <button
+                onClick={() => setShowHtmlParser(false)}
+                className="text-tron-gray hover:text-tron-text transition-colors"
+                aria-label="Close HTML parser panel"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="grid gap-4">
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
+                }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const text =
+                        typeof reader.result === "string" ? reader.result : "";
+                      setHtmlContent(text);
+                    };
+                    reader.readAsText(file);
+                  }
+                }}
+                className={`border-2 border-dashed rounded-lg p-4 text-sm ${isDragOver ? "border-tron-cyan bg-tron-cyan/5" : "border-tron-border bg-tron-bg-card"}`}
+              >
+                <div className="flex items-center gap-2 text-tron-gray">
+                  <Upload className="w-4 h-4" />
+                  <span>Drop an .html file here, or paste HTML below</span>
+                </div>
+              </div>
+              <textarea
+                value={htmlContent}
+                onChange={(e) => setHtmlContent(e.target.value)}
+                placeholder="Paste raw HTML..."
+                className="w-full min-h-[160px] bg-tron-bg border border-tron-border rounded-lg p-3 text-sm text-tron-text placeholder-tron-gray focus:outline-none focus:ring-2 focus:ring-tron-blue"
+              />
+              <input
+                type="text"
+                value={sourceUrlInput}
+                onChange={(e) => setSourceUrlInput(e.target.value)}
+                placeholder="Optional source URL for context"
+                className="w-full bg-tron-bg border border-tron-border rounded-lg p-2 text-sm text-tron-text placeholder-tron-gray focus:outline-none focus:ring-2 focus:ring-tron-blue"
+              />
+              <div className="flex items-center gap-2">
+                <TronButton
+                  onClick={handleParseHtml}
+                  disabled={parsing || !htmlContent.trim()}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  {parsing ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Table className="w-4 h-4" />
+                  )}
+                  <span>{parsing ? "Parsing..." : "Submit to AI"}</span>
+                </TronButton>
+                <TronButton
+                  variant="outline"
+                  onClick={() => {
+                    setHtmlContent("");
+                    setParsedResult(null);
+                    setParseError(null);
+                  }}
+                  className="flex items-center gap-2 border-tron-border text-tron-gray hover:bg-tron-bg-card hover:border-tron-cyan/60 text-sm"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Clear</span>
+                </TronButton>
+              </div>
+              {parseError && (
+                <div className="text-red-400 text-sm">{parseError}</div>
+              )}
+              {parsedResult &&
+                parsedResult.data &&
+                parsedResult.data.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="tron-table w-full min-w-[600px]">
+                      <thead>
+                        <tr>
+                          {Object.keys(parsedResult.data[0]).map((col) => (
+                            <th
+                              key={col}
+                              className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider"
+                            >
+                              {col}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parsedResult.data.map((row, idx) => (
+                          <tr
+                            key={idx}
+                            className="border-t border-tron-border hover:bg-tron-bg-card transition-colors"
+                          >
+                            {Object.keys(parsedResult.data[0]).map((col) => (
+                              <td
+                                key={col}
+                                className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-sm text-tron-text"
+                              >
+                                {String(row[col] ?? "")}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {parsedResult.notes && (
+                      <p className="text-xs text-tron-gray mt-2">
+                        Notes: {parsedResult.notes}
+                      </p>
+                    )}
+                  </div>
+                )}
+            </div>
+          </div>
+        </TronPanel>
+      )}
+
       {/* Table */}
       <TronPanel className="overflow-hidden">
         <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -413,13 +629,19 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
             <table className="tron-table w-full min-w-[800px]">
               <thead>
                 <tr>
-                  <th onClick={() => handleSort("state")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                  <th
+                    onClick={() => handleSort("state")}
+                    className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors"
+                  >
                     <div className="flex items-center gap-2">
                       <span>State</span>
                       {renderSortIcon("state")}
                     </div>
                   </th>
-                  <th onClick={() => handleSort("capital")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                  <th
+                    onClick={() => handleSort("capital")}
+                    className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors"
+                  >
                     <div className="flex items-center gap-2">
                       <span>City</span>
                       {renderSortIcon("capital")}
@@ -428,19 +650,28 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
                   <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider">
                     Source URL
                   </th>
-                  <th onClick={() => handleSort("scrapingStatus")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                  <th
+                    onClick={() => handleSort("scrapingStatus")}
+                    className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors"
+                  >
                     <div className="flex items-center gap-2">
                       <span>Status</span>
                       {renderSortIcon("scrapingStatus")}
                     </div>
                   </th>
-                  <th onClick={() => handleSort("dataQuality")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                  <th
+                    onClick={() => handleSort("dataQuality")}
+                    className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors"
+                  >
                     <div className="flex items-center gap-2">
                       <span>Quality</span>
                       {renderSortIcon("dataQuality")}
                     </div>
                   </th>
-                  <th onClick={() => handleSort("scrapedAt")} className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors">
+                  <th
+                    onClick={() => handleSort("scrapedAt")}
+                    className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-medium text-tron-gray uppercase tracking-wider cursor-pointer hover:bg-tron-bg-card transition-colors"
+                  >
                     <div className="flex items-center gap-2">
                       <span>Scraped At</span>
                       {renderSortIcon("scrapedAt")}
@@ -457,15 +688,27 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
               <tbody>
                 {filteredAndSorted.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-3 sm:px-6 py-8 text-center text-tron-gray text-sm">
-                      {searchTerm ? "No results found" : "No scraped data yet. Click 'Scrape All Approved Links' to start."}
+                    <td
+                      colSpan={8}
+                      className="px-3 sm:px-6 py-8 text-center text-tron-gray text-sm"
+                    >
+                      {searchTerm
+                        ? "No results found"
+                        : "No scraped data yet. Click 'Scrape All Approved Links' to start."}
                     </td>
                   </tr>
                 ) : (
                   filteredAndSorted.map((item) => (
-                    <tr key={item._id} className="border-t border-tron-border hover:bg-tron-bg-card transition-colors">
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-tron-text text-sm">{item.state}</td>
-                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-tron-text text-sm">{item.capital}</td>
+                    <tr
+                      key={item._id}
+                      className="border-t border-tron-border hover:bg-tron-bg-card transition-colors"
+                    >
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-tron-text text-sm">
+                        {item.state}
+                      </td>
+                      <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-tron-text text-sm">
+                        {item.capital}
+                      </td>
                       <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
                         <a
                           href={item.sourceUrl}
@@ -480,7 +723,9 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
                       <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           {getStatusIcon(item.scrapingStatus)}
-                          <span className="text-tron-text capitalize text-sm">{item.scrapingStatus.replace("_", " ")}</span>
+                          <span className="text-tron-text capitalize text-sm">
+                            {item.scrapingStatus.replace("_", " ")}
+                          </span>
                         </div>
                       </td>
                       <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap">
@@ -493,21 +738,32 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
                         <div className="max-w-md">
                           {item.scrapedData ? (
                             <div className="text-tron-text text-xs sm:text-sm">
-                              {typeof item.scrapedData === 'string' ? (
+                              {typeof item.scrapedData === "string" ? (
                                 <p className="truncate">{item.scrapedData}</p>
                               ) : item.scrapedData.rawResponse ? (
-                                <p className="truncate text-tron-gray">{item.scrapedData.rawResponse}</p>
+                                <p className="truncate text-tron-gray">
+                                  {item.scrapedData.rawResponse}
+                                </p>
                               ) : item.scrapedData.message ? (
-                                <p className="text-tron-gray italic">{item.scrapedData.message}</p>
+                                <p className="text-tron-gray italic">
+                                  {item.scrapedData.message}
+                                </p>
                               ) : (
                                 <pre className="text-xs bg-tron-bg-card p-2 rounded overflow-x-auto max-h-32 overflow-y-auto">
-                                  {JSON.stringify(item.scrapedData, null, 2).substring(0, 200)}
-                                  {JSON.stringify(item.scrapedData, null, 2).length > 200 && '...'}
+                                  {JSON.stringify(
+                                    item.scrapedData,
+                                    null,
+                                    2,
+                                  ).substring(0, 200)}
+                                  {JSON.stringify(item.scrapedData, null, 2)
+                                    .length > 200 && "..."}
                                 </pre>
                               )}
                             </div>
                           ) : (
-                            <span className="text-tron-gray text-xs sm:text-sm italic">No data</span>
+                            <span className="text-tron-gray text-xs sm:text-sm italic">
+                              No data
+                            </span>
                           )}
                         </div>
                       </td>
@@ -543,7 +799,9 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4">
           <TronPanel className="max-w-4xl w-full max-h-[90vh] overflow-y-auto mx-2 sm:mx-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-tron-text">Scraped Data Details</h2>
+              <h2 className="text-xl font-bold text-tron-text">
+                Scraped Data Details
+              </h2>
               <button
                 onClick={() => setSelectedRecord(null)}
                 className="text-tron-gray hover:text-tron-text"
@@ -553,22 +811,61 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
             </div>
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium text-tron-gray mb-2">Source Information</h3>
+                <h3 className="text-sm font-medium text-tron-gray mb-2">
+                  Source Information
+                </h3>
                 <div className="bg-tron-bg-card p-4 rounded-lg space-y-2">
-                  <p><span className="font-medium">State:</span> {selectedRecord.state}</p>
-                  <p><span className="font-medium">City:</span> {selectedRecord.capital}</p>
-                  <p><span className="font-medium">URL:</span> <a href={selectedRecord.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-tron-blue hover:underline">{selectedRecord.sourceUrl}</a></p>
-                  <p><span className="font-medium">Scraped At:</span> {new Date(selectedRecord.scrapedAt).toLocaleString()}</p>
-                  <p><span className="font-medium">Status:</span> {selectedRecord.scrapingStatus}</p>
-                  {selectedRecord.dataQuality && <p><span className="font-medium">Quality:</span> {selectedRecord.dataQuality}</p>}
-                  {selectedRecord.dataCompleteness && <p><span className="font-medium">Completeness:</span> {(selectedRecord.dataCompleteness * 100).toFixed(0)}%</p>}
+                  <p>
+                    <span className="font-medium">State:</span>{" "}
+                    {selectedRecord.state}
+                  </p>
+                  <p>
+                    <span className="font-medium">City:</span>{" "}
+                    {selectedRecord.capital}
+                  </p>
+                  <p>
+                    <span className="font-medium">URL:</span>{" "}
+                    <a
+                      href={selectedRecord.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-tron-blue hover:underline"
+                    >
+                      {selectedRecord.sourceUrl}
+                    </a>
+                  </p>
+                  <p>
+                    <span className="font-medium">Scraped At:</span>{" "}
+                    {new Date(selectedRecord.scrapedAt).toLocaleString()}
+                  </p>
+                  <p>
+                    <span className="font-medium">Status:</span>{" "}
+                    {selectedRecord.scrapingStatus}
+                  </p>
+                  {selectedRecord.dataQuality && (
+                    <p>
+                      <span className="font-medium">Quality:</span>{" "}
+                      {selectedRecord.dataQuality}
+                    </p>
+                  )}
+                  {selectedRecord.dataCompleteness && (
+                    <p>
+                      <span className="font-medium">Completeness:</span>{" "}
+                      {(selectedRecord.dataCompleteness * 100).toFixed(0)}%
+                    </p>
+                  )}
                   {selectedRecord.errorMessage && (
-                    <p className="text-red-400"><span className="font-medium">Error:</span> {selectedRecord.errorMessage}</p>
+                    <p className="text-red-400">
+                      <span className="font-medium">Error:</span>{" "}
+                      {selectedRecord.errorMessage}
+                    </p>
                   )}
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-tron-gray mb-2">Scraped Data (JSON)</h3>
+                <h3 className="text-sm font-medium text-tron-gray mb-2">
+                  Scraped Data (JSON)
+                </h3>
                 <pre className="bg-tron-bg-card p-4 rounded-lg overflow-x-auto text-xs text-tron-text">
                   {JSON.stringify(selectedRecord.scrapedData, null, 2)}
                 </pre>
@@ -580,4 +877,3 @@ export function ScrapedProcurementDataGrid({ className = '' }: { className?: str
     </div>
   );
 }
-

@@ -30,7 +30,7 @@ export function AdminPanelPage() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'hr-dashboard'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'hr-dashboard' | 'prompt-types'>('users');
 
   // Check if current user is admin
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
@@ -58,6 +58,22 @@ export function AdminPanelPage() {
   const updateComponentMutation = useMutation(api.hrDashboardComponents.updateComponent);
   const initializeComponentsMutation = useMutation(api.hrDashboardComponents.initializeDefaultComponents);
   const bulkUpdateVisibilityMutation = useMutation(api.hrDashboardComponents.bulkUpdateVisibility);
+
+  // Chat System Prompt Types
+  const promptTypes = useQuery(api.chatSystemPromptTypes.list);
+  const createPromptType = useMutation(api.chatSystemPromptTypes.create);
+  const updatePromptType = useMutation(api.chatSystemPromptTypes.update);
+  const deletePromptType = useMutation(api.chatSystemPromptTypes.remove);
+  const initializePromptTypes = useMutation(api.chatSystemPromptTypes.initializeDefaults);
+  
+  const [editingType, setEditingType] = useState<any>(null);
+  const [typeFormData, setTypeFormData] = useState({
+    name: '',
+    displayName: '',
+    description: '',
+    isDefault: false,
+    order: 0,
+  });
 
   // Check if user has admin access
   const isAdmin = userRole === "admin" || isCobecAdmin === true;
@@ -296,12 +312,272 @@ export function AdminPanelPage() {
                 HR Dashboard Settings
               </div>
             </button>
+            <button
+              onClick={() => setActiveTab('prompt-types')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'prompt-types'
+                  ? 'text-tron-cyan border-b-2 border-tron-cyan'
+                  : 'text-tron-gray hover:text-tron-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Prompt Types
+              </div>
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'analytics' ? (
           <ProcurementChatAnalytics />
+        ) : activeTab === 'prompt-types' ? (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-tron-white mb-2 flex items-center space-x-2">
+                    <Settings className="h-5 w-5 text-tron-cyan" />
+                    <span>Chat System Prompt Types</span>
+                  </h2>
+                  <p className="text-sm text-tron-gray">
+                    Manage system prompt types (basic, leads, procurementHubs). Types are used to categorize system prompts.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await initializePromptTypes();
+                        toast.success("Default types initialized");
+                      } catch (error: any) {
+                        toast.error(`Failed to initialize: ${error.message}`);
+                      }
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-tron-cyan/20 text-tron-white rounded-md hover:bg-tron-cyan/30 transition-colors"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    <span>Initialize Defaults</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingType(null);
+                      setTypeFormData({
+                        name: '',
+                        displayName: '',
+                        description: '',
+                        isDefault: false,
+                        order: (promptTypes?.length || 0),
+                      });
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80 transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>New Type</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Create/Edit Form */}
+            {editingType !== null && (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6">
+                <h3 className="text-lg font-semibold text-tron-white mb-4">
+                  {editingType ? 'Edit Type' : 'Create New Type'}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Name *</label>
+                    <input
+                      type="text"
+                      value={typeFormData.name}
+                      onChange={(e) => setTypeFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., basic, leads, procurementHubs"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                      disabled={!!editingType}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Display Name *</label>
+                    <input
+                      type="text"
+                      value={typeFormData.displayName}
+                      onChange={(e) => setTypeFormData(prev => ({ ...prev, displayName: e.target.value }))}
+                      placeholder="e.g., Basic, Leads, Procurement Hubs"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Description</label>
+                    <input
+                      type="text"
+                      value={typeFormData.description}
+                      onChange={(e) => setTypeFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Optional description"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={typeFormData.isDefault}
+                      onChange={(e) => setTypeFormData(prev => ({ ...prev, isDefault: e.target.checked }))}
+                      className="w-4 h-4 rounded border-tron-cyan/30 bg-tron-bg-deep text-tron-cyan"
+                    />
+                    <label className="text-sm text-tron-white">Set as Default Type</label>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Order</label>
+                    <input
+                      type="number"
+                      value={typeFormData.order}
+                      onChange={(e) => setTypeFormData(prev => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          if (editingType) {
+                            await updatePromptType({
+                              id: editingType._id,
+                              ...typeFormData,
+                            });
+                            toast.success("Type updated");
+                          } else {
+                            await createPromptType(typeFormData);
+                            toast.success("Type created");
+                          }
+                          setEditingType(null);
+                          setTypeFormData({
+                            name: '',
+                            displayName: '',
+                            description: '',
+                            isDefault: false,
+                            order: 0,
+                          });
+                        } catch (error: any) {
+                          toast.error(`Failed: ${error.message}`);
+                        }
+                      }}
+                      className="px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80"
+                    >
+                      {editingType ? 'Update' : 'Create'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingType(null);
+                        setTypeFormData({
+                          name: '',
+                          displayName: '',
+                          description: '',
+                          isDefault: false,
+                          order: 0,
+                        });
+                      }}
+                      className="px-4 py-2 bg-tron-bg-card text-tron-white rounded-md hover:bg-tron-bg-elevated"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Types List */}
+            {promptTypes === undefined ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-tron-cyan" />
+                <span className="ml-3 text-tron-gray">Loading types...</span>
+              </div>
+            ) : promptTypes.length === 0 ? (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6 text-center">
+                <AlertCircle className="h-8 w-8 text-tron-gray mx-auto mb-2" />
+                <p className="text-tron-gray mb-4">No types configured yet.</p>
+                <button
+                  onClick={async () => {
+                    try {
+                      await initializePromptTypes();
+                      toast.success("Default types initialized");
+                    } catch (error: any) {
+                      toast.error(`Failed to initialize: ${error.message}`);
+                    }
+                  }}
+                  className="px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80"
+                >
+                  Initialize Default Types
+                </button>
+              </div>
+            ) : (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-tron-bg-elevated">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Display Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Description</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Default</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Order</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-tron-cyan/10">
+                    {promptTypes.map((type) => (
+                      <tr key={type._id} className="hover:bg-tron-bg-elevated">
+                        <td className="px-6 py-4 text-sm text-tron-white">{type.name}</td>
+                        <td className="px-6 py-4 text-sm text-tron-white">{type.displayName}</td>
+                        <td className="px-6 py-4 text-sm text-tron-gray">{type.description || '-'}</td>
+                        <td className="px-6 py-4 text-sm">
+                          {type.isDefault ? (
+                            <CheckCircle className="h-5 w-5 text-tron-cyan" />
+                          ) : (
+                            <XCircle className="h-5 w-5 text-tron-gray" />
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-tron-gray">{type.order}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingType(type);
+                                setTypeFormData({
+                                  name: type.name,
+                                  displayName: type.displayName,
+                                  description: type.description || '',
+                                  isDefault: type.isDefault,
+                                  order: type.order,
+                                });
+                              }}
+                              className="text-tron-cyan hover:text-tron-cyan-bright"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (confirm('Are you sure you want to delete this type?')) {
+                                  try {
+                                    await deletePromptType({ id: type._id });
+                                    toast.success("Type deleted");
+                                  } catch (error: any) {
+                                    toast.error(`Failed: ${error.message}`);
+                                  }
+                                }
+                              }}
+                              className="text-neon-error hover:text-neon-error-bright"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         ) : activeTab === 'hr-dashboard' ? (
           <div className="space-y-6">
             {/* Header */}

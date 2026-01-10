@@ -16,6 +16,7 @@
 import { internalAction, action } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { Id } from "../_generated/dataModel";
 import OpenAI from "openai";
 
 // Initialize OpenAI client
@@ -346,9 +347,30 @@ export const verifyPendingBatch = internalAction({
     
     // Get ONLY pending URLs that haven't been completed by AI yet
     // This query filters by status="pending" and excludes completed/processing links
-    const pendingUrls = await ctx.runQuery(internal.procurementUrls.getPendingForAgent, {
+    // @ts-ignore - TypeScript has deep type inference issues with Convex validators
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    const pendingUrlsRaw: any = await ctx.runQuery(internal.procurementUrls.getPendingForAgent, {
       limit: batchSize,
     });
+    const pendingUrls = pendingUrlsRaw as Array<{
+      _id: Id<"procurementUrls">;
+      _creationTime: number;
+      state: string;
+      capital: string;
+      officialWebsite: string;
+      procurementLink: string;
+      status: "pending" | "approved" | "denied";
+      verifiedBy?: string;
+      verifiedAt?: number;
+      denialReason?: string;
+      importedAt: number;
+      sourceFile?: string;
+      requiresRegistration?: boolean;
+      aiReviewStatus?: "idle" | "processing" | "completed" | "failed";
+      aiDecision?: "approve" | "deny";
+      aiReasoning?: string;
+      lastAgentAttempt?: number;
+    }>;
 
     if (pendingUrls.length === 0) {
       return {
@@ -453,9 +475,30 @@ export const triggerVerification = action({
     const batchSize = args.batchSize || 10;
     
     // Get ONLY pending URLs that haven't been completed by AI yet
-    const pendingUrls = await ctx.runQuery(internal.procurementUrls.getPendingForAgent, {
+    // @ts-ignore - TypeScript has deep type inference issues with Convex validators
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    const pendingUrlsRaw: any = await ctx.runQuery(internal.procurementUrls.getPendingForAgent, {
       limit: batchSize,
     });
+    const pendingUrls = pendingUrlsRaw as Array<{
+      _id: Id<"procurementUrls">;
+      _creationTime: number;
+      state: string;
+      capital: string;
+      officialWebsite: string;
+      procurementLink: string;
+      status: "pending" | "approved" | "denied";
+      verifiedBy?: string;
+      verifiedAt?: number;
+      denialReason?: string;
+      importedAt: number;
+      sourceFile?: string;
+      requiresRegistration?: boolean;
+      aiReviewStatus?: "idle" | "processing" | "completed" | "failed";
+      aiDecision?: "approve" | "deny";
+      aiReasoning?: string;
+      lastAgentAttempt?: number;
+    }>;
 
     if (pendingUrls.length === 0) {
       return {

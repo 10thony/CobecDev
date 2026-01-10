@@ -6,8 +6,8 @@ This document describes the implementation of real-time nominations functionalit
 
 ## Architecture Changes
 
-### Before (MongoDB Actions)
-- Used MongoDB actions for data operations
+### Before (Legacy System)
+- Used external actions for data operations
 - Required manual refresh after operations
 - No real-time updates
 - Users had to manually reload data to see changes
@@ -28,7 +28,7 @@ Added new tables for nominations system:
 - `cobecadmins` - Stores admin user information
 
 ### 2. Convex Functions (`convex/nominations.ts`)
-Converted from MongoDB actions to Convex mutations and queries:
+Convex mutations and queries:
 
 **Mutations:**
 - `create` - Create new nomination
@@ -173,10 +173,6 @@ const { nominations, kfcPoints } = useNominationsByEmployee('Jane Smith');
 # Convex deployment URL
 CONVEX_URL=https://your-deployment.convex.cloud
 
-# MongoDB (for migration only)
-MONGODB_USERNAME=adminuser
-MONGODB_PASSWORD=your_password
-MONGODB_CLUSTER=demo.y407omc.mongodb.net
 ```
 
 ## Troubleshooting
@@ -184,7 +180,7 @@ MONGODB_CLUSTER=demo.y407omc.mongodb.net
 ### Common Issues
 
 1. **Data not updating**: Check that Convex queries are using `useQuery` instead of `useAction`
-2. **Migration errors**: Ensure MongoDB connection is working and Convex URL is correct
+2. **Connection errors**: Ensure Convex URL is correct
 3. **Type errors**: Regenerate Convex types with `npx convex dev`
 
 ### Debugging
@@ -202,4 +198,4 @@ MONGODB_CLUSTER=demo.y407omc.mongodb.net
 
 ## Conclusion
 
-The real-time nominations system provides a much better user experience with instant updates across all connected users. The migration from MongoDB actions to Convex queries and mutations enables true real-time collaboration while maintaining all existing functionality. 
+The real-time nominations system provides a much better user experience with instant updates across all connected users. Convex queries and mutations enable true real-time collaboration while maintaining all existing functionality. 

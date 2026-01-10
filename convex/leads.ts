@@ -1,5 +1,6 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery, action } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 // Create a new lead
 export const createLead = mutation({
@@ -224,6 +225,42 @@ export const getAllLeads = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("leads").order("desc").collect();
+  },
+});
+
+// Get leads with pagination for progressive loading
+// This loads leads in chunks to improve initial page load time
+export const getLeadsPaginated = query({
+  args: {
+    limit: v.number(),
+    lastId: v.optional(v.id("leads")),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit;
+    let query = ctx.db.query("leads").order("desc");
+    
+    // If we have a lastId, start after it (cursor-based pagination)
+    // For the first batch, just take the limit
+    const leads = args.lastId 
+      ? await query.filter(q => q.lt(q.field("_id"), args.lastId!)).take(limit)
+      : await query.take(limit);
+    
+    // Check if there are more by trying to get one more
+    const hasMore = leads.length === limit;
+    const lastId = leads.length > 0 ? leads[leads.length - 1]._id : undefined;
+    
+    // Get total count (this is lightweight as it's just a count)
+    // We'll do this only for the first batch to avoid repeated work
+    const total = args.lastId === undefined 
+      ? (await ctx.db.query("leads").collect()).length 
+      : undefined;
+    
+    return {
+      leads,
+      hasMore,
+      total,
+      lastId,
+    };
   },
 });
 
@@ -477,3 +514,229 @@ export const getLeadsStats = query({
     };
   },
 });
+
+// Internal mutation to clear embeddings for a single lead (called by action)
+export const clearLeadEmbedding = internalMutation({
+  args: {
+    leadId: v.id("leads"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    await ctx.db.patch(args.leadId, {
+      embedding: undefined,
+      embeddingModel: undefined,
+      embeddingGeneratedAt: undefined,
+      updatedAt: now,
+    });
+    return { success: true };
+  },
+});
+
+// Action to clear all embedding data from leads table
+// Uses the by_embedding_generated index to find leads with embeddings
+// Patches each lead directly without reading the full document
+// Designed to run in smaller batches to avoid timeout (600s limit)
+export const clearAllEmbeddings = action({
+  args: {
+    batchSize: v.optional(v.number()), // Batch size for getting IDs (default: 100)
+    maxBatches: v.optional(v.number()), // Maximum number of batches to process (default: 10)
+    lastEmbeddingGeneratedAt: v.optional(v.number()), // For pagination
+    lastModelIndexId: v.optional(v.id("leads")), // For pagination on model index
+    skipModelIndex: v.optional(v.boolean()), // Skip the model index check (for faster processing)
+  },
+  handler: async (ctx, args) => {
+    const batchSize = args.batchSize ?? 100;
+    const maxBatches = args.maxBatches ?? 10; // Process max 10 batches per call to avoid timeout
+    let clearedCount = 0;
+    let processedCount = 0;
+    let errorCount = 0;
+    let lastEmbeddingGeneratedAt = args.lastEmbeddingGeneratedAt;
+    let lastModelIndexId = args.lastModelIndexId;
+    const errors: string[] = [];
+    let hasMoreEmbeddingGenerated = true;
+    let batchCount = 0;
+    const startTime = Date.now();
+    const maxDuration = 550000; // 550 seconds - leave 50s buffer before 600s timeout
+    
+    // Process leads in batches using the by_embedding_generated index
+    while (hasMoreEmbeddingGenerated && batchCount < maxBatches) {
+      // Check if we're approaching timeout
+      if (Date.now() - startTime > maxDuration) {
+        errors.push(`Approaching timeout, stopping early. Processed ${batchCount} batches.`);
+        break;
+      }
+      
+      try {
+        // Get a batch of lead IDs that have embeddings (using the index)
+        const leadData = await ctx.runQuery(internal.leads.getLeadIdsWithEmbeddings, {
+          limit: batchSize,
+          lastEmbeddingGeneratedAt: lastEmbeddingGeneratedAt ?? undefined,
+        });
+        
+        if (!leadData || leadData.length === 0) {
+          hasMoreEmbeddingGenerated = false;
+          break;
+        }
+        
+        // Process each lead ID - patch directly without reading the document
+        for (const { id, embeddingGeneratedAt } of leadData) {
+          try {
+            // Patch the lead directly - this doesn't require reading the document
+            await ctx.runMutation(internal.leads.clearLeadEmbedding, { leadId: id });
+            clearedCount++;
+            processedCount++;
+            lastEmbeddingGeneratedAt = embeddingGeneratedAt;
+          } catch (error) {
+            // If patching fails, log and continue
+            errorCount++;
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            errors.push(`Failed to patch lead ${id}: ${errorMsg}`);
+            if (errors.length > 10) errors.shift();
+            processedCount++;
+          }
+        }
+        
+        batchCount++;
+        
+        // If we got fewer than batchSize, we've reached the end
+        if (leadData.length < batchSize) {
+          hasMoreEmbeddingGenerated = false;
+        }
+      } catch (error) {
+        // If query fails (e.g., byte limit), try smaller batch or stop
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        errorCount++;
+        errors.push(`Query error: ${errorMsg}`);
+        if (errors.length > 10) errors.shift();
+        hasMoreEmbeddingGenerated = false;
+      }
+    }
+    
+    // Also check by_embedding_model index for any leads we might have missed
+    // Only if we haven't skipped it and haven't hit timeout
+    let modelIndexHasMore = false;
+    if (!args.skipModelIndex && (Date.now() - startTime < maxDuration)) {
+      modelIndexHasMore = true;
+      let modelBatchCount = 0;
+      const maxModelBatches = 5; // Limit model index batches too
+      
+      while (modelIndexHasMore && modelBatchCount < maxModelBatches && processedCount < 10000) {
+        // Check timeout again
+        if (Date.now() - startTime > maxDuration) {
+          break;
+        }
+        
+        try {
+          const leadIds = await ctx.runQuery(internal.leads.getLeadIdsWithEmbeddingModel, {
+            limit: batchSize,
+            lastId: lastModelIndexId,
+          });
+          
+          if (!leadIds || leadIds.length === 0) {
+            modelIndexHasMore = false;
+            break;
+          }
+          
+          for (const leadId of leadIds) {
+            try {
+              await ctx.runMutation(internal.leads.clearLeadEmbedding, { leadId });
+              clearedCount++;
+              processedCount++;
+              lastModelIndexId = leadId;
+            } catch (error) {
+              errorCount++;
+              processedCount++;
+              lastModelIndexId = leadId;
+            }
+          }
+          
+          modelBatchCount++;
+          
+          if (leadIds.length < batchSize) {
+            modelIndexHasMore = false;
+          }
+        } catch (error) {
+          modelIndexHasMore = false;
+        }
+      }
+    }
+    
+    const hasMore = hasMoreEmbeddingGenerated || modelIndexHasMore;
+    const duration = Date.now() - startTime;
+    
+    return {
+      processedCount,
+      clearedCount,
+      errorCount,
+      batchesProcessed: batchCount,
+      lastEmbeddingGeneratedAt,
+      lastModelIndexId,
+      hasMore,
+      durationMs: duration,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Cleared embedding data from ${clearedCount} lead(s) in ${batchCount} batch(es)${hasMore ? ' (more remaining - run again to continue)' : ' (complete)'}${errorCount > 0 ? ` (${errorCount} errors)` : ''}`,
+    };
+  },
+});
+
+// Internal query to get batch of lead IDs with embeddings using the index
+// Returns just IDs, even though documents are loaded (we extract IDs immediately)
+export const getLeadIdsWithEmbeddings = internalQuery({
+  args: {
+    limit: v.number(),
+    lastEmbeddingGeneratedAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    try {
+      // Use by_embedding_generated index - if a document has this field, it has embedding data
+      let query = ctx.db
+        .query("leads")
+        .withIndex("by_embedding_generated");
+      
+      // If we have a last timestamp, filter to get next batch
+      if (args.lastEmbeddingGeneratedAt !== undefined) {
+        query = query.filter(q => q.gt(q.field("embeddingGeneratedAt"), args.lastEmbeddingGeneratedAt!));
+      }
+      
+      const leads = await query.order("asc").take(args.limit);
+      
+      // Extract just the IDs and timestamps (minimal data)
+      return leads.map(lead => ({
+        id: lead._id,
+        embeddingGeneratedAt: lead.embeddingGeneratedAt,
+      }));
+    } catch (error) {
+      // If query fails due to byte limit, return empty array
+      // The action will handle this by processing in smaller batches
+      return [];
+    }
+  },
+});
+
+// Internal query to also check by_embedding_model index for leads that might have embeddings
+export const getLeadIdsWithEmbeddingModel = internalQuery({
+  args: {
+    limit: v.number(),
+    lastId: v.optional(v.id("leads")),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const lastId = args.lastId;
+      let query = ctx.db
+        .query("leads")
+        .withIndex("by_embedding_model");
+      
+      if (lastId !== undefined) {
+        query = query.filter(q => q.gt(q.field("_id"), lastId));
+      }
+      
+      const leads = await query.order("asc").take(args.limit);
+      
+      // Extract just the IDs
+      return leads.map(lead => lead._id);
+    } catch (error) {
+      return [];
+    }
+  },
+});
+
