@@ -582,6 +582,25 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     }
   };
 
+  const handleCopyPrompt = async (promptText: string, promptTitle: string) => {
+    try {
+      await navigator.clipboard.writeText(promptText);
+      setModalMessage({
+        type: 'success',
+        text: `System prompt "${promptTitle}" copied to clipboard!`
+      });
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setModalMessage(null), 3000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      setModalMessage({
+        type: 'error',
+        text: 'Failed to copy to clipboard. Please try again.'
+      });
+      setTimeout(() => setModalMessage(null), 3000);
+    }
+  };
+
   const handleSavePrompt = async () => {
     if (!promptFormData.title.trim() || !promptFormData.systemPromptText.trim() || !promptFormData.type) {
       setError("Title, System Prompt Text, and Type are required");
@@ -1386,6 +1405,16 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                                   Set Primary
                                 </TronButton>
                               )}
+                              <TronButton
+                                onClick={() => handleCopyPrompt(prompt.systemPromptText, prompt.title)}
+                                variant="outline"
+                                color="cyan"
+                                size="sm"
+                                icon={<Copy className="w-3 h-3" />}
+                                title="Copy Prompt to Clipboard"
+                              >
+                                Copy
+                              </TronButton>
                               <TronButton
                                 onClick={() => handleStartEditPrompt(prompt as SystemPrompt)}
                                 variant="outline"
