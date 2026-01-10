@@ -68,9 +68,14 @@ export function Layout({ children }: LayoutProps) {
       ? Object.keys(componentRouteMap)
       : visibleComponentIds;
 
+    // Always include government-links even if not in visibleComponentIds
+    // This ensures it's always available in the navigation
+    const componentsToShowWithGovernmentLinks = new Set(componentsToShow);
+    componentsToShowWithGovernmentLinks.add('government-links');
+
     // Get sorted visible components
     const sortedComponents = hrComponents
-      .filter(comp => componentsToShow.includes(comp.componentId))
+      .filter(comp => componentsToShowWithGovernmentLinks.has(comp.componentId))
       .sort((a, b) => {
         // Sort by order if available, otherwise by creation time
         if (a.order !== undefined && b.order !== undefined) {
@@ -93,6 +98,24 @@ export function Layout({ children }: LayoutProps) {
         });
       }
     });
+
+    // If government-links component doesn't exist in hrComponents but should be shown,
+    // add it manually using the default route info with proper ordering
+    if (!items.some(item => item.path === '/government-links')) {
+      const governmentLinksRoute = componentRouteMap['government-links'];
+      if (governmentLinksRoute) {
+        // Insert at position 1 (after procurement-links which is typically at position 0)
+        // or append if procurement-links isn't first
+        const procurementIndex = items.findIndex(item => item.path === '/');
+        const insertIndex = procurementIndex >= 0 ? procurementIndex + 1 : items.length;
+        items.splice(insertIndex, 0, {
+          to: governmentLinksRoute.path,
+          icon: governmentLinksRoute.icon,
+          label: governmentLinksRoute.defaultLabel,
+          path: governmentLinksRoute.path,
+        });
+      }
+    }
 
     return items;
   };
