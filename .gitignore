@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -34,3 +37,9 @@ playwright_user_data/
 
 # Chromium user data (contains browser cache, profiles, etc.)
 chromium_user_data/
+
+# Resume processing scripts and output
+scripts/readResumeData.py
+scripts/readmyResumes.py
+parsed_resumes.json
+Resumes/

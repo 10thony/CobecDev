@@ -68,9 +68,7 @@ export const SCRAPING_TIMEOUT_MS = 60000;
 /**
  * Minimum text length to consider a page successfully scraped
  */
-export const MIN_TEXT_LENGTH_FOR_SUCCESS = 100;
-
-/**
+export const MIN_TEXT_LENGTH_FOR_SUCCESS = 100;/**
  * Maximum HTML size to store (in characters)
  */
 export const MAX_HTML_SIZE = 100000;/**
