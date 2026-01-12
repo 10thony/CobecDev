@@ -173,7 +173,11 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const setPromptAsPrimary = useMutation(api.chatSystemPrompts.setPrimary);
   const initializeDefaultPrompt = useMutation(api.chatSystemPrompts.initializeDefault);
   const updatePrimaryWithApprovedLinks = useMutation(api.chatSystemPrompts.updatePrimaryWithApprovedLinks);
+  const updatePromptWithStateLinks = useMutation(api.chatSystemPrompts.updatePromptWithStateLinks);
+  const createLog = useMutation(api.logs.createLog);
   const [refreshingLinks, setRefreshingLinks] = useState(false);
+  const [updatingPromptId, setUpdatingPromptId] = useState<Id<"chatSystemPrompts"> | null>(null);
+  const lastAutoInjectedPromptId = useRef<Id<"chatSystemPrompts"> | null>(null);
   
   // Free message tracking state
   const [freeMessagesUsed, setFreeMessagesUsed] = useState(getFreeMessagesUsed());
@@ -243,6 +247,46 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       setMessages([]);
     }
   }, [sessionMessages, currentSessionId]);
+
+  // Helper function to check if prompt already has approved links section
+  const hasApprovedLinksSection = (promptText: string): boolean => {
+    return promptText.includes("## ALREADY APPROVED PROCUREMENT LINKS");
+  };
+
+  // Auto-inject links when a Leads prompt is selected (if not already present)
+  useEffect(() => {
+    // Only run if we have a specific prompt selected (not primary/undefined or null)
+    if (!selectedSystemPromptId || !systemPrompts || !promptTypes || updatingPromptId) {
+      return;
+    }
+
+    const selectedPrompt = systemPrompts.find(p => p._id === selectedSystemPromptId);
+    if (!selectedPrompt) {
+      return;
+    }
+
+    // Check if this is a Leads type prompt
+    const leadsType = promptTypes.find(t => t.name === "leads");
+    if (!leadsType || selectedPrompt.type !== leadsType._id) {
+      lastAutoInjectedPromptId.current = null; // Reset when switching to non-Leads prompt
+      return;
+    }
+
+    // Check if links are already present
+    if (hasApprovedLinksSection(selectedPrompt.systemPromptText)) {
+      lastAutoInjectedPromptId.current = selectedPrompt._id; // Mark as processed
+      return; // Links already present, no need to update
+    }
+
+    // Prevent duplicate calls for the same prompt
+    if (lastAutoInjectedPromptId.current === selectedPrompt._id) {
+      return; // Already attempted to inject for this prompt
+    }
+
+    // Auto-inject links for this Leads prompt
+    lastAutoInjectedPromptId.current = selectedPrompt._id;
+    handleUpdatePromptWithStateLinks(selectedPrompt._id, true); // true = auto-injection
+  }, [selectedSystemPromptId, systemPrompts, promptTypes, updatingPromptId]);
 
   const handleNewChat = async () => {
     if (!isSignedIn) {
@@ -689,6 +733,158 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       setTimeout(() => setModalMessage(null), 5000);
     } finally {
       setRefreshingLinks(false);
+    }
+  };
+
+  const handleUpdatePromptWithStateLinks = async (promptId: Id<"chatSystemPrompts">, isAutoInjection: boolean = false) => {
+    setUpdatingPromptId(promptId);
+    if (!isAutoInjection) {
+      setModalMessage(null);
+    }
+    
+    // Get prompt info for analytics
+    const prompt = systemPrompts?.find(p => p._id === promptId);
+    const promptTitle = prompt?.title || 'Unknown';
+    
+    try {
+      const result = await updatePromptWithStateLinks({ promptId });
+      if (result.success) {
+        // Record analytics for successful update
+        try {
+          await createLog({
+            action: isAutoInjection 
+              ? 'system_prompt_auto_inject_links' 
+              : 'system_prompt_manual_update_links',
+            type: 'action',
+            details: {
+              metadata: {
+                promptId: promptId,
+                promptTitle: promptTitle,
+                stateName: result.stateName || null,
+                linkCount: result.linkCount,
+                isAutoInjection: isAutoInjection,
+                success: true,
+                // Token and cost estimates
+                estimatedRequestTokens: result.estimatedRequestTokens || 0,
+                estimatedResponseTokens: result.estimatedResponseTokens || 0,
+                estimatedTotalTokens: result.estimatedTotalTokens || 0,
+                estimatedRequestCostCents: result.estimatedRequestCostCents || 0,
+                estimatedResponseCostCents: result.estimatedResponseCostCents || 0,
+                estimatedTotalCostCents: result.estimatedTotalCostCents || 0,
+                model: result.model || 'gpt-5-mini',
+                provider: result.provider || 'openai',
+                promptTextSize: result.promptTextSize || 0,
+              },
+            },
+          });
+        } catch (analyticsError) {
+          // Don't fail the operation if analytics fails
+          console.error('Failed to record analytics:', analyticsError);
+        }
+        
+        // Show success message only if manually triggered
+        if (!isAutoInjection) {
+          setModalMessage({
+            type: 'success',
+            text: result.message
+          });
+          setTimeout(() => setModalMessage(null), 5000);
+        }
+        // Reset the ref after successful update so it can be checked again if needed
+        if (lastAutoInjectedPromptId.current === promptId) {
+          lastAutoInjectedPromptId.current = null;
+        }
+      } else {
+        // Record analytics for failed update
+        try {
+          await createLog({
+            action: isAutoInjection 
+              ? 'system_prompt_auto_inject_links' 
+              : 'system_prompt_manual_update_links',
+            type: 'error',
+            details: {
+              errorMessage: result.message,
+              metadata: {
+                promptId: promptId,
+                promptTitle: promptTitle,
+                stateName: result.stateName || null,
+                linkCount: result.linkCount,
+                isAutoInjection: isAutoInjection,
+                success: false,
+                // Token and cost estimates (may be undefined on error)
+                estimatedRequestTokens: result.estimatedRequestTokens || 0,
+                estimatedResponseTokens: result.estimatedResponseTokens || 0,
+                estimatedTotalTokens: result.estimatedTotalTokens || 0,
+                estimatedRequestCostCents: result.estimatedRequestCostCents || 0,
+                estimatedResponseCostCents: result.estimatedResponseCostCents || 0,
+                estimatedTotalCostCents: result.estimatedTotalCostCents || 0,
+                model: result.model || 'gpt-5-mini',
+                provider: result.provider || 'openai',
+                promptTextSize: result.promptTextSize || 0,
+              },
+            },
+          });
+        } catch (analyticsError) {
+          console.error('Failed to record analytics:', analyticsError);
+        }
+        
+        // Show error message (even for auto-injection, as this indicates a problem)
+        setModalMessage({
+          type: 'error',
+          text: result.message
+        });
+        setTimeout(() => setModalMessage(null), 5000);
+        // Reset ref on error so it can be retried
+        if (lastAutoInjectedPromptId.current === promptId) {
+          lastAutoInjectedPromptId.current = null;
+        }
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update prompt with state links';
+      
+      // Record analytics for exception
+      try {
+        await createLog({
+          action: isAutoInjection 
+            ? 'system_prompt_auto_inject_links' 
+            : 'system_prompt_manual_update_links',
+          type: 'error',
+          details: {
+            errorMessage: errorMessage,
+            metadata: {
+              promptId: promptId,
+              promptTitle: promptTitle,
+              isAutoInjection: isAutoInjection,
+              success: false,
+              // Token and cost estimates (0 on error)
+              estimatedRequestTokens: 0,
+              estimatedResponseTokens: 0,
+              estimatedTotalTokens: 0,
+              estimatedRequestCostCents: 0,
+              estimatedResponseCostCents: 0,
+              estimatedTotalCostCents: 0,
+              model: 'gpt-5-mini',
+              provider: 'openai',
+              promptTextSize: 0,
+            },
+          },
+        });
+      } catch (analyticsError) {
+        console.error('Failed to record analytics:', analyticsError);
+      }
+      
+      // Show error message (even for auto-injection)
+      setModalMessage({
+        type: 'error',
+        text: errorMessage
+      });
+      setTimeout(() => setModalMessage(null), 5000);
+      // Reset ref on error so it can be retried
+      if (lastAutoInjectedPromptId.current === promptId) {
+        lastAutoInjectedPromptId.current = null;
+      }
+    } finally {
+      setUpdatingPromptId(null);
     }
   };
 
@@ -1521,6 +1717,27 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                               {/* Tooltip Menu - Appears below the button */}
                               <div className="absolute top-full right-0 mt-2 w-48 bg-tron-bg-card border border-tron-cyan/30 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60] overflow-hidden pointer-events-auto">
                                 <div className="py-1">
+                                  {(() => {
+                                    // Check if this is a Leads type prompt
+                                    const leadsType = promptTypes?.find(t => t.name === "leads");
+                                    const isLeadsPrompt = leadsType && prompt.type === leadsType._id;
+                                    
+                                    return isLeadsPrompt ? (
+                                      <button
+                                        onClick={() => handleUpdatePromptWithStateLinks(prompt._id)}
+                                        disabled={updatingPromptId === prompt._id}
+                                        className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Update this prompt with approved procurement links for the state in the title"
+                                      >
+                                        {updatingPromptId === prompt._id ? (
+                                          <Loader2 className="w-4 h-4 text-tron-cyan animate-spin" />
+                                        ) : (
+                                          <RefreshCw className="w-4 h-4 text-tron-cyan" />
+                                        )}
+                                        <span>Update Prompt with Links</span>
+                                      </button>
+                                    ) : null;
+                                  })()}
                                   {!prompt.isPrimarySystemPrompt && (
                                     <button
                                       onClick={() => handleSetPrimary(prompt._id)}

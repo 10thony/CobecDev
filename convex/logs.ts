@@ -106,4 +106,56 @@ export const getLogsByType = query({
       .order("desc")
       .take(limit);
   },
+});
+
+// Get system prompt analytics (admin only)
+export const getSystemPromptAnalytics = query({
+  args: {
+    limit: v.optional(v.number()),
+    actionFilter: v.optional(v.union(
+      v.literal("system_prompt_auto_inject_links"),
+      v.literal("system_prompt_manual_update_links")
+    )),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return [];
+    }
+    
+    // Check if user is admin
+    const userRole = await ctx.db
+      .query("userRoles")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .unique();
+    
+    if (userRole?.role !== "admin") {
+      return [];
+    }
+    
+    const limit = args.limit ?? 500;
+    const allLogs = await ctx.db
+      .query("logs")
+      .withIndex("by_creation")
+      .order("desc")
+      .collect();
+    
+    // Filter for system prompt actions
+    const systemPromptActions = [
+      "system_prompt_auto_inject_links",
+      "system_prompt_manual_update_links"
+    ];
+    
+    let filtered = allLogs.filter(log => 
+      systemPromptActions.includes(log.action)
+    );
+    
+    // Apply action filter if provided
+    if (args.actionFilter) {
+      filtered = filtered.filter(log => log.action === args.actionFilter);
+    }
+    
+    // Limit results
+    return filtered.slice(0, limit);
+  },
 }); 

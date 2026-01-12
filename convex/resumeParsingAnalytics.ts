@@ -1,7 +1,7 @@
 import { query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
-// Pricing constants (in cents per 1K tokens) - based on December 2024 pricing
+// Pricing constants (in cents per 1K tokens) - updated with latest OpenAI pricing
 interface ModelPricing {
   input: number;
   output: number;
@@ -9,8 +9,10 @@ interface ModelPricing {
 
 const MODEL_PRICING: Record<string, Record<string, ModelPricing>> = {
   "openai": {
-    "gpt-4o-mini": { input: 0.015, output: 0.060 }, // $0.15/1M in, $0.60/1M out
-    "gpt-5-mini": { input: 0.015, output: 0.060 }, // $0.15/1M in, $0.60/1M out (same as gpt-4o-mini)
+    "gpt-4o-mini": { input: 0.015, output: 0.060 }, // $0.15/1M in, $0.60/1M out (legacy pricing)
+    "gpt-5-mini": { input: 0.025, output: 0.200 }, // $0.250/1M in, $2.000/1M out
+    "gpt-5.2": { input: 0.175, output: 1.400 }, // $1.750/1M in, $14.000/1M out
+    "gpt-5.2-pro": { input: 2.100, output: 16.800 }, // $21.00/1M in, $168.00/1M out
     "gpt-4o": { input: 0.250, output: 1.000 }, // $2.50/1M in, $10/1M out
     "gpt-4-turbo": { input: 1.000, output: 3.000 }, // $10/1M in, $30/1M out
   },
@@ -20,8 +22,8 @@ const MODEL_PRICING: Record<string, Record<string, ModelPricing>> = {
   },
 };
 
-// Default pricing for unknown models
-const DEFAULT_PRICING: ModelPricing = { input: 0.015, output: 0.060 };
+// Default pricing for unknown models (gpt-5-mini pricing)
+const DEFAULT_PRICING: ModelPricing = { input: 0.025, output: 0.200 };
 
 // Calculate cost in cents
 function calculateCost(tokens: number, pricePerK: number): number {

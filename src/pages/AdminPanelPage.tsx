@@ -20,7 +20,9 @@ import {
   Lock,
   Unlock,
   Navigation,
-  Sparkles
+  Sparkles,
+  DollarSign,
+  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from "@clerk/clerk-react";
@@ -68,6 +70,16 @@ export function AdminPanelPage() {
   const updatePromptType = useMutation(api.chatSystemPromptTypes.update);
   const deletePromptType = useMutation(api.chatSystemPromptTypes.remove);
   const initializePromptTypes = useMutation(api.chatSystemPromptTypes.initializeDefaults);
+  
+  // System Prompt Analytics
+  const [analyticsFilter, setAnalyticsFilter] = useState<'all' | 'system_prompt_auto_inject_links' | 'system_prompt_manual_update_links'>('all');
+  const systemPromptAnalytics = useQuery(
+    api.logs.getSystemPromptAnalytics, 
+    { 
+      limit: 500,
+      actionFilter: analyticsFilter === 'all' ? undefined : analyticsFilter
+    }
+  );
   
   const [editingType, setEditingType] = useState<any>(null);
 
@@ -354,7 +366,7 @@ export function AdminPanelPage() {
             >
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4" />
-                Prompt Types
+                Prompt Management
               </div>
             </button>
             <button
@@ -665,10 +677,10 @@ export function AdminPanelPage() {
                 <div>
                   <h2 className="text-xl font-semibold text-tron-white mb-2 flex items-center space-x-2">
                     <Settings className="h-5 w-5 text-tron-cyan" />
-                    <span>Chat System Prompt Types</span>
+                    <span>Prompt Management</span>
                   </h2>
                   <p className="text-sm text-tron-gray">
-                    Manage system prompt types (basic, leads, procurementHubs). Types are used to categorize system prompts.
+                    Manage system prompt types and view analytics for prompt link updates.
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -903,6 +915,225 @@ export function AdminPanelPage() {
                 </table>
               </div>
             )}
+
+            {/* Analytics Section */}
+            <div className="space-y-4">
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-tron-white mb-2 flex items-center space-x-2">
+                      <BarChart3 className="h-5 w-5 text-tron-cyan" />
+                      <span>System Prompt Analytics</span>
+                    </h3>
+                    <p className="text-sm text-tron-gray">
+                      Track system prompt link updates (auto-injection and manual updates)
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={analyticsFilter}
+                      onChange={(e) => setAnalyticsFilter(e.target.value as any)}
+                      className="px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white text-sm"
+                    >
+                      <option value="all">All Events</option>
+                      <option value="system_prompt_auto_inject_links">Auto-Injections</option>
+                      <option value="system_prompt_manual_update_links">Manual Updates</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Analytics Stats */}
+                {systemPromptAnalytics && systemPromptAnalytics.length > 0 && (() => {
+                  const filtered = analyticsFilter === 'all' 
+                    ? systemPromptAnalytics 
+                    : systemPromptAnalytics.filter(log => log.action === analyticsFilter);
+                  
+                  const successCount = filtered.filter(log => 
+                    log.type === 'action' && 
+                    log.details?.metadata?.success === true
+                  ).length;
+                  const errorCount = filtered.filter(log => 
+                    log.type === 'error' || 
+                    (log.details?.metadata?.success === false)
+                  ).length;
+                  const autoCount = filtered.filter(log => 
+                    log.action === 'system_prompt_auto_inject_links'
+                  ).length;
+                  const manualCount = filtered.filter(log => 
+                    log.action === 'system_prompt_manual_update_links'
+                  ).length;
+                  const totalLinks = filtered.reduce((sum, log) => {
+                    const linkCount = log.details?.metadata?.linkCount || 0;
+                    return sum + linkCount;
+                  }, 0);
+                  
+                  const totalTokens = filtered.reduce((sum, log) => {
+                    const tokens = log.details?.metadata?.estimatedTotalTokens || 0;
+                    return sum + tokens;
+                  }, 0);
+                  
+                  const totalCostCents = filtered.reduce((sum, log) => {
+                    const cost = log.details?.metadata?.estimatedTotalCostCents || 0;
+                    return sum + cost;
+                  }, 0);
+                  
+                  const totalCostDollars = totalCostCents / 100;
+
+                  return (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+                      <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 p-4">
+                        <div className="text-sm text-tron-gray mb-1">Total Events</div>
+                        <div className="text-2xl font-bold text-tron-white">{filtered.length}</div>
+                      </div>
+                      <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 p-4">
+                        <div className="text-sm text-tron-gray mb-1">Successful</div>
+                        <div className="text-2xl font-bold text-tron-cyan">{successCount}</div>
+                      </div>
+                      <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 p-4">
+                        <div className="text-sm text-tron-gray mb-1">Errors</div>
+                        <div className="text-2xl font-bold text-neon-error">{errorCount}</div>
+                      </div>
+                      <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 p-4">
+                        <div className="text-sm text-tron-gray mb-1">Auto-Injections</div>
+                        <div className="text-2xl font-bold text-tron-cyan">{autoCount}</div>
+                      </div>
+                      <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 p-4">
+                        <div className="text-sm text-tron-gray mb-1">Manual Updates</div>
+                        <div className="text-2xl font-bold text-tron-cyan">{manualCount}</div>
+                      </div>
+                      <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 p-4">
+                        <div className="text-sm text-tron-gray mb-1">Total Tokens</div>
+                        <div className="text-2xl font-bold text-tron-cyan">{totalTokens.toLocaleString()}</div>
+                      </div>
+                      <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 p-4">
+                        <div className="text-sm text-tron-gray mb-1">Est. Total Cost</div>
+                        <div className="text-2xl font-bold text-tron-cyan">${totalCostDollars.toFixed(4)}</div>
+                      </div>
+                      <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 p-4 md:col-span-7">
+                        <div className="text-sm text-tron-gray mb-1">Total Links Injected</div>
+                        <div className="text-2xl font-bold text-tron-cyan">{totalLinks}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Analytics Table */}
+                {systemPromptAnalytics === undefined ? (
+                  <div className="flex items-center justify-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin text-tron-cyan" />
+                    <span className="ml-3 text-tron-gray">Loading analytics...</span>
+                  </div>
+                ) : (() => {
+                  const filtered = analyticsFilter === 'all' 
+                    ? systemPromptAnalytics 
+                    : systemPromptAnalytics.filter(log => log.action === analyticsFilter);
+                  
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 p-6 text-center">
+                        <AlertCircle className="h-8 w-8 text-tron-gray mx-auto mb-2" />
+                        <p className="text-tron-gray">No analytics data available yet.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="bg-tron-bg-deep rounded-lg border border-tron-cyan/20 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-tron-bg-elevated">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-tron-gray uppercase">Timestamp</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-tron-gray uppercase">Action</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-tron-gray uppercase">Prompt Title</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-tron-gray uppercase">State</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-tron-gray uppercase">Links</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-tron-gray uppercase">Tokens</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-tron-gray uppercase">Est. Cost</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-tron-gray uppercase">Status</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-tron-gray uppercase">Error</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-tron-cyan/10">
+                            {filtered.map((log) => {
+                              const metadata = log.details?.metadata || {};
+                              const isSuccess = log.type === 'action' && metadata.success !== false;
+                              const isAuto = log.action === 'system_prompt_auto_inject_links';
+                              
+                              const estimatedTotalTokens = metadata.estimatedTotalTokens || 0;
+                              const estimatedTotalCostCents = metadata.estimatedTotalCostCents || 0;
+                              const estimatedTotalCostDollars = estimatedTotalCostCents / 100;
+                              
+                              return (
+                                <tr key={log._id} className="hover:bg-tron-bg-elevated">
+                                  <td className="px-4 py-3 text-sm text-tron-gray">
+                                    {new Date(log.createdAt).toLocaleString()}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm">
+                                    <span className={`px-2 py-1 rounded text-xs ${
+                                      isAuto 
+                                        ? 'bg-tron-cyan/20 text-tron-cyan' 
+                                        : 'bg-tron-gray/20 text-tron-white'
+                                    }`}>
+                                      {isAuto ? 'Auto-Inject' : 'Manual'}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-tron-white">
+                                    {metadata.promptTitle || '-'}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-tron-cyan">
+                                    {metadata.stateName || '-'}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-tron-white">
+                                    {metadata.linkCount !== undefined ? metadata.linkCount : '-'}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-tron-white">
+                                    {estimatedTotalTokens > 0 ? (
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{estimatedTotalTokens.toLocaleString()}</span>
+                                        <span className="text-xs text-tron-gray">
+                                          {metadata.estimatedRequestTokens || 0} req / {metadata.estimatedResponseTokens || 0} resp
+                                        </span>
+                                      </div>
+                                    ) : '-'}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-tron-white">
+                                    {estimatedTotalCostCents > 0 ? (
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">${estimatedTotalCostDollars.toFixed(4)}</span>
+                                        <span className="text-xs text-tron-gray">
+                                          {metadata.model || 'gpt-4o-mini'} / {metadata.provider || 'openai'}
+                                        </span>
+                                      </div>
+                                    ) : '-'}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm">
+                                    {isSuccess ? (
+                                      <div className="flex items-center gap-1">
+                                        <CheckCircle className="h-4 w-4 text-tron-cyan" />
+                                        <span className="text-tron-cyan">Success</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-1">
+                                        <XCircle className="h-4 w-4 text-neon-error" />
+                                        <span className="text-neon-error">Error</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-tron-gray max-w-xs truncate">
+                                    {log.details?.errorMessage || '-'}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         ) : activeTab === 'hr-dashboard' ? (
           <div className="space-y-6">

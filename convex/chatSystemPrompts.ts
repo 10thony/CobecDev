@@ -2,6 +2,35 @@ import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
+// Pricing constants (in cents per 1K tokens) - updated with latest OpenAI pricing
+interface ModelPricing {
+  input: number;
+  output: number;
+}
+
+const MODEL_PRICING: Record<string, Record<string, ModelPricing>> = {
+  "openai": {
+    "gpt-4o-mini": { input: 0.015, output: 0.060 }, // $0.15/1M in, $0.60/1M out (legacy pricing)
+    "gpt-5-mini": { input: 0.025, output: 0.200 }, // $0.250/1M in, $2.000/1M out
+    "gpt-5.2": { input: 0.175, output: 1.400 }, // $1.750/1M in, $14.000/1M out
+    "gpt-5.2-pro": { input: 2.100, output: 16.800 }, // $21.00/1M in, $168.00/1M out
+    "gpt-4o": { input: 0.250, output: 1.000 }, // $2.50/1M in, $10/1M out
+    "gpt-4-turbo": { input: 1.000, output: 3.000 }, // $10/1M in, $30/1M out
+  },
+  "anthropic": {
+    "claude-3-5-sonnet": { input: 0.300, output: 1.500 }, // $3/1M in, $15/1M out
+    "claude-3-haiku": { input: 0.025, output: 0.125 }, // $0.25/1M in, $1.25/1M out
+  },
+};
+
+// Default pricing for unknown models (gpt-5-mini pricing)
+const DEFAULT_PRICING: ModelPricing = { input: 0.025, output: 0.200 };
+
+// Calculate cost in cents
+function calculateCost(tokens: number, pricePerK: number): number {
+  return Math.round((tokens / 1000) * pricePerK * 100) / 100; // Round to 2 decimal cents
+}
+
 // Default system prompt - used if no prompt exists in the database
 export const DEFAULT_SYSTEM_PROMPT = `You are a specialized Procurement Data Intelligence Agent. Your primary function is to assist users in identifying official government procurement, bidding, and RFP (Request for Proposal) portals for specific geographic regions (States, Cities, Counties, or Municipalities).
 
@@ -423,6 +452,52 @@ type ApprovedLink = {
 };
 
 /**
+ * Estimate token count from text (approximate: 1 token ≈ 4 characters)
+ * This is a rough approximation - actual tokenization varies
+ */
+function estimateTokens(text: string): number {
+  // Rough approximation: 1 token ≈ 4 characters
+  // This is conservative and works well for English text
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Extract state name from prompt title using simple text matching
+ * Returns state name if detected, null otherwise
+ */
+function extractStateFromTitle(title: string): string | null {
+  if (!title) return null;
+  
+  const titleLower = title.toLowerCase();
+  
+  // List of US states for matching
+  const states = [
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
+    "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
+    "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana",
+    "maine", "maryland", "massachusetts", "michigan", "minnesota",
+    "mississippi", "missouri", "montana", "nebraska", "nevada",
+    "new hampshire", "new jersey", "new mexico", "new york",
+    "north carolina", "north dakota", "ohio", "oklahoma", "oregon",
+    "pennsylvania", "rhode island", "south carolina", "south dakota",
+    "tennessee", "texas", "utah", "vermont", "virginia", "washington",
+    "west virginia", "wisconsin", "wyoming"
+  ];
+  
+  for (const state of states) {
+    if (titleLower.includes(state)) {
+      // Capitalize first letter of each word
+      return state
+        .split(" ")
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Format approved links into a readable section for the system prompt
  * Shows summary if more than 20 links (for runtime injection)
  */
@@ -528,6 +603,40 @@ function formatApprovedLinksForPromptFull(links: ApprovedLink[]): string {
     }
     formatted += "\n";
   }
+  
+  formatted += "CRITICAL: Before suggesting any procurement link, check this list. ";
+  formatted += "If the link already exists here, do NOT include it in your response. ";
+  formatted += "Instead, acknowledge that the link is already in our system.\n";
+  
+  return formatted;
+}
+
+/**
+ * Format approved links for a specific state (state-specific version)
+ * Always shows full details for the specified state's links
+ */
+function formatApprovedLinksForState(links: ApprovedLink[], targetState: string): string {
+  if (links.length === 0) return "";
+  
+  // Filter links for the target state
+  const stateLinks = links.filter(link => link.state === targetState);
+  
+  if (stateLinks.length === 0) return "";
+  
+  let formatted = "\n\n## ALREADY APPROVED PROCUREMENT LINKS\n";
+  formatted += `The following procurement links for ${targetState} have already been collected and approved in our system. `;
+  formatted += "DO NOT suggest these links again. If a user requests a link for one of these locations, ";
+  formatted += "inform them that we already have it in our system.\n\n";
+  
+  formatted += `### ${targetState}\n`;
+  for (const link of stateLinks) {
+    formatted += `- **${link.capital}**: ${link.procurementLink}`;
+    if (link.requiresRegistration) {
+      formatted += " (Requires Registration)";
+    }
+    formatted += "\n";
+  }
+  formatted += "\n";
   
   formatted += "CRITICAL: Before suggesting any procurement link, check this list. ";
   formatted += "If the link already exists here, do NOT include it in your response. ";
@@ -721,6 +830,159 @@ export const updatePrimaryWithApprovedLinks = mutation({
       message: `Successfully updated primary system prompt with ${formattedLinks.length} approved links.`,
       linkCount: formattedLinks.length,
       promptUpdated: true,
+    };
+  },
+});
+
+/**
+ * Update a specific system prompt with state-specific approved procurement links
+ * Extracts state name from prompt title and injects only that state's approved links
+ */
+export const updatePromptWithStateLinks = mutation({
+  args: {
+    promptId: v.id("chatSystemPrompts"),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    linkCount: v.number(),
+    promptUpdated: v.boolean(),
+    stateName: v.optional(v.string()),
+    estimatedRequestTokens: v.optional(v.number()),
+    estimatedResponseTokens: v.optional(v.number()),
+    estimatedTotalTokens: v.optional(v.number()),
+    estimatedRequestCostCents: v.optional(v.number()),
+    estimatedResponseCostCents: v.optional(v.number()),
+    estimatedTotalCostCents: v.optional(v.number()),
+    model: v.optional(v.string()),
+    provider: v.optional(v.string()),
+    promptTextSize: v.optional(v.number()),
+  }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    
+    // Get the prompt
+    const prompt = await ctx.db.get(args.promptId);
+    if (!prompt) {
+      return {
+        success: false,
+        message: "Prompt not found.",
+        linkCount: 0,
+        promptUpdated: false,
+        stateName: undefined,
+        estimatedRequestTokens: undefined,
+        estimatedResponseTokens: undefined,
+        estimatedTotalTokens: undefined,
+        estimatedRequestCostCents: undefined,
+        estimatedResponseCostCents: undefined,
+        estimatedTotalCostCents: undefined,
+        model: undefined,
+        provider: undefined,
+        promptTextSize: undefined,
+      };
+    }
+    
+    // Extract state name from prompt title
+    const stateName = extractStateFromTitle(prompt.title);
+    if (!stateName) {
+      return {
+        success: false,
+        message: `Could not extract state name from prompt title: "${prompt.title}". Please ensure the title contains a US state name.`,
+        linkCount: 0,
+        promptUpdated: false,
+        stateName: undefined,
+        estimatedRequestTokens: undefined,
+        estimatedResponseTokens: undefined,
+        estimatedTotalTokens: undefined,
+        estimatedRequestCostCents: undefined,
+        estimatedResponseCostCents: undefined,
+        estimatedTotalCostCents: undefined,
+        model: undefined,
+        provider: undefined,
+        promptTextSize: undefined,
+      };
+    }
+    
+    // Get approved procurement links for the specific state
+    const approvedLinks = await ctx.db
+      .query("procurementUrls")
+      .withIndex("by_state_status", (q) => q.eq("state", stateName).eq("status", "approved"))
+      .collect();
+    
+    // Transform to lookup format
+    type FormattedLink = {
+      state: string;
+      capital: string;
+      officialWebsite: string;
+      procurementLink: string;
+      entityType: string | null;
+      linkType: string | null;
+      requiresRegistration: boolean | null;
+    };
+    
+    const formattedLinks: FormattedLink[] = approvedLinks.map((link) => ({
+      state: link.state,
+      capital: link.capital,
+      officialWebsite: link.officialWebsite,
+      procurementLink: link.procurementLink,
+      entityType: null,
+      linkType: null,
+      requiresRegistration: link.requiresRegistration ?? null,
+    }));
+    
+    // Format approved links for the prompt (state-specific)
+    const linksSection = formatApprovedLinksForState(formattedLinks, stateName);
+    
+    // Get the base prompt (remove any existing approved links section)
+    let basePrompt = removeExistingApprovedLinksSection(prompt.systemPromptText);
+    
+    // If we have approved links, inject them into the prompt
+    const updatedPromptText = linksSection 
+      ? injectApprovedLinksIntoPrompt(basePrompt, linksSection)
+      : basePrompt;
+    
+    // Calculate token estimates and costs for analytics
+    // Use gpt-5-mini pricing as default (the model used in procurement chat)
+    const model = "gpt-5-mini";
+    const provider = "openai";
+    const modelPricing = MODEL_PRICING[provider]?.[model] ?? DEFAULT_PRICING;
+    
+    // Estimate tokens for the updated prompt (this is what would be sent to AI)
+    const estimatedRequestTokens = estimateTokens(updatedPromptText);
+    // For system prompts, we estimate response tokens as 0 since this is just the prompt being updated
+    // The actual AI usage happens when the prompt is used in chat conversations
+    const estimatedResponseTokens = 0;
+    const estimatedTotalTokens = estimatedRequestTokens + estimatedResponseTokens;
+    
+    // Calculate estimated costs
+    const estimatedRequestCostCents = calculateCost(estimatedRequestTokens, modelPricing.input);
+    const estimatedResponseCostCents = calculateCost(estimatedResponseTokens, modelPricing.output);
+    const estimatedTotalCostCents = estimatedRequestCostCents + estimatedResponseCostCents;
+    
+    // Update the prompt in the database
+    await ctx.db.patch(args.promptId, {
+      systemPromptText: updatedPromptText,
+      updatedAt: now,
+    });
+    
+    return {
+      success: true,
+      message: formattedLinks.length > 0
+        ? `Successfully updated prompt with ${formattedLinks.length} approved links for ${stateName}.`
+        : `No approved links found for ${stateName}. Prompt updated (removed existing links section).`,
+      linkCount: formattedLinks.length,
+      promptUpdated: true,
+      stateName: stateName,
+      // Include token and cost estimates for analytics
+      estimatedRequestTokens,
+      estimatedResponseTokens,
+      estimatedTotalTokens,
+      estimatedRequestCostCents,
+      estimatedResponseCostCents,
+      estimatedTotalCostCents,
+      model,
+      provider,
+      promptTextSize: updatedPromptText.length,
     };
   },
 });
