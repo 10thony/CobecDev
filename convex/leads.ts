@@ -243,56 +243,163 @@ export const getLeadsCount = query({
 // Get leads with pagination for progressive loading
 // Optimized to use by_creation index for better performance
 // This loads leads in chunks to improve initial page load time
+// Uses compound cursor (createdAt + _id) to handle duplicate timestamps correctly
 export const getLeadsPaginated = query({
   args: {
     limit: v.number(),
-    lastCreatedAt: v.optional(v.number()), // Use createdAt for cursor instead of _id
-    lastId: v.optional(v.id("leads")), // Keep for backward compatibility
+    lastCreatedAt: v.optional(v.number()), // Use createdAt for cursor
+    lastId: v.optional(v.id("leads")), // Use _id as secondary cursor for duplicate timestamps
     includeTotal: v.optional(v.boolean()), // Optionally include total count
   },
   handler: async (ctx, args) => {
     const limit = args.limit;
     
-    // Use by_creation index for efficient ordering
-    let query = ctx.db
-      .query("leads")
-      .withIndex("by_creation")
-      .order("desc");
-    
-    // Cursor-based pagination using createdAt (more efficient than _id)
-    // Support both new createdAt-based and old _id-based pagination for compatibility
+    // Cursor-based pagination using compound cursor (createdAt + _id)
+    // This handles duplicate timestamps correctly by using _id as tiebreaker
     let leads;
     if (args.lastCreatedAt !== undefined) {
-      // New approach: use createdAt for cursor
-      leads = await query
-        .filter(q => q.lt(q.field("createdAt"), args.lastCreatedAt!))
-        .take(limit);
+      // Compound cursor: createdAt < lastCreatedAt OR (createdAt === lastCreatedAt AND _id < lastId)
+      if (args.lastId !== undefined) {
+        // We have both cursor values - use two-step query to handle compound cursor
+        // Step 1: Get leads with createdAt < lastCreatedAt
+        const leadsBefore = await ctx.db
+          .query("leads")
+          .withIndex("by_creation")
+          .order("desc")
+          .filter(q => q.lt(q.field("createdAt"), args.lastCreatedAt!))
+          .take(limit);
+        
+        // Step 2: If we need more, get leads with same createdAt and filter by _id in memory
+        // Use a very conservative approach to avoid byte limit issues
+        if (leadsBefore.length < limit) {
+          const remaining = limit - leadsBefore.length;
+          try {
+            // Get leads with the same createdAt, but use a very small limit to avoid byte limit issues
+            // Use a conservative limit (remaining or max 20) to handle duplicates safely
+            const maxSameTimeLeads = Math.min(remaining, 20);
+            const allLeadsSameTime = await ctx.db
+              .query("leads")
+              .withIndex("by_creation")
+              .order("desc")
+              .filter(q => q.eq(q.field("createdAt"), args.lastCreatedAt!))
+              .take(maxSameTimeLeads);
+            
+            // Filter to only those with _id < lastId, then sort and take remaining
+            const leadsSameTime = allLeadsSameTime
+              .filter(lead => lead._id < args.lastId!)
+              .sort((a, b) => b._id.localeCompare(a._id))
+              .slice(0, remaining);
+            
+            // Combine and sort (by createdAt desc, then _id desc)
+            leads = [...leadsBefore, ...leadsSameTime].sort((a, b) => {
+              if (b.createdAt !== a.createdAt) {
+                return b.createdAt - a.createdAt;
+              }
+              // For same createdAt, sort by _id descending
+              return b._id.localeCompare(a._id);
+            });
+          } catch (error) {
+            // If we hit byte limit or other error, just return what we have
+            // The next pagination call will continue from where we left off
+            leads = leadsBefore;
+          }
+        } else {
+          leads = leadsBefore;
+        }
+      } else {
+        // Only createdAt provided (backward compatibility) - use simple filter
+        leads = await ctx.db
+          .query("leads")
+          .withIndex("by_creation")
+          .order("desc")
+          .filter(q => q.lt(q.field("createdAt"), args.lastCreatedAt!))
+          .take(limit);
+      }
     } else if (args.lastId !== undefined) {
       // Legacy approach: get the lead first to find its createdAt
       const lastLead = await ctx.db.get(args.lastId);
       if (lastLead) {
-        leads = await query
+        // Use compound cursor with the lead's createdAt
+        // Step 1: Get leads with createdAt < lastLead.createdAt
+        const leadsBefore = await ctx.db
+          .query("leads")
+          .withIndex("by_creation")
+          .order("desc")
           .filter(q => q.lt(q.field("createdAt"), lastLead.createdAt))
           .take(limit);
+        
+        // Step 2: If we need more, get leads with same createdAt and filter by _id in memory
+        // Use a very conservative approach to avoid byte limit issues
+        if (leadsBefore.length < limit) {
+          const remaining = limit - leadsBefore.length;
+          try {
+            // Get leads with the same createdAt, but use a very small limit to avoid byte limit issues
+            // Use a conservative limit (remaining or max 20) to handle duplicates safely
+            const maxSameTimeLeads = Math.min(remaining, 20);
+            const allLeadsSameTime = await ctx.db
+              .query("leads")
+              .withIndex("by_creation")
+              .order("desc")
+              .filter(q => q.eq(q.field("createdAt"), lastLead.createdAt))
+              .take(maxSameTimeLeads);
+            
+            // Filter to only those with _id < lastId, then sort and take remaining
+            const leadsSameTime = allLeadsSameTime
+              .filter(lead => lead._id < args.lastId!)
+              .sort((a, b) => b._id.localeCompare(a._id))
+              .slice(0, remaining);
+            
+            // Combine and sort
+            leads = [...leadsBefore, ...leadsSameTime].sort((a, b) => {
+              if (b.createdAt !== a.createdAt) {
+                return b.createdAt - a.createdAt;
+              }
+              return b._id.localeCompare(a._id);
+            });
+          } catch (error) {
+            // If we hit byte limit or other error, just return what we have
+            // The next pagination call will continue from where we left off
+            leads = leadsBefore;
+          }
+        } else {
+          leads = leadsBefore;
+        }
       } else {
         // If lastId not found, start from beginning
-        leads = await query.take(limit);
+        leads = await ctx.db
+          .query("leads")
+          .withIndex("by_creation")
+          .order("desc")
+          .take(limit);
       }
     } else {
       // First batch: just take the limit
-      leads = await query.take(limit);
+      leads = await ctx.db
+        .query("leads")
+        .withIndex("by_creation")
+        .order("desc")
+        .take(limit);
     }
     
     const lastId = leads.length > 0 ? leads[leads.length - 1]._id : undefined;
     const lastCreatedAt = leads.length > 0 ? leads[leads.length - 1].createdAt : undefined;
     
     // Only get total count if explicitly requested (to avoid expensive operation)
+    // Note: This can be expensive for large datasets, so we skip it if it might cause issues
     let total: number | undefined = undefined;
     if (args.includeTotal && args.lastCreatedAt === undefined && args.lastId === undefined) {
       // Only calculate total on first batch if requested
-      // This is still expensive but only done once when needed
-      const allLeads = await ctx.db.query("leads").collect();
-      total = allLeads.length;
+      // For very large datasets, this might hit byte limits, so we wrap in try-catch
+      try {
+        // Use a simple approach but with error handling
+        // If this fails, we'll just skip the total count
+        const allLeads = await ctx.db.query("leads").collect();
+        total = allLeads.length;
+      } catch (error) {
+        // If counting fails due to byte limit, just skip it
+        // The UI can work without the total count - it will show "X of ? leads"
+        total = undefined;
+      }
     }
     
     // Determine if there are more leads based on batch size

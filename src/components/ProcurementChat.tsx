@@ -35,7 +35,8 @@ import {
   MessageCircle,
   Search,
   Filter,
-  XCircle
+  XCircle,
+  MoreVertical
 } from 'lucide-react';
 
 interface ProcurementLink {
@@ -1449,18 +1450,18 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                     </div>
                   </div>
 
-                  {/* Prompts List */}
-                  <div className="space-y-3">
+                  {/* Prompts List - Horizontal Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {systemPrompts === undefined ? (
-                      <div className="flex items-center justify-center py-8 text-tron-gray">
+                      <div className="col-span-full flex items-center justify-center py-8 text-tron-gray">
                         <Loader2 className="w-6 h-6 animate-spin" />
                       </div>
                     ) : filteredSystemPrompts === undefined ? (
-                      <div className="flex items-center justify-center py-8 text-tron-gray">
+                      <div className="col-span-full flex items-center justify-center py-8 text-tron-gray">
                         <Loader2 className="w-6 h-6 animate-spin" />
                       </div>
                     ) : filteredSystemPrompts.length === 0 ? (
-                      <div className="text-center py-8 text-tron-gray">
+                      <div className="col-span-full text-center py-8 text-tron-gray">
                         <Settings className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p>
                           {systemPrompts.length === 0 
@@ -1477,18 +1478,19 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                       filteredSystemPrompts.map((prompt: SystemPrompt) => (
                         <div
                           key={prompt._id}
-                          className={`p-4 rounded-lg border transition-colors ${
+                          className={`p-4 rounded-lg border transition-colors flex flex-col h-full ${
                             prompt.isPrimarySystemPrompt
                               ? 'bg-tron-cyan/10 border-tron-cyan/40'
                               : 'bg-tron-bg-deep border-tron-cyan/10 hover:border-tron-cyan/30'
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-4">
+                          {/* Card Header */}
+                          <div className="flex items-start justify-between gap-2 mb-3">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium text-tron-white truncate">{prompt.title}</h4>
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <h4 className="font-medium text-tron-white truncate text-sm">{prompt.title}</h4>
                                 {prompt.isPrimarySystemPrompt && (
-                                  <span className="flex items-center gap-1 px-2 py-0.5 bg-tron-cyan/20 text-tron-cyan text-xs rounded-full">
+                                  <span className="flex items-center gap-1 px-2 py-0.5 bg-tron-cyan/20 text-tron-cyan text-xs rounded-full flex-shrink-0">
                                     <Star className="w-3 h-3" />
                                     Primary
                                   </span>
@@ -1496,71 +1498,87 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                                 {promptTypes && (() => {
                                   const promptType = promptTypes.find(t => t._id === prompt.type);
                                   return promptType ? (
-                                    <span className="px-2 py-0.5 bg-tron-bg-card text-tron-gray text-xs rounded-full border border-tron-cyan/20">
+                                    <span className="px-2 py-0.5 bg-tron-bg-card text-tron-gray text-xs rounded-full border border-tron-cyan/20 flex-shrink-0">
                                       {promptType.displayName}
                                     </span>
                                   ) : null;
                                 })()}
                               </div>
                               {prompt.description && (
-                                <p className="text-sm text-tron-gray mb-2">{prompt.description}</p>
+                                <p className="text-xs text-tron-gray mb-2 line-clamp-2">{prompt.description}</p>
                               )}
-                    <p className="text-xs text-tron-gray/70">
-                              Updated: {new Date(prompt.updatedAt).toLocaleDateString()} • 
-                              {prompt.systemPromptText.length.toLocaleString()} characters
-                              {promptTypes && (() => {
-                                const type = promptTypes.find(t => t._id === prompt.type);
-                                return type ? ` • Type: ${type.displayName}` : '';
-                              })()}
-                            </p>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {!prompt.isPrimarySystemPrompt && (
-                                <TronButton
-                                  onClick={() => handleSetPrimary(prompt._id)}
-                                  variant="outline"
-                                  color="cyan"
-                                  size="sm"
-                                  icon={<Star className="w-3 h-3" />}
-                                  title="Set as Primary"
-                                >
-                                  Set Primary
-                                </TronButton>
-                              )}
-                              <TronButton
-                                onClick={() => handleCopyPrompt(prompt.systemPromptText, prompt.title)}
-                                variant="outline"
-                                color="cyan"
-                                size="sm"
-                                icon={<Copy className="w-3 h-3" />}
-                                title="Copy Prompt to Clipboard"
-                              >
-                                Copy
-                              </TronButton>
-                              <TronButton
-                                onClick={() => handleStartEditPrompt(prompt as SystemPrompt)}
-                                variant="outline"
-                                color="cyan"
-                                size="sm"
-                                icon={<Edit2 className="w-3 h-3" />}
-                              >
-                                Edit
-                              </TronButton>
+                            
+                            {/* Action Menu - Top Right Corner */}
+                            <div className="relative group flex-shrink-0">
                               <button
-                                onClick={() => handleDeletePrompt(prompt._id)}
-                                className="p-2 hover:bg-neon-error/20 rounded-lg transition-colors"
-                                title="Delete Prompt"
+                                className="p-1.5 hover:bg-tron-cyan/10 rounded-lg transition-colors text-tron-gray hover:text-tron-cyan"
+                                title="Actions"
                               >
-                                <Trash2 className="w-4 h-4 text-neon-error" />
+                                <MoreVertical className="w-4 h-4" />
                               </button>
+                              
+                              {/* Tooltip Menu - Appears below the button */}
+                              <div className="absolute top-full right-0 mt-2 w-48 bg-tron-bg-card border border-tron-cyan/30 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60] overflow-hidden pointer-events-auto">
+                                <div className="py-1">
+                                  {!prompt.isPrimarySystemPrompt && (
+                                    <button
+                                      onClick={() => handleSetPrimary(prompt._id)}
+                                      className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                                    >
+                                      <Star className="w-4 h-4 text-tron-cyan" />
+                                      <span>Set as Primary</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleCopyPrompt(prompt.systemPromptText, prompt.title)}
+                                    className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                                  >
+                                    <Copy className="w-4 h-4 text-tron-cyan" />
+                                    <span>Copy Prompt</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleStartEditPrompt(prompt as SystemPrompt)}
+                                    className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                                  >
+                                    <Edit2 className="w-4 h-4 text-tron-cyan" />
+                                    <span>Edit Prompt</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeletePrompt(prompt._id)}
+                                    className="w-full px-4 py-2 text-left text-sm text-neon-error hover:bg-neon-error/20 flex items-center gap-2 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Delete Prompt</span>
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           </div>
                           
-                          {/* Preview of prompt text */}
-                          <div className="mt-3 p-3 bg-tron-bg-card rounded border border-tron-cyan/10">
-                            <p className="text-xs text-tron-gray font-mono line-clamp-3">
-                              {prompt.systemPromptText}
-                            </p>
+                          {/* Card Content - Horizontal Layout */}
+                          <div className="flex-1 flex flex-col gap-3">
+                            {/* Metadata */}
+                            <div className="flex items-center gap-2 text-xs text-tron-gray/70 flex-wrap">
+                              <span>{new Date(prompt.updatedAt).toLocaleDateString()}</span>
+                              <span>•</span>
+                              <span>{prompt.systemPromptText.length.toLocaleString()} chars</span>
+                            </div>
+                            
+                            {/* Preview of prompt text */}
+                            <div className="flex-1 p-2.5 bg-tron-bg-card rounded border border-tron-cyan/10 group relative hover:border-tron-cyan/30 transition-colors min-h-[108px]">
+                              <p className="text-xs text-tron-gray font-mono line-clamp-5">
+                                {prompt.systemPromptText}
+                              </p>
+                              {/* Hover tooltip showing full text */}
+                              <div className="absolute left-0 top-full mt-2 w-full max-w-2xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-auto">
+                                <div className="bg-tron-bg-card border border-tron-cyan/30 rounded-lg shadow-xl p-4 max-h-96 overflow-y-auto backdrop-blur-sm">
+                                  <p className="text-xs text-tron-white font-mono whitespace-pre-wrap break-words">
+                                    {prompt.systemPromptText}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))

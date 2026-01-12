@@ -6,7 +6,6 @@ import { LeadForm } from './LeadForm';
 import { JsonUploadComponent } from './JsonUploadComponent';
 import { TronPanel } from './TronPanel';
 import { TronButton } from './TronButton';
-import { TronStatCard } from './TronStatCard';
 import { 
   Search, 
   Filter, 
@@ -108,14 +107,14 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const BATCH_SIZE = 50; // Load 50 leads at a time
 
   // Progressive loading: Load leads in batches automatically
-  // Use lastCreatedAt for optimized pagination (uses index), fallback to lastId for compatibility
+  // Use compound cursor (createdAt + _id) for proper pagination with duplicate timestamps
   const leadsBatch = useQuery(
     api.leads.getLeadsPaginated,
     hasMoreLeads ? { 
       limit: BATCH_SIZE, 
       lastCreatedAt: lastLoadedCreatedAt,
-      lastId: lastLoadedCreatedAt === undefined ? lastLoadedId : undefined, // Only use lastId if no createdAt
-      includeTotal: lastLoadedCreatedAt === undefined, // Only get total on first batch
+      lastId: lastLoadedId, // Always pass both for compound cursor
+      includeTotal: lastLoadedCreatedAt === undefined && lastLoadedId === undefined, // Only get total on first batch
     } : "skip"
   );
 
@@ -139,14 +138,12 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
         return updated;
       });
       
-      // Update cursor for next batch - prefer lastCreatedAt for better performance
+      // Update cursor for next batch - use compound cursor (both createdAt and _id)
       if (leadsBatch.hasMore) {
         if (leadsBatch.lastCreatedAt !== undefined) {
           setLastLoadedCreatedAt(leadsBatch.lastCreatedAt);
-          // Clear lastId when using createdAt
-          setLastLoadedId(undefined);
-        } else if (leadsBatch.lastId) {
-          // Fallback to lastId if createdAt not available
+        }
+        if (leadsBatch.lastId) {
           setLastLoadedId(leadsBatch.lastId);
         }
       } else {
@@ -160,11 +157,6 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   // Use accumulated leads instead of allLeads
   const allLeads = accumulatedLeads;
 
-  // Only load stats after we have some leads loaded
-  const leadsStats = useQuery(
-    api.leads.getLeadsStats,
-    accumulatedLeads.length > 0 ? {} : "skip"
-  );
   const selectedLead = useQuery(
     api.leads.getLeadById, 
     selectedLeadId ? { id: selectedLeadId } : "skip"
@@ -377,53 +369,6 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
             Add Lead
           </TronButton>
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 flex-shrink-0">
-        {leadsStats ? (
-          <>
-            <TronStatCard
-              title="Total Leads"
-              value={leadsStats.total}
-              icon={<Briefcase className="w-8 h-8" />}
-              color="cyan"
-            />
-            <TronStatCard
-              title="Active Leads"
-              value={leadsStats.active}
-              icon={<CheckCircle className="w-8 h-8" />}
-              color="green"
-            />
-            <TronStatCard
-              title="Public Sector"
-              value={leadsStats.byOpportunityType['Public Sector'] || 0}
-              icon={<Building className="w-8 h-8" />}
-              color="blue"
-            />
-            <TronStatCard
-              title="Private Subcontract"
-              value={leadsStats.byOpportunityType['Private Subcontract'] || 0}
-              icon={<ExternalLink className="w-8 h-8" />}
-              color="orange"
-            />
-          </>
-        ) : (
-          <>
-            <TronPanel className="flex items-center justify-center h-24">
-              <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan" />
-            </TronPanel>
-            <TronPanel className="flex items-center justify-center h-24">
-              <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan" />
-            </TronPanel>
-            <TronPanel className="flex items-center justify-center h-24">
-              <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan" />
-            </TronPanel>
-            <TronPanel className="flex items-center justify-center h-24">
-              <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan" />
-            </TronPanel>
-          </>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
