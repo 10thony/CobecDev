@@ -3,7 +3,9 @@ import { useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, MapPin, Mail, Phone, Calendar, GraduationCap, Briefcase, Award, FileText, ExternalLink, Save, Edit3, X, Check, Upload } from "lucide-react";
+import { ArrowLeft, User, MapPin, Mail, Phone, Calendar, GraduationCap, Briefcase, Award, FileText, ExternalLink, Save, Edit3, X, Check, Upload, AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
+import { TronPanel } from "../components/TronPanel";
+import { TronButton } from "../components/TronButton";
 
 interface ResumeDetails {
   _id: string;
@@ -316,11 +318,11 @@ export function ResumeDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-mint-cream-900 bg-oxford-blue-DEFAULT py-8">
+      <div className="min-h-screen bg-tron-bg-deep py-8">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-mint-cream-600">Loading resume details...</span>
+            <RefreshCw className="w-8 h-8 animate-spin text-tron-cyan mr-3" />
+            <span className="text-tron-gray">Loading resume details...</span>
           </div>
         </div>
       </div>
@@ -329,22 +331,25 @@ export function ResumeDetailsPage() {
 
   if (error || !resumeDetails) {
     return (
-      <div className="min-h-screen bg-mint-cream-900 bg-oxford-blue-DEFAULT py-8">
+      <div className="min-h-screen bg-tron-bg-deep py-8">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User size={24} className="text-red-500" />
+          <TronPanel>
+            <div className="text-center py-12">
+              <AlertCircle size={48} className="mx-auto text-neon-error mb-4" />
+              <h3 className="text-lg font-medium text-tron-white mb-2">
+                {error || "Resume not found"}
+              </h3>
+              <TronButton
+                onClick={() => navigate(-1)}
+                variant="primary"
+                color="cyan"
+                className="mt-4"
+              >
+                <ArrowLeft size={16} className="mr-2" />
+                Go Back
+              </TronButton>
             </div>
-            <h3 className="text-lg font-medium text-mint-cream-DEFAULT mb-2">
-              {error || "Resume not found"}
-            </h3>
-            <button
-              onClick={() => navigate(-1)}
-              className="mt-4 px-4 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-yale-blue-600 transition-colors"
-            >
-              Go Back
-            </button>
-          </div>
+          </TronPanel>
         </div>
       </div>
     );
@@ -357,68 +362,77 @@ export function ResumeDetailsPage() {
   const experience = resumeDetails.personalInfo?.yearsOfExperience || "N/A";
 
   return (
-    <div className="min-h-screen bg-mint-cream-900 bg-oxford-blue-DEFAULT py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Header with Back Button and Edit Toggle */}
-        <div className="flex justify-between items-center mb-6">
-          <button
+    <div className="min-h-screen bg-tron-bg-deep py-8">
+      <div className="max-w-4xl mx-auto px-4 space-y-6">
+        {/* Header with Back Button and Actions */}
+        <div className="flex justify-between items-center">
+          <TronButton
             onClick={() => navigate(-1)}
-            className="flex items-center text-powder-blue-600 hover:text-blue-800 transition-colors"
+            variant="ghost"
+            color="cyan"
+            icon={<ArrowLeft size={16} />}
           >
-            <ArrowLeft size={16} className="mr-2" />
             Back to Search Results
-          </button>
+          </TronButton>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3">
             {saveMessage && (
-              <div className={`px-3 py-2 rounded-md text-sm ${ saveMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }`}>
-                {saveMessage}
-              </div>
+              <TronPanel className="px-3 py-2">
+                <div className={`flex items-center gap-2 text-sm ${saveMessage.includes('Error') ? 'text-neon-error' : 'text-neon-success'}`}>
+                  {saveMessage.includes('Error') ? (
+                    <AlertCircle size={16} />
+                  ) : (
+                    <CheckCircle size={16} />
+                  )}
+                  <span>{saveMessage}</span>
+                </div>
+              </TronPanel>
             )}
             {uploadMessage && (
-              <div className={`px-3 py-2 rounded-md text-sm ${ uploadMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }`}>
-                {uploadMessage}
-              </div>
+              <TronPanel className="px-3 py-2">
+                <div className={`flex items-center gap-2 text-sm ${uploadMessage.includes('Error') ? 'text-neon-error' : 'text-neon-success'}`}>
+                  {uploadMessage.includes('Error') ? (
+                    <AlertCircle size={16} />
+                  ) : (
+                    <CheckCircle size={16} />
+                  )}
+                  <span>{uploadMessage}</span>
+                </div>
+              </TronPanel>
             )}
             
             {isEditing ? (
-              <div className="flex items-center space-x-2">
-                <button
+              <div className="flex items-center gap-2">
+                <TronButton
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  variant="primary"
+                  color="cyan"
+                  loading={saving}
+                  icon={!saving ? <Save size={16} /> : undefined}
                 >
-                  {saving ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  ) : (
-                    <Save size={16} className="mr-2" />
-                  )}
                   {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-                <button
+                </TronButton>
+                <TronButton
                   onClick={handleCancel}
-                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-yale-blue-400 transition-colors"
+                  variant="outline"
+                  color="cyan"
+                  icon={<X size={16} />}
                 >
-                  <X size={16} className="mr-2" />
                   Cancel
-                </button>
+                </TronButton>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
-                <button
+              <div className="flex items-center gap-2">
+                <TronButton
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center px-4 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-yale-blue-600 transition-colors"
+                  variant="primary"
+                  color="cyan"
+                  icon={<Edit3 size={16} />}
                 >
-                  <Edit3 size={16} className="mr-2" />
                   Edit Resume
-                </button>
-                <label className={`flex items-center px-4 py-2 rounded-md transition-colors cursor-pointer ${ uploadingDocument ? 'bg-purple-400 cursor-not-allowed' : 'bg-yale-blue-DEFAULT text-white hover:bg-purple-700' }`}>
-                  {uploadingDocument ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  ) : (
-                    <Upload size={16} className="mr-2" />
-                  )}
-                  {uploadingDocument ? 'Processing...' : 'Update with Document (.docx/.pdf)'}
+                </TronButton>
+                <label className="cursor-pointer">
                   <input
                     type="file"
                     accept=".docx,.pdf"
@@ -426,6 +440,17 @@ export function ResumeDetailsPage() {
                     disabled={uploadingDocument}
                     className="hidden"
                   />
+                  <div className="relative overflow-hidden group inline-flex items-center justify-center gap-2 border font-medium rounded transition-all duration-250 ease-out px-4 py-2 bg-tron-blue text-tron-bg-deep border-transparent hover:bg-tron-blue/90 hover:shadow-tron-glow-blue disabled:opacity-50 disabled:cursor-not-allowed">
+                    {uploadingDocument ? (
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    ) : (
+                      <Upload size={16} />
+                    )}
+                    {uploadingDocument ? 'Processing...' : 'Update Document'}
+                  </div>
                 </label>
               </div>
             )}
@@ -433,364 +458,401 @@ export function ResumeDetailsPage() {
         </div>
 
         {/* Document Upload Section */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200 p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-mint-cream-DEFAULT mb-2 flex items-center">
-                <Upload size={20} className="mr-2 text-powder-blue-600" />
-                Update Resume with New Document
-              </h2>
-              <p className="text-mint-cream-600 mb-4">
-                Upload a new .docx or .pdf file to update this resume with fresh AI parsing and embeddings. 
-                This will replace the current content with the new document's parsed data and generate new search vectors.
-              </p>
-              <div className="text-xs text-mint-cream-700 mb-4">
-                <strong>What happens when you upload:</strong>
-                <ul className="list-disc list-inside mt-1 space-y-1">
-                  <li>AI extracts and structures all resume information</li>
-                  <li>New searchable text and embeddings are generated</li>
-                  <li>All fields are updated with the new document's content</li>
-                  <li>Search index is refreshed for better matching</li>
-                </ul>
-              </div>
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center px-4 py-2 bg-yale-blue-DEFAULT text-white rounded-md hover:bg-purple-700 transition-colors cursor-pointer">
-                  <Upload size={16} className="mr-2" />
-                  {uploadingDocument ? 'Processing...' : 'Choose .docx/.pdf File'}
-                  <input
-                    type="file"
-                    accept=".docx,.pdf"
-                    onChange={handleDocumentUpload}
-                    disabled={uploadingDocument}
-                    className="hidden"
-                  />
-                </label>
-                {uploadingDocument && (
-                  <div className="flex items-center text-powder-blue-600">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
-                    <span className="text-sm">Processing document...</span>
-                  </div>
-                )}
-              </div>
+        <TronPanel 
+          title="Update Resume with New Document" 
+          icon={<Upload size={20} />}
+          glowColor="blue"
+        >
+          <div className="space-y-4">
+            <p className="text-tron-gray">
+              Upload a new .docx or .pdf file to update this resume with fresh AI parsing and embeddings. 
+              This will replace the current content with the new document's parsed data and generate new search vectors.
+            </p>
+            <div className="bg-tron-bg-elevated rounded-lg p-4 border border-tron-cyan/10">
+              <div className="text-sm font-medium text-tron-white mb-2">What happens when you upload:</div>
+              <ul className="list-disc list-inside space-y-1 text-sm text-tron-gray">
+                <li>AI extracts and structures all resume information</li>
+                <li>New searchable text and embeddings are generated</li>
+                <li>All fields are updated with the new document's content</li>
+                <li>Search index is refreshed for better matching</li>
+              </ul>
             </div>
-            <div className="text-right">
-              <div className="text-xs text-mint-cream-700 mb-1">Current File</div>
-              <div className="text-sm font-medium text-mint-cream-DEFAULT">
-                {resumeDetails.filename || 'Unknown'}
+            <div className="flex items-center justify-between pt-2 border-t border-tron-cyan/10">
+              <div>
+                <div className="text-xs text-tron-gray mb-1">Current File</div>
+                <div className="text-sm font-medium text-tron-white">
+                  {resumeDetails.filename || 'Unknown'}
+                </div>
               </div>
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept=".docx,.pdf"
+                  onChange={handleDocumentUpload}
+                  disabled={uploadingDocument}
+                  className="hidden"
+                />
+                <div className="relative overflow-hidden group inline-flex items-center justify-center gap-2 border font-medium rounded transition-all duration-250 ease-out px-4 py-2 bg-tron-blue text-tron-bg-deep border-transparent hover:bg-tron-blue/90 hover:shadow-tron-glow-blue disabled:opacity-50 disabled:cursor-not-allowed">
+                  {uploadingDocument ? (
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <Upload size={16} />
+                  )}
+                  {uploadingDocument ? 'Processing...' : 'Choose .docx/.pdf File'}
+                </div>
+              </label>
             </div>
           </div>
-        </div>
+        </TronPanel>
 
         {/* Resume Header */}
-        <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex-1">
-              {isEditing ? (
+        <TronPanel 
+          title={isEditing ? undefined : candidateName}
+          glowColor="cyan"
+        >
+          <div className="space-y-6">
+            {isEditing ? (
+              <div>
+                <label className="block text-sm font-medium text-tron-gray mb-2">Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="text-3xl font-bold text-mint-cream-DEFAULT mb-2 bg-transparent border-b-2 border-powder-blue-600 focus:outline-none focus:border-blue-600 w-full"
-                  placeholder="Enter your name"
+                  className="tron-input w-full text-2xl font-bold"
+                  placeholder="Enter candidate name"
                 />
-              ) : (
-                <h1 className="text-3xl font-bold text-mint-cream-DEFAULT mb-2">
-                  {candidateName}
-                </h1>
-              )}
-              
-              <div className="flex items-center text-mint-cream-600 mb-2">
-                <MapPin size={16} className="mr-2" />
+              </div>
+            ) : (
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-tron-white mb-4">
+                    {candidateName}
+                  </h1>
+                </div>
+                {resumeDetails.similarity && (
+                  <div className="px-3 py-1 bg-tron-cyan/20 border border-tron-cyan/40 rounded-full text-sm font-medium text-tron-cyan">
+                    {formatSimilarity(resumeDetails.similarity)} Match
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Contact Information Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 text-tron-gray">
+                <Mail size={16} className="text-tron-cyan flex-shrink-0" />
+                {isEditing ? (
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className="tron-input flex-1"
+                    placeholder="Enter email"
+                  />
+                ) : (
+                  <span className="font-medium text-tron-white">{email}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-tron-gray">
+                <Phone size={16} className="text-tron-cyan flex-shrink-0" />
+                {isEditing ? (
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    className="tron-input flex-1"
+                    placeholder="Enter phone number"
+                  />
+                ) : (
+                  <span className="font-medium text-tron-white">{phone}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-tron-gray">
+                <MapPin size={16} className="text-tron-cyan flex-shrink-0" />
                 {isEditing ? (
                   <input
                     type="text"
                     value={formData.location}
                     onChange={(e) => handleInputChange('location', e.target.value)}
-                    className="bg-transparent border-b border-yale-blue-400 focus:outline-none focus:border-powder-blue-600 flex-1"
+                    className="tron-input flex-1"
                     placeholder="Enter location"
                   />
                 ) : (
                   <span>{location}</span>
                 )}
               </div>
-              
-              <div className="flex items-center text-mint-cream-600 mb-2">
-                <Calendar size={16} className="mr-2" />
+              <div className="flex items-center gap-2 text-tron-gray">
+                <Calendar size={16} className="text-tron-cyan flex-shrink-0" />
                 {isEditing ? (
-                  <input
-                    type="number"
-                    value={formData.yearsOfExperience}
-                    onChange={(e) => handleInputChange('yearsOfExperience', parseInt(e.target.value) || 0)}
-                    className="bg-transparent border-b border-yale-blue-400 focus:outline-none focus:border-powder-blue-600 w-20"
-                    placeholder="0"
-                  />
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="number"
+                      value={formData.yearsOfExperience}
+                      onChange={(e) => handleInputChange('yearsOfExperience', parseInt(e.target.value) || 0)}
+                      className="tron-input w-20"
+                      placeholder="0"
+                    />
+                    <span className="text-tron-gray">years of experience</span>
+                  </div>
                 ) : (
                   <span>{experience} years of experience</span>
                 )}
-                {isEditing && <span className="ml-1">years of experience</span>}
               </div>
             </div>
-            {resumeDetails.similarity && (
-              <div className="text-right">
-                <span className="bg-yale-blue-500 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                  {formatSimilarity(resumeDetails.similarity)} Match
-                </span>
+
+            {/* Contact Button */}
+            {!isEditing && (
+              <div className="border-t border-tron-cyan/10 pt-4">
+                <TronButton
+                  variant="primary"
+                  color="cyan"
+                  className="w-full md:w-auto"
+                >
+                  Contact Candidate
+                </TronButton>
               </div>
             )}
           </div>
-
-          {/* Contact Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="flex items-center text-mint-cream-600">
-              <Mail size={16} className="mr-2" />
-              {isEditing ? (
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="bg-transparent border-b border-yale-blue-400 focus:outline-none focus:border-powder-blue-600 flex-1"
-                  placeholder="Enter email"
-                />
-              ) : (
-                <span className="font-medium">{email}</span>
-              )}
-            </div>
-            <div className="flex items-center text-mint-cream-600">
-              <Phone size={16} className="mr-2" />
-              {isEditing ? (
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className="bg-transparent border-b border-yale-blue-400 focus:outline-none focus:border-powder-blue-600 flex-1"
-                  placeholder="Enter phone number"
-                />
-              ) : (
-                <span className="font-medium">{phone}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Contact Button */}
-          <div className="border-t border-yale-blue-300 pt-4">
-            <button className="w-full md:w-auto px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium">
-              Contact Candidate
-            </button>
-          </div>
-        </div>
+        </TronPanel>
 
         {/* Resume Details Sections */}
         <div className="space-y-6">
           {/* Professional Summary */}
-          <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-mint-cream-DEFAULT mb-4 flex items-center">
-              <User size={20} className="mr-2" />
-              Professional Summary
-            </h2>
+          <TronPanel 
+            title="Professional Summary" 
+            icon={<User size={20} />}
+            glowColor="cyan"
+          >
             {isEditing ? (
               <textarea
                 value={formData.professionalSummary}
                 onChange={(e) => handleInputChange('professionalSummary', e.target.value)}
-                className="w-full h-32 p-3 border border-yale-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-mint-cream-DEFAULT"
-                placeholder="Enter your professional summary..."
+                className="tron-input w-full h-32 resize-none"
+                placeholder="Enter professional summary..."
               />
             ) : (
               <div className="prose max-w-none">
-                <p className="text-mint-cream-500 whitespace-pre-wrap">
+                <p className="text-tron-gray whitespace-pre-wrap">
                   {resumeDetails.professionalSummary || "No professional summary available."}
                 </p>
               </div>
             )}
-          </div>
+          </TronPanel>
 
           {/* Work Experience */}
-          <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-mint-cream-DEFAULT mb-4 flex items-center">
-              <Briefcase size={20} className="mr-2" />
-              Work Experience
-            </h2>
+          <TronPanel 
+            title="Work Experience" 
+            icon={<Briefcase size={20} />}
+            glowColor="cyan"
+          >
             {isEditing ? (
               <textarea
                 value={formData.workExperience}
                 onChange={(e) => handleInputChange('workExperience', e.target.value)}
-                className="w-full h-40 p-3 border border-yale-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-mint-cream-DEFAULT"
-                placeholder="Enter your work experience..."
+                className="tron-input w-full h-40 resize-none"
+                placeholder="Enter work experience..."
               />
             ) : (
               <div className="prose max-w-none">
-                <div className="text-mint-cream-500 whitespace-pre-wrap">
+                <div className="text-tron-gray whitespace-pre-wrap">
                   {resumeDetails.experience?.map(exp => 
                     `${exp.title} at ${exp.company} (${exp.duration})\n${exp.responsibilities.join('\n')}`
                   ).join('\n\n') || "No work experience available."}
                 </div>
               </div>
             )}
-          </div>
+          </TronPanel>
 
           {/* Education */}
-          <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-mint-cream-DEFAULT mb-4 flex items-center">
-              <GraduationCap size={20} className="mr-2" />
-              Education
-            </h2>
+          <TronPanel 
+            title="Education" 
+            icon={<GraduationCap size={20} />}
+            glowColor="cyan"
+          >
             {isEditing ? (
               <textarea
                 value={formData.education}
                 onChange={(e) => handleInputChange('education', e.target.value)}
-                className="w-full h-32 p-3 border border-yale-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-mint-cream-DEFAULT"
-                placeholder="Enter your education details..."
+                className="tron-input w-full h-32 resize-none"
+                placeholder="Enter education details..."
               />
             ) : (
               <div className="prose max-w-none">
-                <div className="text-mint-cream-500 whitespace-pre-wrap">
+                <div className="text-tron-gray whitespace-pre-wrap">
                   {resumeDetails.education?.join('\n') || "No education information available."}
                 </div>
               </div>
             )}
-          </div>
+          </TronPanel>
 
           {/* Skills */}
-          <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-mint-cream-DEFAULT mb-4 flex items-center">
-              <Award size={20} className="mr-2" />
-              Skills
-            </h2>
+          <TronPanel 
+            title="Skills" 
+            icon={<Award size={20} />}
+            glowColor="cyan"
+          >
             {isEditing ? (
               <textarea
                 value={formData.skills}
                 onChange={(e) => handleInputChange('skills', e.target.value)}
-                className="w-full h-24 p-3 border border-yale-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-mint-cream-DEFAULT"
-                placeholder="Enter your skills (comma-separated or one per line)..."
+                className="tron-input w-full h-24 resize-none"
+                placeholder="Enter skills (comma-separated or one per line)..."
               />
             ) : (
               <div className="prose max-w-none">
-                <div className="text-mint-cream-500 whitespace-pre-wrap">
-                  {resumeDetails.skills?.join(', ') || "No skills information available."}
-                </div>
+                {resumeDetails.skills && resumeDetails.skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {resumeDetails.skills.map((skill, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 rounded-md text-sm bg-tron-bg-elevated text-tron-cyan border border-tron-cyan/20"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-tron-gray">No skills information available.</p>
+                )}
               </div>
             )}
-          </div>
+          </TronPanel>
 
           {/* Certifications */}
-          <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-mint-cream-DEFAULT mb-4">
-              Certifications
-            </h2>
-            {isEditing ? (
-              <textarea
-                value={formData.certifications}
-                onChange={(e) => handleInputChange('certifications', e.target.value)}
-                className="w-full h-24 p-3 border border-yale-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-mint-cream-DEFAULT"
-                placeholder="Enter your certifications..."
-              />
-            ) : (
-              <div className="prose max-w-none">
-                <div className="text-mint-cream-500 whitespace-pre-wrap">
-                  {resumeDetails.certifications || "No certifications available."}
+          {(resumeDetails.certifications || isEditing) && (
+            <TronPanel 
+              title="Certifications" 
+              glowColor="cyan"
+            >
+              {isEditing ? (
+                <textarea
+                  value={formData.certifications}
+                  onChange={(e) => handleInputChange('certifications', e.target.value)}
+                  className="tron-input w-full h-24 resize-none"
+                  placeholder="Enter certifications..."
+                />
+              ) : (
+                <div className="prose max-w-none">
+                  <div className="text-tron-gray whitespace-pre-wrap">
+                    {resumeDetails.certifications || "No certifications available."}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </TronPanel>
+          )}
 
           {/* Projects */}
-          <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-mint-cream-DEFAULT mb-4">
-              Projects
-            </h2>
-            {isEditing ? (
-              <textarea
-                value={formData.projects}
-                onChange={(e) => handleInputChange('projects', e.target.value)}
-                className="w-full h-32 p-3 border border-yale-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-mint-cream-DEFAULT"
-                placeholder="Enter your projects..."
-              />
-            ) : (
-              <div className="prose max-w-none">
-                <div className="text-mint-cream-500 whitespace-pre-wrap">
-                  {resumeDetails.projects || "No projects available."}
+          {(resumeDetails.projects || isEditing) && (
+            <TronPanel 
+              title="Projects" 
+              glowColor="cyan"
+            >
+              {isEditing ? (
+                <textarea
+                  value={formData.projects}
+                  onChange={(e) => handleInputChange('projects', e.target.value)}
+                  className="tron-input w-full h-32 resize-none"
+                  placeholder="Enter projects..."
+                />
+              ) : (
+                <div className="prose max-w-none">
+                  <div className="text-tron-gray whitespace-pre-wrap">
+                    {resumeDetails.projects || "No projects available."}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </TronPanel>
+          )}
 
           {/* Languages */}
-          <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-mint-cream-DEFAULT mb-4">
-              Languages
-            </h2>
-            {isEditing ? (
-              <textarea
-                value={formData.languages}
-                onChange={(e) => handleInputChange('languages', e.target.value)}
-                className="w-full h-20 p-3 border border-yale-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-mint-cream-DEFAULT"
-                placeholder="Enter languages you speak..."
-              />
-            ) : (
-              <div className="prose max-w-none">
-                <div className="text-mint-cream-500 whitespace-pre-wrap">
-                  {resumeDetails.languages || "No language information available."}
+          {(resumeDetails.languages || isEditing) && (
+            <TronPanel 
+              title="Languages" 
+              glowColor="cyan"
+            >
+              {isEditing ? (
+                <textarea
+                  value={formData.languages}
+                  onChange={(e) => handleInputChange('languages', e.target.value)}
+                  className="tron-input w-full h-20 resize-none"
+                  placeholder="Enter languages you speak..."
+                />
+              ) : (
+                <div className="prose max-w-none">
+                  <div className="text-tron-gray whitespace-pre-wrap">
+                    {resumeDetails.languages || "No language information available."}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </TronPanel>
+          )}
 
           {/* Additional Information */}
-          <div className="bg-berkeley-blue-DEFAULT rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-mint-cream-DEFAULT mb-4">
-              Additional Information
-            </h2>
-            {isEditing ? (
-              <textarea
-                value={formData.additionalInformation}
-                onChange={(e) => handleInputChange('additionalInformation', e.target.value)}
-                className="w-full h-24 p-3 border border-yale-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-mint-cream-DEFAULT"
-                placeholder="Enter any additional information..."
-              />
-            ) : (
-              <div className="prose max-w-none">
-                <div className="text-mint-cream-500 whitespace-pre-wrap">
-                  {resumeDetails.professionalMemberships || "No additional information available."}
+          {(resumeDetails.professionalMemberships || isEditing) && (
+            <TronPanel 
+              title="Additional Information" 
+              glowColor="cyan"
+            >
+              {isEditing ? (
+                <textarea
+                  value={formData.additionalInformation}
+                  onChange={(e) => handleInputChange('additionalInformation', e.target.value)}
+                  className="tron-input w-full h-24 resize-none"
+                  placeholder="Enter any additional information..."
+                />
+              ) : (
+                <div className="prose max-w-none">
+                  <div className="text-tron-gray whitespace-pre-wrap">
+                    {resumeDetails.professionalMemberships || "No additional information available."}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </TronPanel>
+          )}
         </div>
 
         {/* Bottom Action Buttons */}
         {isEditing && (
-          <div className="mt-8 flex justify-center space-x-4">
-            <button
+          <div className="flex justify-center gap-4 pt-4">
+            <TronButton
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center px-8 py-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors font-medium text-lg"
+              variant="primary"
+              color="cyan"
+              size="lg"
+              loading={saving}
+              icon={!saving ? <Save size={20} /> : undefined}
             >
-              {saving ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-              ) : (
-                <Save size={20} className="mr-2" />
-              )}
               {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button
+            </TronButton>
+            <TronButton
               onClick={handleCancel}
-              className="flex items-center px-8 py-4 bg-gray-600 text-white rounded-md hover:bg-yale-blue-400 transition-colors font-medium text-lg"
+              variant="outline"
+              color="cyan"
+              size="lg"
+              icon={<X size={20} />}
             >
-              <X size={20} className="mr-2" />
               Cancel
-            </button>
+            </TronButton>
           </div>
         )}
 
         {/* Bottom Contact Button */}
         {!isEditing && (
-          <div className="mt-8 text-center">
-            <button className="px-8 py-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium text-lg">
+          <div className="text-center pt-4">
+            <TronButton
+              variant="primary"
+              color="cyan"
+              size="lg"
+            >
               Contact Candidate
-            </button>
+            </TronButton>
           </div>
         )}
       </div>
     </div>
   );
-} 
+}

@@ -73,6 +73,7 @@ import type * as procurementScrapingServices from "../procurementScrapingService
 import type * as procurementUrls from "../procurementUrls.js";
 import type * as publicNavigation from "../publicNavigation.js";
 import type * as resumeEmbeddingPipeline from "../resumeEmbeddingPipeline.js";
+import type * as resumeParser from "../resumeParser.js";
 import type * as resumes from "../resumes.js";
 import type * as resumesActions from "../resumesActions.js";
 import type * as router from "../router.js";
@@ -163,6 +164,7 @@ declare const fullApi: ApiFromModules<{
   procurementUrls: typeof procurementUrls;
   publicNavigation: typeof publicNavigation;
   resumeEmbeddingPipeline: typeof resumeEmbeddingPipeline;
+  resumeParser: typeof resumeParser;
   resumes: typeof resumes;
   resumesActions: typeof resumesActions;
   router: typeof router;

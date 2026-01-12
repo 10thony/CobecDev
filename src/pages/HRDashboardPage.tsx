@@ -16,9 +16,15 @@ import KfcNomination from '../components/KfcNomination';
 import { TronPanel } from '../components/TronPanel';
 import { TronButton } from '../components/TronButton';
 import { TronStatCard } from '../components/TronStatCard';
+import ResumeManager from '../components/ResumeManager';
 
-// Data Management Component for HR Dashboard
+// Resume Management Component for HR Dashboard
 function DataManagementContent() {
+  return <ResumeManager />;
+}
+
+// Legacy component - keeping for reference but now uses ResumeManager
+function DataManagementContentOld() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -590,9 +596,9 @@ export function HRDashboardPage() {
     },
     {
       id: 'data-management',
-      name: 'Data Management',
+      name: 'Resume Management',
       icon: Database,
-      description: 'Import, export, and manage job postings and resumes'
+      description: 'Import, export, and manage candidate resumes'
     },
     {
       id: 'embeddings',

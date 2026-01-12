@@ -47,7 +47,7 @@ export function Layout({ children }: LayoutProps) {
     'leads-management': { path: '/leads-management', icon: FileSearch, defaultLabel: 'Leads Management' },
     'government-links': { path: '/government-links', icon: Map, defaultLabel: 'Government Links' },
     'kfc-management': { path: '/kfc-management', icon: Users, defaultLabel: 'KFC Management' },
-    'data-management': { path: '/data-management', icon: Database, defaultLabel: 'Data Management' },
+    'data-management': { path: '/data-management', icon: Database, defaultLabel: 'Resume Management' },
     'embeddings': { path: '/embedding-management', icon: Settings, defaultLabel: 'Embedding Management' },
   };
 

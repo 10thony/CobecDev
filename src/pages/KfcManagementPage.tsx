@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import KfcPointsManager from '../components/KfcPointsManager';
 import KfcNomination from '../components/KfcNomination';
-import DatabaseManager from '../components/DatabaseManager';
+import ResumeManager from '../components/ResumeManager';
 import { Trophy, Users, Database, Settings, AlertCircle, Shield } from 'lucide-react';
 import { useTheme } from '../lib/ThemeContext';
 import { useAuth } from '@clerk/clerk-react';
@@ -125,7 +125,7 @@ export function KfcManagementPage() {
               >
                 <div className="flex items-center space-x-2">
                   <Database className="w-4 h-4" />
-                  <span>Database</span>
+                  <span>Resumes</span>
                 </div>
               </button>
             )}
@@ -193,12 +193,12 @@ export function KfcManagementPage() {
             {activeTab === 'database' && isAdmin && (
               <div>
                 <div className="mb-6">
-                  <h2 className="text-2xl font-bold mb-2">Database Management</h2>
+                  <h2 className="text-2xl font-bold mb-2">Resume Management</h2>
                   <p className="text-mint-cream-600">
-                    Admin-only database operations and management tools.
+                    Import and manage candidate resumes.
                   </p>
                 </div>
-                <DatabaseManager />
+                <ResumeManager />
               </div>
             )}
           </div>
