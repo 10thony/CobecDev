@@ -193,8 +193,8 @@ export function ResumeDetailsPage() {
         yearsOfExperience: resumeDetails.personalInfo?.yearsOfExperience || 0,
         professionalSummary: resumeDetails.professionalSummary || '',
         workExperience: resumeDetails.experience?.map(exp => 
-          `${exp.title} at ${exp.company} (${exp.duration})\n${exp.responsibilities.join('\n')}`
-        ).join('\n\n') || '',
+          `${exp.title} at ${exp.company} (${exp.duration})\n${exp.responsibilities.filter(r => r.trim()).join('\n')}`
+        ).join('\n') || '',
         education: resumeDetails.education?.join('\n') || '',
         skills: resumeDetails.skills?.join(', ') || '',
         certifications: resumeDetails.certifications || '',
@@ -457,57 +457,6 @@ export function ResumeDetailsPage() {
           </div>
         </div>
 
-        {/* Document Upload Section */}
-        <TronPanel 
-          title="Update Resume with New Document" 
-          icon={<Upload size={20} />}
-          glowColor="blue"
-        >
-          <div className="space-y-4">
-            <p className="text-tron-gray">
-              Upload a new .docx or .pdf file to update this resume with fresh AI parsing and embeddings. 
-              This will replace the current content with the new document's parsed data and generate new search vectors.
-            </p>
-            <div className="bg-tron-bg-elevated rounded-lg p-4 border border-tron-cyan/10">
-              <div className="text-sm font-medium text-tron-white mb-2">What happens when you upload:</div>
-              <ul className="list-disc list-inside space-y-1 text-sm text-tron-gray">
-                <li>AI extracts and structures all resume information</li>
-                <li>New searchable text and embeddings are generated</li>
-                <li>All fields are updated with the new document's content</li>
-                <li>Search index is refreshed for better matching</li>
-              </ul>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-tron-cyan/10">
-              <div>
-                <div className="text-xs text-tron-gray mb-1">Current File</div>
-                <div className="text-sm font-medium text-tron-white">
-                  {resumeDetails.filename || 'Unknown'}
-                </div>
-              </div>
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept=".docx,.pdf"
-                  onChange={handleDocumentUpload}
-                  disabled={uploadingDocument}
-                  className="hidden"
-                />
-                <div className="relative overflow-hidden group inline-flex items-center justify-center gap-2 border font-medium rounded transition-all duration-250 ease-out px-4 py-2 bg-tron-blue text-tron-bg-deep border-transparent hover:bg-tron-blue/90 hover:shadow-tron-glow-blue disabled:opacity-50 disabled:cursor-not-allowed">
-                  {uploadingDocument ? (
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  ) : (
-                    <Upload size={16} />
-                  )}
-                  {uploadingDocument ? 'Processing...' : 'Choose .docx/.pdf File'}
-                </div>
-              </label>
-            </div>
-          </div>
-        </TronPanel>
-
         {/* Resume Header */}
         <TronPanel 
           title={isEditing ? undefined : candidateName}
@@ -659,8 +608,8 @@ export function ResumeDetailsPage() {
               <div className="prose max-w-none">
                 <div className="text-tron-gray whitespace-pre-wrap">
                   {resumeDetails.experience?.map(exp => 
-                    `${exp.title} at ${exp.company} (${exp.duration})\n${exp.responsibilities.join('\n')}`
-                  ).join('\n\n') || "No work experience available."}
+                    `${exp.title} at ${exp.company} (${exp.duration})\n${exp.responsibilities.filter(r => r.trim()).join('\n')}`
+                  ).join('\n') || "No work experience available."}
                 </div>
               </div>
             )}

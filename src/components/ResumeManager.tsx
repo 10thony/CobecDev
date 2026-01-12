@@ -66,19 +66,14 @@ const ResumeManager: React.FC = () => {
     limit: 500, 
     offset: 0 
   });
-  const dataSummary = useQuery(api.dataManagement.getDataSummary, {
-    pageSize: 50,
-    page: 0
-  });
 
   // Convex actions and mutations
   const importDataAction = useAction(api.dataManagement.importData);
   const exportDataAction = useAction(api.dataManagement.exportData);
-  const clearAllDataAction = useMutation(api.dataManagement.clearAllData);
+  const clearResumesAction = useMutation(api.dataManagement.clearResumes);
   const parseResumeFileAction = useAction(api.resumeParser.parseResumeFile);
 
   const resumes = (resumesQuery?.resumes || []) as Resume[];
-  const totalResumes = dataSummary?.pagination?.totalResumes || resumes.length;
 
   // Filter resumes based on search term
   const filteredResumes = React.useMemo(() => {
@@ -240,9 +235,9 @@ const ResumeManager: React.FC = () => {
     }
   };
 
-  // Clear all data (note: this clears ALL data types, not just resumes)
+  // Clear only resume data
   const handleClearResumes = async () => {
-    if (!window.confirm('WARNING: This will clear ALL data from the database (resumes, job postings, employees, and KFC points). This action cannot be undone. Are you sure you want to continue?')) {
+    if (!window.confirm('WARNING: This will clear all resume data from the database. This action cannot be undone. Are you sure you want to continue?')) {
       return;
     }
 
@@ -250,13 +245,12 @@ const ResumeManager: React.FC = () => {
     setError(null);
     
     try {
-      // Note: clearAllDataAction clears all data types, not just resumes
-      await clearAllDataAction({ confirm: true });
-      setMessage('All data cleared successfully');
+      await clearResumesAction({ confirm: true });
+      setMessage('Resume data cleared successfully');
       setSelectedResume(null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setError(`Failed to clear data: ${errorMessage}`);
+      setError(`Failed to clear resume data: ${errorMessage}`);
       setMessage(null);
     } finally {
       setLoading(false);
@@ -361,32 +355,6 @@ const ResumeManager: React.FC = () => {
           </div>
         </TronPanel>
       )}
-
-      {/* Data Summary */}
-      <TronPanel title="Resume Statistics" icon={<User className="w-5 h-5" />}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-tron-cyan mb-2">
-              {totalResumes}
-            </div>
-            <div className="text-sm text-tron-gray">Total Resumes</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-tron-cyan mb-2">
-              {filteredResumes.length}
-            </div>
-            <div className="text-sm text-tron-gray">
-              {searchTerm ? 'Filtered Results' : 'All Resumes'}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-tron-cyan mb-2">
-              {resumes.filter(r => r.embedding).length}
-            </div>
-            <div className="text-sm text-tron-gray">With Embeddings</div>
-          </div>
-        </div>
-      </TronPanel>
 
       {/* Search Section with Actions Tooltip */}
       <div className="relative">
@@ -556,7 +524,7 @@ const ResumeManager: React.FC = () => {
                     color="orange"
                     icon={<Trash2 className="w-4 h-4" />}
                   >
-                    Clear All Data
+                    Clear Resume Data
                   </TronButton>
                 </div>
               </div>

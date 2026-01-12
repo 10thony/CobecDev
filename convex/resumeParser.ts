@@ -153,137 +153,137 @@ function extractSection(text: string, sectionNames: string[]): string {
   return "";
 }
 
-// Parse work experience from text
-function parseExperience(text: string): Array<{
-  title: string;
-  company: string;
-  location: string;
-  duration: string;
-  responsibilities: string[];
-}> {
-  const expSection = extractSection(text, ['experience', 'work experience', 'professional experience', 'employment history']);
-  if (!expSection) {
-    return [];
-  }
-  
-  const experiences: Array<{
+// Import new section extraction and parsing abstractions
+import {
+  RegexSectionExtractor,
+  LineBasedSectionExtractor,
+  extractSectionData,
+} from "./resumeSectionExtractors";
+import {
+  ExperienceParser,
+  SkillsParser,
+  EducationParser,
+  parseSectionData,
+} from "./resumeSectionParsers";
+import {
+  ResumeSectionData,
+} from "./resumeSectionTypes";
+
+// Extract and parse experience section using new abstractions
+function parseExperience(text: string): {
+  experience: Array<{
     title: string;
     company: string;
     location: string;
     duration: string;
     responsibilities: string[];
-  }> = [];
+  }>;
+  sectionData?: ResumeSectionData;
+} {
+  const extractors = [
+    new RegexSectionExtractor(),
+    new LineBasedSectionExtractor(),
+  ];
   
-  const lines = expSection.split('\n');
-  let currentExp: {
-    title: string;
-    company: string;
-    location: string;
-    duration: string;
-    responsibilities: string[];
-  } | null = null;
+  const extractionResult = extractSectionData(text, 'experience', extractors);
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    
-    // Check if this looks like a job title (usually capitalized, not a bullet)
-    if (line.match(/^[A-Z][^•\n]{10,}/) && !line.match(/^(•|-|\*|Designed|Developed|Managed)/)) {
-      // Save previous experience if exists
-      if (currentExp) {
-        experiences.push(currentExp);
-      }
-      
-      // Start new experience
-      currentExp = {
-        title: line,
-        company: "",
-        location: "",
-        duration: "",
-        responsibilities: []
-      };
-      
-      // Check next line for company/location
-      if (i + 1 < lines.length) {
-        const nextLine = lines[i + 1].trim();
-        if (nextLine.includes(',')) {
-          const parts = nextLine.split(',').map(p => p.trim());
-          if (parts.length >= 2) {
-            currentExp.company = parts[0];
-            currentExp.location = parts[1];
-            if (parts.length >= 3) {
-              currentExp.duration = parts[2];
-            }
-          } else if (parts.length === 1) {
-            currentExp.company = parts[0];
-          }
-        } else if (nextLine.match(/\d{4}|\d{1,2}\/\d{4}|(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i)) {
-          currentExp.duration = nextLine;
-        }
-      }
-    } else if (currentExp) {
-      // Check if this is a duration line
-      if (line.match(/\d{4}|\d{1,2}\/\d{4}|(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i)) {
-        if (!currentExp.duration) {
-          currentExp.duration = line;
-        }
-      } else if (line.match(/^(•|-|\*|Designed|Developed|Managed|Created|Implemented|Led|Worked|Provided|Responsible)/i)) {
-        // This is a responsibility
-        currentExp.responsibilities.push(line.replace(/^(•|-|\*)\s*/, ''));
-      }
-    }
+  if (!extractionResult) {
+    return { experience: [] };
   }
   
-  // Add last experience
-  if (currentExp) {
-    experiences.push(currentExp);
-  }
+  const parser = new ExperienceParser();
+  const parseResult = parseSectionData(extractionResult.rawText, 'experience', parser);
   
-  return experiences;
+  const sectionData: ResumeSectionData = {
+    sectionType: 'experience',
+    rawText: extractionResult.rawText,
+    extractedBy: extractionResult.extractedBy,
+    extractionConfidence: extractionResult.confidence,
+    parsedData: parseResult.parsedData,
+    parseErrors: parseResult.parseErrors,
+    parseConfidence: parseResult.confidence,
+    startIndex: extractionResult.startIndex,
+    endIndex: extractionResult.endIndex,
+  };
+  
+  return {
+    experience: parseResult.parsedData || [],
+    sectionData,
+  };
 }
 
-// Parse skills from text
-function parseSkills(text: string): string[] {
-  const skillsSection = extractSection(text, ['skills', 'technical skills', 'core competencies', 'key skills']);
-  if (!skillsSection) {
-    return [];
+// Extract and parse skills section using new abstractions
+function parseSkills(text: string): {
+  skills: string[];
+  sectionData?: ResumeSectionData;
+} {
+  const extractors = [
+    new RegexSectionExtractor(),
+    new LineBasedSectionExtractor(),
+  ];
+  
+  const extractionResult = extractSectionData(text, 'skills', extractors);
+  
+  if (!extractionResult) {
+    return { skills: [] };
   }
   
-  // Split by commas, semicolons, or newlines
-  let skills: string[] = [];
-  for (const delimiter of [',', ';', '\n']) {
-    if (skillsSection.includes(delimiter)) {
-      skills = skillsSection.split(delimiter).map(s => s.trim());
-      break;
-    }
-  }
+  const parser = new SkillsParser();
+  const parseResult = parseSectionData(extractionResult.rawText, 'skills', parser);
   
-  if (skills.length === 0) {
-    skills = [skillsSection.trim()];
-  }
+  const sectionData: ResumeSectionData = {
+    sectionType: 'skills',
+    rawText: extractionResult.rawText,
+    extractedBy: extractionResult.extractedBy,
+    extractionConfidence: extractionResult.confidence,
+    parsedData: parseResult.parsedData,
+    parseErrors: parseResult.parseErrors,
+    parseConfidence: parseResult.confidence,
+    startIndex: extractionResult.startIndex,
+    endIndex: extractionResult.endIndex,
+  };
   
-  // Clean up skills
-  const cleanedSkills: string[] = [];
-  for (const skill of skills) {
-    const trimmed = skill.trim();
-    if (trimmed && trimmed.length > 1) {
-      // Remove bullet points
-      cleanedSkills.push(trimmed.replace(/^(•|-|\*)\s*/, ''));
-    }
-  }
-  
-  return cleanedSkills.slice(0, 50); // Limit to 50 skills
+  return {
+    skills: parseResult.parsedData || [],
+    sectionData,
+  };
 }
 
-// Parse education from text
-function parseEducation(text: string): string[] {
-  const eduSection = extractSection(text, ['education', 'academic background', 'qualifications']);
-  if (!eduSection) {
-    return [];
+// Extract and parse education section using new abstractions
+function parseEducation(text: string): {
+  education: string[];
+  sectionData?: ResumeSectionData;
+} {
+  const extractors = [
+    new RegexSectionExtractor(),
+    new LineBasedSectionExtractor(),
+  ];
+  
+  const extractionResult = extractSectionData(text, 'education', extractors);
+  
+  if (!extractionResult) {
+    return { education: [] };
   }
   
-  const lines = eduSection.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  return lines.slice(0, 10); // Limit to 10 entries
+  const parser = new EducationParser();
+  const parseResult = parseSectionData(extractionResult.rawText, 'education', parser);
+  
+  const sectionData: ResumeSectionData = {
+    sectionType: 'education',
+    rawText: extractionResult.rawText,
+    extractedBy: extractionResult.extractedBy,
+    extractionConfidence: extractionResult.confidence,
+    parsedData: parseResult.parsedData,
+    parseErrors: parseResult.parseErrors,
+    parseConfidence: parseResult.confidence,
+    startIndex: extractionResult.startIndex,
+    endIndex: extractionResult.endIndex,
+  };
+  
+  return {
+    education: parseResult.parsedData || [],
+    sectionData,
+  };
 }
 
 // Parse resume text into structured format
@@ -294,7 +294,7 @@ function parseResume(text: string, filename: string): any {
   const [firstName, middleName, lastName] = extractName(text);
   const yearsOfExperience = extractYearsOfExperience(text);
   
-  // Extract sections
+  // Extract sections using new abstractions
   let professionalSummary = extractSection(text, ['summary', 'professional summary', 'objective', 'profile']);
   if (!professionalSummary) {
     // Try to get first paragraph if no summary section
@@ -306,10 +306,11 @@ function parseResume(text: string, filename: string): any {
       .substring(0, 500);
   }
   
-  const education = parseEducation(text);
-  const experience = parseExperience(text);
-  const skills = parseSkills(text);
+  const educationResult = parseEducation(text);
+  const experienceResult = parseExperience(text);
+  const skillsResult = parseSkills(text);
   
+  // Extract other sections (still using old method for now)
   const certifications = extractSection(text, ['certifications', 'certification', 'training', 'certificates']);
   const professionalMemberships = extractSection(text, ['memberships', 'professional memberships', 'affiliations']);
   const securityClearance = extractSection(text, ['security clearance', 'clearance']);
@@ -326,12 +327,18 @@ function parseResume(text: string, filename: string): any {
       yearsOfExperience: yearsOfExperience
     },
     professionalSummary: professionalSummary.substring(0, 1000), // Limit length
-    education: education,
-    experience: experience,
-    skills: skills,
+    education: educationResult.education,
+    experience: experienceResult.experience,
+    skills: skillsResult.skills,
     certifications: certifications.substring(0, 500),
     professionalMemberships: professionalMemberships.substring(0, 500),
-    securityClearance: securityClearance.substring(0, 200)
+    securityClearance: securityClearance.substring(0, 200),
+    // Include raw section data for debugging
+    sectionData: {
+      experience: experienceResult.sectionData,
+      skills: skillsResult.sectionData,
+      education: educationResult.sectionData,
+    }
   };
 }
 

@@ -73,7 +73,11 @@ import type * as procurementScrapingServices from "../procurementScrapingService
 import type * as procurementUrls from "../procurementUrls.js";
 import type * as publicNavigation from "../publicNavigation.js";
 import type * as resumeEmbeddingPipeline from "../resumeEmbeddingPipeline.js";
+import type * as resumeFormatHandlers from "../resumeFormatHandlers.js";
 import type * as resumeParser from "../resumeParser.js";
+import type * as resumeSectionExtractors from "../resumeSectionExtractors.js";
+import type * as resumeSectionParsers from "../resumeSectionParsers.js";
+import type * as resumeSectionTypes from "../resumeSectionTypes.js";
 import type * as resumes from "../resumes.js";
 import type * as resumesActions from "../resumesActions.js";
 import type * as router from "../router.js";
@@ -164,7 +168,11 @@ declare const fullApi: ApiFromModules<{
   procurementUrls: typeof procurementUrls;
   publicNavigation: typeof publicNavigation;
   resumeEmbeddingPipeline: typeof resumeEmbeddingPipeline;
+  resumeFormatHandlers: typeof resumeFormatHandlers;
   resumeParser: typeof resumeParser;
+  resumeSectionExtractors: typeof resumeSectionExtractors;
+  resumeSectionParsers: typeof resumeSectionParsers;
+  resumeSectionTypes: typeof resumeSectionTypes;
   resumes: typeof resumes;
   resumesActions: typeof resumesActions;
   router: typeof router;

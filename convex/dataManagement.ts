@@ -607,6 +607,41 @@ export const clearAllData = mutation({
   },
 });
 
+// Clear only resume data (admin only)
+export const clearResumes = mutation({
+  args: {
+    confirm: v.boolean(),
+  },
+  handler: async (ctx, { confirm }) => {
+    if (!confirm) {
+      throw new Error("Must confirm data deletion");
+    }
+    
+    // Delete resumes in batches to avoid memory limits
+    let deletedCount = 0;
+    let hasMoreResumes = true;
+    
+    while (hasMoreResumes) {
+      const resumes = await ctx.db.query("resumes").take(100);
+      if (resumes.length === 0) {
+        hasMoreResumes = false;
+        break;
+      }
+      
+      for (const resume of resumes) {
+        await ctx.db.delete(resume._id);
+        deletedCount++;
+      }
+    }
+    
+    return {
+      success: true,
+      deletedCount,
+      message: `Successfully deleted ${deletedCount} resume records`,
+    };
+  },
+});
+
 // Export data to JSON
 export const exportData = action({
   args: {
