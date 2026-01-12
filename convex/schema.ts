@@ -654,6 +654,47 @@ const applicationTables = {
     .index("by_creation", ["createdAt"])
     .index("by_user_creation", ["userId", "createdAt"]),
 
+  // Resume Parsing Analytics for tracking AI resume parser usage and costs
+  resumeParsingAnalytics: defineTable({
+    // Request identification
+    resumeId: v.optional(v.id("resumes")), // If parsing an existing resume
+    filename: v.string(), // Resume filename being parsed
+    userId: v.string(), // Clerk user ID or "system" for automated
+    
+    // Input/Output content
+    inputText: v.string(), // The raw resume text sent to AI (truncated for storage)
+    outputJson: v.string(), // The parsed JSON response from AI (truncated for storage)
+    
+    // Model information
+    model: v.string(), // e.g., "gpt-5-mini"
+    provider: v.string(), // e.g., "openai"
+    
+    // Token usage
+    requestTokens: v.number(), // Input/prompt tokens
+    responseTokens: v.number(), // Output/completion tokens
+    totalTokens: v.number(), // Combined total
+    
+    // Cost tracking (in USD, stored as cents for precision)
+    requestCostCents: v.number(), // Cost of input tokens in cents
+    responseCostCents: v.number(), // Cost of output tokens in cents
+    totalCostCents: v.number(), // Total cost in cents
+    
+    // Request metadata
+    isError: v.optional(v.boolean()), // Whether request failed
+    errorMessage: v.optional(v.string()), // Error details if failed
+    latencyMs: v.optional(v.number()), // Response time in milliseconds
+    parserType: v.string(), // "ai" to distinguish from regex parser
+    
+    // Timestamps
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_resume", ["resumeId"])
+    .index("by_provider", ["provider"])
+    .index("by_model", ["model"])
+    .index("by_creation", ["createdAt"])
+    .index("by_user_creation", ["userId", "createdAt"]),
+
   // Chat System Prompts - configurable system prompts for chat
   chatSystemPrompts: defineTable({
     systemPromptText: v.string(), // The full system prompt text

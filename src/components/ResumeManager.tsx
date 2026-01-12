@@ -17,7 +17,8 @@ import {
   FileJson,
   FileType,
   ChevronDown,
-  Settings
+  Settings,
+  Sparkles
 } from 'lucide-react';
 
 interface Resume {
@@ -72,8 +73,10 @@ const ResumeManager: React.FC = () => {
   const exportDataAction = useAction(api.dataManagement.exportData);
   const clearResumesAction = useMutation(api.dataManagement.clearResumes);
   const parseResumeFileAction = useAction(api.resumeParser.parseResumeFile);
+  const parseResumeFileWithAIAction = useAction(api.aiResumeParser.parseResumeFileWithAI);
 
   const resumes = (resumesQuery?.resumes || []) as Resume[];
+  const isLoadingResumes = resumesQuery === undefined;
 
   // Filter resumes based on search term
   const filteredResumes = React.useMemo(() => {
@@ -192,6 +195,70 @@ const ResumeManager: React.FC = () => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(`Import failed: ${errorMessage}`);
+      setMessage(null);
+    } finally {
+      setLoading(false);
+      // Reset file input
+      event.target.value = '';
+    }
+  };
+
+  // Handle AI-powered DOCX/PDF file import (Beta)
+  const handleAIDocumentImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.docx') && !file.name.endsWith('.pdf')) {
+      setMessage('Please select a .docx or .pdf file');
+      setError('Invalid file type. Please select a .docx or .pdf file.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    const fileType = file.name.endsWith('.docx') ? 'DOCX' : 'PDF';
+    setMessage(`Processing ${fileType} file with AI parser (Beta)...`);
+    
+    try {
+      // Read file as base64
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix if present
+          const base64 = result.includes(',') ? result.split(',')[1] : result;
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Call AI parser via Convex action
+      setMessage(`AI is analyzing ${fileType} file...`);
+      const parseResult = await parseResumeFileWithAIAction({
+        fileData: base64Data,
+        filename: file.name,
+      });
+
+      if (!parseResult.success || !parseResult.data) {
+        throw new Error('Failed to parse resume file with AI');
+      }
+
+      // Import the parsed resume data
+      setMessage('Importing AI-parsed resume data...');
+      const result = await importDataAction({ 
+        data: [parseResult.data],
+        dataType: 'resumes',
+        overwrite: false
+      });
+      
+      setMessage(`AI import completed: ${result.importedCount} resume imported successfully${result.errorCount > 0 ? `, ${result.errorCount} errors` : ''}`);
+      if (result.errorCount > 0) {
+        setError(`Some data failed to import. Check console for details.`);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`AI import failed: ${errorMessage}`);
       setMessage(null);
     } finally {
       setLoading(false);
@@ -435,7 +502,7 @@ const ResumeManager: React.FC = () => {
                   <Upload className="w-5 h-5 text-tron-cyan" />
                   Import Resumes
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* JSON Import */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -467,7 +534,7 @@ const ResumeManager: React.FC = () => {
                     </label>
                   </div>
 
-                  {/* DOCX/PDF Import */}
+                  {/* DOCX/PDF Import (Regex Parser) */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <FileType className="w-4 h-4 text-tron-blue" />
@@ -494,6 +561,40 @@ const ResumeManager: React.FC = () => {
                         className="w-full"
                       >
                         {loading ? 'Processing...' : 'Choose File'}
+                      </TronButton>
+                    </label>
+                  </div>
+
+                  {/* AI-Powered DOCX/PDF Import (Beta) */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm font-medium text-tron-white">
+                        AI Parser (Beta)
+                        <span className="ml-1 text-xs text-purple-400">NEW</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-tron-gray">
+                      Upload a .docx or .pdf file - AI-powered parsing extracts experience and skills intelligently (Beta testing)
+                    </p>
+                    <label className="block">
+                      <input
+                        type="file"
+                        accept=".docx,.pdf"
+                        onChange={handleAIDocumentImport}
+                        disabled={loading}
+                        className="hidden"
+                        id="ai-doc-upload"
+                      />
+                      <TronButton
+                        onClick={() => document.getElementById('ai-doc-upload')?.click()}
+                        disabled={loading}
+                        variant="primary"
+                        color="blue"
+                        icon={<Sparkles className="w-4 h-4 text-purple-300" />}
+                        className="w-full border-purple-500/40 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/60"
+                      >
+                        {loading ? 'AI Processing...' : 'Choose File'}
                       </TronButton>
                     </label>
                   </div>
@@ -604,8 +705,18 @@ const ResumeManager: React.FC = () => {
         </TronPanel>
       )}
 
-      {/* Empty State */}
-      {resumes.length === 0 && !loading && (
+      {/* Loading State - Show spinner while query is loading */}
+      {isLoadingResumes && (
+        <TronPanel>
+          <div className="flex items-center justify-center py-8">
+            <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan mr-2" />
+            <span className="text-tron-gray">Loading resumes...</span>
+          </div>
+        </TronPanel>
+      )}
+
+      {/* Empty State - Only show when query has loaded but no resumes */}
+      {!isLoadingResumes && resumes.length === 0 && !loading && (
         <TronPanel>
           <div className="text-center py-8">
             <User className="w-12 h-12 mx-auto mb-4 text-tron-gray" />
@@ -615,12 +726,12 @@ const ResumeManager: React.FC = () => {
         </TronPanel>
       )}
 
-      {/* Loading State */}
-      {loading && resumes.length === 0 && (
+      {/* Loading State for manual operations */}
+      {loading && !isLoadingResumes && resumes.length === 0 && (
         <TronPanel>
           <div className="flex items-center justify-center py-8">
             <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan mr-2" />
-            <span className="text-tron-gray">Loading resumes...</span>
+            <span className="text-tron-gray">Processing...</span>
           </div>
         </TronPanel>
       )}

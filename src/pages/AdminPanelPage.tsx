@@ -19,11 +19,13 @@ import {
   EyeOff,
   Lock,
   Unlock,
-  Navigation
+  Navigation,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from "@clerk/clerk-react";
 import { ProcurementChatAnalytics } from '../components/admin/ProcurementChatAnalytics';
+import { ResumeParsingAnalytics } from '../components/admin/ResumeParsingAnalytics';
 
 export function AdminPanelPage() {
   const { userId: currentUserId } = useAuth();
@@ -31,7 +33,7 @@ export function AdminPanelPage() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'hr-dashboard' | 'prompt-types' | 'public-navigation'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'resume-analytics' | 'hr-dashboard' | 'prompt-types' | 'public-navigation'>('users');
 
   // Check if current user is admin
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
@@ -317,6 +319,19 @@ export function AdminPanelPage() {
               </div>
             </button>
             <button
+              onClick={() => setActiveTab('resume-analytics')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'resume-analytics'
+                  ? 'text-purple-400 border-b-2 border-purple-400'
+                  : 'text-tron-gray hover:text-tron-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Resume Parser Analytics
+              </div>
+            </button>
+            <button
               onClick={() => setActiveTab('hr-dashboard')}
               className={`px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'hr-dashboard'
@@ -361,6 +376,8 @@ export function AdminPanelPage() {
         {/* Tab Content */}
         {activeTab === 'analytics' ? (
           <ProcurementChatAnalytics />
+        ) : activeTab === 'resume-analytics' ? (
+          <ResumeParsingAnalytics />
         ) : activeTab === 'public-navigation' ? (
           <div className="space-y-6">
             {/* Header */}

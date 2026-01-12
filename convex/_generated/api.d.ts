@@ -10,6 +10,7 @@
 
 import type * as agent_procurementVerifier from "../agent/procurementVerifier.js";
 import type * as aiModels from "../aiModels.js";
+import type * as aiResumeParser from "../aiResumeParser.js";
 import type * as approvedProcurementLinksLookup from "../approvedProcurementLinksLookup.js";
 import type * as auth from "../auth.js";
 import type * as browserAgentActions from "../browserAgentActions.js";
@@ -75,6 +76,7 @@ import type * as publicNavigation from "../publicNavigation.js";
 import type * as resumeEmbeddingPipeline from "../resumeEmbeddingPipeline.js";
 import type * as resumeFormatHandlers from "../resumeFormatHandlers.js";
 import type * as resumeParser from "../resumeParser.js";
+import type * as resumeParsingAnalytics from "../resumeParsingAnalytics.js";
 import type * as resumeSectionExtractors from "../resumeSectionExtractors.js";
 import type * as resumeSectionParsers from "../resumeSectionParsers.js";
 import type * as resumeSectionTypes from "../resumeSectionTypes.js";
@@ -105,6 +107,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "agent/procurementVerifier": typeof agent_procurementVerifier;
   aiModels: typeof aiModels;
+  aiResumeParser: typeof aiResumeParser;
   approvedProcurementLinksLookup: typeof approvedProcurementLinksLookup;
   auth: typeof auth;
   browserAgentActions: typeof browserAgentActions;
@@ -170,6 +173,7 @@ declare const fullApi: ApiFromModules<{
   resumeEmbeddingPipeline: typeof resumeEmbeddingPipeline;
   resumeFormatHandlers: typeof resumeFormatHandlers;
   resumeParser: typeof resumeParser;
+  resumeParsingAnalytics: typeof resumeParsingAnalytics;
   resumeSectionExtractors: typeof resumeSectionExtractors;
   resumeSectionParsers: typeof resumeSectionParsers;
   resumeSectionTypes: typeof resumeSectionTypes;
