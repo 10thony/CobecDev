@@ -108,7 +108,7 @@ export function Hero({
           transition={{ duration: 0.8, delay: 0.5 }}
           className="mt-16 flex justify-center"
         >
-          <RevolvingBookAnimation features={features} rotationSpeed={30} />
+          <RevolvingBookAnimation features={features} rotationSpeed={7.5} />
         </motion.div>
       </div>
     </motion.section>
