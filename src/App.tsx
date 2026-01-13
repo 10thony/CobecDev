@@ -1,13 +1,21 @@
 import React from "react";
 import { useQuery } from "convex/react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  Link,
+} from "react-router-dom";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { Toaster } from "sonner";
 import { Layout } from "./components/Layout";
 import { VisibilityWrapper } from "./components/VisibilityWrapper";
-import { HomePage } from "./pages/HomePage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { ThemeConfigPage } from "./pages/ThemeConfigPage";
+
 import { DataManagementPage } from "./pages/DataManagementPage";
 import { JobDetailsPage } from "./pages/JobDetailsPage";
 import { ResumeDetailsPage } from "./pages/ResumeDetailsPage";
@@ -50,25 +58,25 @@ export default function App() {
 function AppContent() {
   const { isSignedIn, isLoaded } = useAuth();
   const location = useLocation().pathname;
-  
+
   // Check if procurement-links requires auth - MUST call all hooks before any conditional returns
   const procurementLinksRequiresAuth = useQuery(
     api.hrDashboardComponents.getComponentAuthRequirement,
-    { componentId: "procurement-links" }
+    { componentId: "procurement-links" },
   );
-  
+
   // Check if government-links requires auth - MUST call all hooks before any conditional returns
   const governmentLinksRequiresAuth = useQuery(
     api.hrDashboardComponents.getComponentAuthRequirement,
-    { componentId: "government-links" }
+    { componentId: "government-links" },
   );
-  
+
   // Check if leads-management requires auth - MUST call all hooks before any conditional returns
   const leadsManagementRequiresAuth = useQuery(
     api.hrDashboardComponents.getComponentAuthRequirement,
-    { componentId: "leads-management" }
+    { componentId: "leads-management" },
   );
-  
+
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-tron-bg-deep flex items-center justify-center">
@@ -108,8 +116,13 @@ function AppContent() {
     }
   }
 
-  // Always show ProcurementLinksPage for "/" and "/procurement-links" routes, even if unauthenticated
-  if ((location === "/" || location === "/procurement-links") && !isSignedIn) {
+  // Public dashboard at "/"
+  if (location === "/" && !isSignedIn) {
+    return <PublicDashboardPage />;
+  }
+
+  // Always show ProcurementLinksPage for "/procurement-links" route, even if unauthenticated
+  if (location === "/procurement-links" && !isSignedIn) {
     if (procurementLinksRequiresAuth === undefined) {
       // Still loading, show loading state
       return (
@@ -118,7 +131,7 @@ function AppContent() {
         </div>
       );
     }
-    // Always show ProcurementLinksPage for these routes, regardless of auth requirement
+    // Always show ProcurementLinksPage for this route, regardless of auth requirement
     return <PublicProcurementLinksPage />;
   }
 
@@ -131,9 +144,9 @@ function AppContent() {
 
 function AuthenticatedApp() {
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
-  
+
   // Global data is now handled by Convex real-time queries in individual components
-  
+
   if (userRole === undefined) {
     return (
       <div className="min-h-screen bg-tron-bg-deep flex items-center justify-center">
@@ -145,15 +158,8 @@ function AuthenticatedApp() {
   return (
     <Layout>
       <Routes>
-        {/* ProcurementLinks is the homepage */}
-        <Route
-          path="/"
-          element={
-            <VisibilityWrapper componentId="procurement-links">
-              <ProcurementLinksPage />
-            </VisibilityWrapper>
-          }
-        />
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/home" element={<Navigate to="/" replace />} />
         {/* All components at the same level with visibility checks */}
         <Route
           path="/procurement-links"
@@ -163,6 +169,7 @@ function AuthenticatedApp() {
             </VisibilityWrapper>
           }
         />
+
         <Route
           path="/hr-overview"
           element={
@@ -214,7 +221,7 @@ function AuthenticatedApp() {
         {/* Legacy HR Dashboard route - redirects to first visible component */}
         <Route path="/hr-dashboard" element={<Navigate to="/" replace />} />
         {/* Other routes that don't need visibility checks */}
-        <Route path="/home" element={<HomePage />} />
+
         <Route path="/test-job" element={<div>Test Job Route Works!</div>} />
         <Route path="/job/:jobId" element={<JobDetailsPage />} />
         <Route path="/resume/:resumeId" element={<ResumeDetailsPage />} />
@@ -240,29 +247,42 @@ function AuthenticatedApp() {
 
 function UnauthenticatedApp() {
   const location = useLocation().pathname;
-  
+
   // For routes other than "/" and "/procurement-links", show sign-in page
   if (location !== "/" && location !== "/procurement-links") {
     return (
       <div className="min-h-screen bg-tron-bg-deep tron-grid-bg flex items-center justify-center p-8">
         <div className="w-full max-w-md mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-tron-white mb-4 tron-glow-text">Cobecium</h1>
-            <p className="text-xl text-tron-gray">Sign in to start chatting with AI</p>
+            <h1 className="text-4xl font-bold text-tron-white mb-4 tron-glow-text">
+              Cobecium
+            </h1>
+            <p className="text-xl text-tron-gray">
+              Sign in to start chatting with AI
+            </p>
           </div>
           <SignInForm />
         </div>
       </div>
     );
   }
-  
-  // For "/" and "/procurement-links", show ProcurementLinksPage with sign-in option
+
+  if (location === "/") {
+    return <PublicDashboardPage />;
+  }
+
+  return <PublicProcurementLinksPage />;
+}
+
+function PublicDashboardPage() {
   return (
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
       <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
         <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
-          <h1 className="text-lg sm:text-xl font-bold text-tron-white">Cobecium</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-tron-white">
+            Cobecium
+          </h1>
           <PublicNavigation />
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
@@ -275,9 +295,8 @@ function UnauthenticatedApp() {
           </Link>
         </div>
       </header>
-      {/* Render the ProcurementLinksPage */}
       <div className="flex-1 overflow-auto">
-        <ProcurementLinksPage />
+        <DashboardPage />
       </div>
     </div>
   );
@@ -294,7 +313,9 @@ function PublicGovernmentLinksPage() {
       {/* Simple header for public access */}
       <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
         <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
-          <h1 className="text-lg sm:text-xl font-bold text-tron-white">Cobecium</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-tron-white">
+            Cobecium
+          </h1>
           <PublicNavigation />
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
@@ -325,7 +346,9 @@ function PublicProcurementLinksPage() {
       {/* Simple header for public access */}
       <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
         <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
-          <h1 className="text-lg sm:text-xl font-bold text-tron-white">Cobecium</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-tron-white">
+            Cobecium
+          </h1>
           <PublicNavigation />
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
@@ -353,7 +376,9 @@ function PublicLeadsManagementPage() {
       {/* Simple header for public access */}
       <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
         <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
-          <h1 className="text-lg sm:text-xl font-bold text-tron-white">Cobecium</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-tron-white">
+            Cobecium
+          </h1>
           <PublicNavigation />
         </div>
         <div className="flex items-center gap-2 sm:gap-3">

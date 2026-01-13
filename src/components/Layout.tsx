@@ -2,7 +2,22 @@ import { useQuery } from "convex/react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
-import { Target, ChevronLeft, ChevronRight, Map, Shield, Search, Database, Users, FileSearch, Globe, Settings, Menu, X } from "lucide-react";
+import {
+  Target,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  Map,
+  Shield,
+  Search,
+  Database,
+  Users,
+  FileSearch,
+  Globe,
+  Settings,
+  Menu,
+  X,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface LayoutProps {
@@ -15,67 +30,131 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
-  
+
   // Close mobile menu on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         setIsMobileMenuOpen(false);
       }
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
   }, []);
-  
+
   // Get HR dashboard components to build navigation
   const hrComponents = useQuery(api.hrDashboardComponents.getAllComponents);
-  const visibleComponentIds = useQuery(api.hrDashboardComponents.getVisibleComponents);
-  
+  const visibleComponentIds = useQuery(
+    api.hrDashboardComponents.getVisibleComponents,
+  );
+
   // Check if user is admin (either system admin or cobec admin)
   const isAdmin = userRole === "admin" || isCobecAdmin === true;
 
   // Component ID to route and icon mapping
-  const componentRouteMap: Record<string, { path: string; icon: typeof Target; defaultLabel: string }> = {
-    'procurement-links': { path: '/', icon: Globe, defaultLabel: 'Procurement Links' },
-    'overview': { path: '/hr-overview', icon: Target, defaultLabel: 'HR Overview' },
-    'search': { path: '/semantic-search', icon: Search, defaultLabel: 'Semantic Search' },
-    'leads-management': { path: '/leads-management', icon: FileSearch, defaultLabel: 'Leads Management' },
-    'government-links': { path: '/government-links', icon: Map, defaultLabel: 'Government Links' },
-    'kfc-management': { path: '/kfc-management', icon: Users, defaultLabel: 'KFC Management' },
-    'data-management': { path: '/data-management', icon: Database, defaultLabel: 'Resume Management' },
-    'embeddings': { path: '/embedding-management', icon: Settings, defaultLabel: 'Embedding Management' },
+  const componentRouteMap: Record<
+    string,
+    { path: string; icon: typeof Target; defaultLabel: string }
+  > = {
+    "procurement-links": {
+      path: "/procurement-links",
+      icon: Globe,
+      defaultLabel: "Procurement Links",
+    },
+
+    overview: {
+      path: "/hr-overview",
+      icon: Target,
+      defaultLabel: "HR Overview",
+    },
+    search: {
+      path: "/semantic-search",
+      icon: Search,
+      defaultLabel: "Semantic Search",
+    },
+    "leads-management": {
+      path: "/leads-management",
+      icon: FileSearch,
+      defaultLabel: "Leads Management",
+    },
+    "government-links": {
+      path: "/government-links",
+      icon: Map,
+      defaultLabel: "Government Links",
+    },
+    "kfc-management": {
+      path: "/kfc-management",
+      icon: Users,
+      defaultLabel: "KFC Management",
+    },
+    "data-management": {
+      path: "/data-management",
+      icon: Database,
+      defaultLabel: "Resume Management",
+    },
+    embeddings: {
+      path: "/embedding-management",
+      icon: Settings,
+      defaultLabel: "Embedding Management",
+    },
   };
 
   // Build navigation items from visible components
   const buildNavigationItems = () => {
-    const items: Array<{ to: string; icon: typeof Target; label: string; path: string }> = [];
+    const dashboardItem = {
+      to: "/",
+      icon: Home,
+      label: "Dashboard",
+      path: "/",
+    };
+
+    const items: Array<{
+      to: string;
+      icon: typeof Target;
+      label: string;
+      path: string;
+    }> = [dashboardItem];
 
     if (!hrComponents || !visibleComponentIds) {
       // While loading, show default items
       return [
-        { to: '/', icon: Globe, label: 'Procurement Links', path: '/' },
-        { to: '/government-links', icon: Map, label: 'Government Links', path: '/government-links' },
+        dashboardItem,
+        {
+          to: "/procurement-links",
+          icon: Globe,
+          label: "Procurement Links",
+          path: "/procurement-links",
+        },
+        {
+          to: "/government-links",
+          icon: Map,
+          label: "Government Links",
+          path: "/government-links",
+        },
       ];
     }
 
     // If no visible components, show all (backward compatibility)
-    const componentsToShow = visibleComponentIds.length === 0
-      ? Object.keys(componentRouteMap)
-      : visibleComponentIds;
+    const componentsToShow =
+      visibleComponentIds.length === 0
+        ? Object.keys(componentRouteMap)
+        : visibleComponentIds;
 
     // Always include government-links even if not in visibleComponentIds
     // This ensures it's always available in the navigation
     const componentsToShowWithGovernmentLinks = new Set(componentsToShow);
-    componentsToShowWithGovernmentLinks.add('government-links');
+    componentsToShowWithGovernmentLinks.add("government-links");
 
     // Get sorted visible components
     const sortedComponents = hrComponents
-      .filter(comp => componentsToShowWithGovernmentLinks.has(comp.componentId))
+      .filter((comp) =>
+        componentsToShowWithGovernmentLinks.has(comp.componentId),
+      )
       .sort((a, b) => {
         // Sort by order if available, otherwise by creation time
         if (a.order !== undefined && b.order !== undefined) {
@@ -87,7 +166,7 @@ export function Layout({ children }: LayoutProps) {
       });
 
     // Add navigation items for each visible component
-    sortedComponents.forEach(comp => {
+    sortedComponents.forEach((comp) => {
       const routeInfo = componentRouteMap[comp.componentId];
       if (routeInfo) {
         items.push({
@@ -101,13 +180,17 @@ export function Layout({ children }: LayoutProps) {
 
     // If government-links component doesn't exist in hrComponents but should be shown,
     // add it manually using the default route info with proper ordering
-    if (!items.some(item => item.path === '/government-links')) {
-      const governmentLinksRoute = componentRouteMap['government-links'];
+    if (!items.some((item) => item.path === "/government-links")) {
+      const governmentLinksRoute = componentRouteMap["government-links"];
       if (governmentLinksRoute) {
         // Insert at position 1 (after procurement-links which is typically at position 0)
         // or append if procurement-links isn't first
-        const procurementIndex = items.findIndex(item => item.path === '/');
-        const insertIndex = procurementIndex >= 0 ? procurementIndex + 1 : items.length;
+        const procurementIndex = items.findIndex(
+          (item) => item.path === "/procurement-links",
+        );
+
+        const insertIndex =
+          procurementIndex >= 0 ? procurementIndex + 1 : items.length;
         items.splice(insertIndex, 0, {
           to: governmentLinksRoute.path,
           icon: governmentLinksRoute.icon,
@@ -128,10 +211,9 @@ export function Layout({ children }: LayoutProps) {
       to: "/admin-panel",
       icon: Shield,
       label: "Admin Panel",
-      path: "/admin-panel"
+      path: "/admin-panel",
     });
   }
-
 
   return (
     <div className="flex h-screen bg-tron-bg-deep">
@@ -144,13 +226,14 @@ export function Layout({ children }: LayoutProps) {
       )}
 
       {/* Sidebar */}
-      {(
+      {
         <>
           {/* Desktop Sidebar */}
-          <div className={`hidden lg:flex relative flex-col transition-all duration-300 ease-in-out ${
-            isCollapsed ? 'w-16' : 'w-64'
-          } bg-tron-bg-panel border-r border-tron-cyan/20`}>
-            
+          <div
+            className={`hidden lg:flex relative flex-col transition-all duration-300 ease-in-out ${
+              isCollapsed ? "w-16" : "w-64"
+            } bg-tron-bg-panel border-r border-tron-cyan/20`}
+          >
             {/* Collapse Toggle Button */}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
@@ -169,7 +252,9 @@ export function Layout({ children }: LayoutProps) {
                 {isCollapsed ? (
                   <div className="text-2xl font-bold text-tron-white">C</div>
                 ) : (
-                  <div className="text-2xl font-bold text-tron-white">Cobecium</div>
+                  <div className="text-2xl font-bold text-tron-white">
+                    Cobecium
+                  </div>
                 )}
               </Link>
             </div>
@@ -180,19 +265,22 @@ export function Layout({ children }: LayoutProps) {
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
-                  
+
                   return (
                     <Link
                       key={item.to}
                       to={item.to}
-                      className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      className={`flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         isActive
                           ? "bg-tron-cyan/20 text-tron-white"
                           : "text-tron-gray hover:text-tron-white hover:bg-tron-cyan/10"
                       }`}
                       title={isCollapsed ? item.label : undefined}
                     >
-                      <Icon size={isCollapsed ? 24 : 18} className="flex-shrink-0" />
+                      <Icon
+                        size={isCollapsed ? 24 : 18}
+                        className="flex-shrink-0"
+                      />
                       {!isCollapsed && <span>{item.label}</span>}
                     </Link>
                   );
@@ -202,18 +290,20 @@ export function Layout({ children }: LayoutProps) {
 
             {/* Bottom Controls */}
             <div className="p-4 border-t border-tron-cyan/20">
-              <SignOutButton 
-                iconOnly={isCollapsed} 
+              <SignOutButton
+                iconOnly={isCollapsed}
                 showText={!isCollapsed}
-                className={isCollapsed ? 'justify-center' : ''}
+                className={isCollapsed ? "justify-center" : ""}
               />
             </div>
           </div>
 
           {/* Mobile Sidebar Drawer */}
-          <div className={`lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-tron-bg-panel border-r border-tron-cyan/20 transform transition-transform duration-300 ease-in-out ${
-            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}>
+          <div
+            className={`lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-tron-bg-panel border-r border-tron-cyan/20 transform transition-transform duration-300 ease-in-out ${
+              isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
             {/* Mobile Header */}
             <div className="p-4 border-b border-tron-cyan/20 flex items-center justify-between">
               <Link to="/" className="text-xl font-bold text-tron-white">
@@ -234,7 +324,7 @@ export function Layout({ children }: LayoutProps) {
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
-                  
+
                   return (
                     <Link
                       key={item.to}
@@ -259,7 +349,7 @@ export function Layout({ children }: LayoutProps) {
             </div>
           </div>
         </>
-      )}
+      }
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -276,10 +366,8 @@ export function Layout({ children }: LayoutProps) {
             Cobecium
           </Link>
         </div>
-        
-        <main className="flex-1 overflow-auto bg-tron-bg-deep">
-          {children}
-        </main>
+
+        <main className="flex-1 overflow-auto bg-tron-bg-deep">{children}</main>
       </div>
     </div>
   );

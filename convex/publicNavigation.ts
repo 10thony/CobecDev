@@ -20,9 +20,7 @@ export const getVisible = query({
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
-    const items = await ctx.db
-      .query("publicNavigationItems")
-      .collect();
+    const items = await ctx.db.query("publicNavigationItems").collect();
 
     // Sort by order field
     return items.sort((a, b) => a.order - b.order);
@@ -99,8 +97,27 @@ export const initializeDefaults = mutation({
 
     const now = Date.now();
     const defaults = [
-      { path: "/", label: "Procurement Links", icon: "Globe", order: 0, isVisible: true },
-      { path: "/government-links", label: "Government Links", icon: "Map", order: 1, isVisible: true },
+      {
+        path: "/",
+        label: "Dashboard",
+        icon: "Home",
+        order: 0,
+        isVisible: true,
+      },
+      {
+        path: "/procurement-links",
+        label: "Procurement Links",
+        icon: "Globe",
+        order: 1,
+        isVisible: true,
+      },
+      {
+        path: "/government-links",
+        label: "Government Links",
+        icon: "Map",
+        order: 2,
+        isVisible: true,
+      },
     ];
 
     const ids: Id<"publicNavigationItems">[] = [];

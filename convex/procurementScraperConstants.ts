@@ -63,9 +63,7 @@ export const DEFAULT_DATA_COMPLETENESS = 0.5;
 /**
  * Scraping timeout in milliseconds
  */
-export const SCRAPING_TIMEOUT_MS = 60000;
-
-/**
+export const SCRAPING_TIMEOUT_MS = 60000;/**
  * Minimum text length to consider a page successfully scraped
  */
 export const MIN_TEXT_LENGTH_FOR_SUCCESS = 100;/**
