@@ -1,6 +1,6 @@
 import type React from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Database,
   FileSearch,
@@ -12,7 +12,10 @@ import {
   Shield,
   Target,
   Users,
+  ArrowRight,
 } from "lucide-react";
+import { BentoCard } from "../components/BentoCard";
+import { Hero } from "../components/Hero";
 
 type FeatureAccess = "Public" | "Signed-in" | "Admin";
 
@@ -22,51 +25,50 @@ type Feature = {
   to: string;
   icon: React.ReactNode;
   access: FeatureAccess;
+  span?: "1x1" | "1x2" | "2x1" | "2x2" | "2x3" | "3x2";
 };
 
 function AccessBadge({ access }: { access: FeatureAccess }) {
   const styles: Record<FeatureAccess, string> = {
     Public: "bg-tron-cyan/10 text-tron-cyan border border-tron-cyan/30",
-    "Signed-in": "bg-tron-blue/10 text-tron-blue border border-tron-blue/30",
-    Admin: "bg-tron-orange/10 text-tron-orange border border-tron-orange/30",
+    "Signed-in": "bg-gray-500/20 text-gray-400 border border-gray-500/30",
+    Admin: "bg-gray-600/20 text-gray-300 border border-gray-600/30",
   };
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] ${styles[access]}`}
+      className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-medium uppercase tracking-wide ${styles[access]}`}
     >
       {access}
     </span>
   );
 }
 
-function FeatureCard({ feature }: { feature: Feature }) {
+function FeatureCard({ feature, delay = 0 }: { feature: Feature; delay?: number }) {
   return (
-    <Link
-      to={feature.to}
-      className="group block tron-card p-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-tron-cyan/60"
+    <BentoCard
+      href={feature.to}
+      span={feature.span || "1x1"}
+      delay={delay}
+      className="flex flex-col"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <div className="text-tron-cyan tron-icon-glow flex-shrink-0">
-              {feature.icon}
-            </div>
-            <h3 className="text-base font-semibold text-tron-white truncate">
-              {feature.title}
-            </h3>
-          </div>
-          <p className="mt-2 text-sm text-tron-muted leading-relaxed">
-            {feature.description}
-          </p>
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="text-tron-cyan flex-shrink-0">
+          {feature.icon}
         </div>
         <AccessBadge access={feature.access} />
       </div>
-
-      <div className="mt-4 text-xs text-tron-gray group-hover:text-tron-white transition-colors">
-        Open →
+      <h3 className="text-lg font-display font-semibold text-tron-white mb-2">
+        {feature.title}
+      </h3>
+      <p className="text-sm text-tron-gray leading-relaxed flex-grow mb-4">
+        {feature.description}
+      </p>
+      <div className="flex items-center gap-2 text-xs text-tron-gray group-hover:text-tron-cyan transition-colors mt-auto">
+        <span>Open</span>
+        <ArrowRight className="w-3 h-3" strokeWidth={2} />
       </div>
-    </Link>
+    </BentoCard>
   );
 }
 
@@ -77,56 +79,63 @@ export function DashboardPage() {
     {
       title: "Procurement Links",
       description:
-        "AI-assisted procurement link discovery, verification, scraping, and feedback workflows.",
+        "Find and verify procurement opportunities faster. Automate discovery and validation workflows.",
       to: "/procurement-links",
-      icon: <Globe className="w-5 h-5" />,
+      icon: <Globe className="w-6 h-6" strokeWidth={1.5} />,
       access: "Public",
+      span: "2x2",
     },
     {
       title: "Government Links",
-      description: "Browse and manage government procurement links by state.",
+      description: "Browse procurement links organized by state. Quick access to opportunities.",
       to: "/government-links",
-      icon: <Map className="w-5 h-5" />,
+      icon: <Map className="w-6 h-6" strokeWidth={1.5} />,
       access: "Public",
+      span: "1x1",
     },
     {
       title: "Leads Management",
-      description: "Track and manage procurement opportunity leads.",
+      description: "Track procurement leads that matter. Keep opportunities organized.",
       to: "/leads-management",
-      icon: <FileSearch className="w-5 h-5" />,
+      icon: <FileSearch className="w-6 h-6" strokeWidth={1.5} />,
       access: "Signed-in",
+      span: "1x1",
     },
   ];
 
   const hrAndSearchFeatures: Feature[] = [
     {
       title: "HR Overview",
-      description: "Job/resume matching and high-level HR insights.",
+      description: "Match jobs with resumes. Get insights that help you hire better.",
       to: "/hr-overview",
-      icon: <Target className="w-5 h-5" />,
+      icon: <Target className="w-6 h-6" strokeWidth={1.5} />,
       access: "Signed-in",
+      span: "1x1",
     },
     {
       title: "Semantic Search",
-      description: "AI-powered search across jobs, resumes, and embeddings.",
+      description: "Search across jobs and resumes using natural language. Find what you need faster.",
       to: "/semantic-search",
-      icon: <Search className="w-5 h-5" />,
+      icon: <Search className="w-6 h-6" strokeWidth={1.5} />,
       access: "Signed-in",
+      span: "2x1",
     },
     {
       title: "Resume & Data Management",
-      description: "Import, export, and manage job postings and resumes.",
+      description: "Import, export, and organize job postings and resumes. Keep your data clean.",
       to: "/data-management",
-      icon: <Database className="w-5 h-5" />,
+      icon: <Database className="w-6 h-6" strokeWidth={1.5} />,
       access: "Signed-in",
+      span: "1x1",
     },
     {
       title: "KFC Management",
       description:
-        "Employee recognition with nominations, points, and approvals.",
+        "Employee recognition that works. Handle nominations, points, and approvals.",
       to: "/kfc-management",
-      icon: <Users className="w-5 h-5" />,
+      icon: <Users className="w-6 h-6" strokeWidth={1.5} />,
       access: "Signed-in",
+      span: "1x1",
     },
   ];
 
@@ -134,104 +143,132 @@ export function DashboardPage() {
     {
       title: "Embedding Management",
       description:
-        "Manage embedding pipelines and system optimization workflows.",
+        "Optimize search performance. Manage embedding pipelines and system workflows.",
       to: "/embedding-management",
-      icon: <Settings className="w-5 h-5" />,
+      icon: <Settings className="w-6 h-6" strokeWidth={1.5} />,
       access: "Admin",
+      span: "1x1",
     },
     {
       title: "Admin Panel",
-      description: "Control visibility, configuration, and platform settings.",
+      description: "Control what users see. Configure visibility and platform settings.",
       to: "/admin-panel",
-      icon: <Shield className="w-5 h-5" />,
+      icon: <Shield className="w-6 h-6" strokeWidth={1.5} />,
       access: "Admin",
+      span: "1x1",
     },
     {
       title: "Theme Config",
-      description: "Customize Cobecium’s Tron theme colors and UI preferences.",
+      description: "Customize colors and UI preferences. Make it yours.",
       to: "/theme-config",
-      icon: <Palette className="w-5 h-5" />,
+      icon: <Palette className="w-6 h-6" strokeWidth={1.5} />,
       access: "Signed-in",
+      span: "1x1",
     },
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
   return (
     <div className="min-h-full bg-tron-bg-deep">
+      {/* Hero Section */}
+      <Hero
+        title="Cobecium Dashboard"
+        subtitle="Everything you need to find opportunities and manage workflows. Built for speed."
+        ctaText={isSignedIn ? "Explore Features" : "Get Started"}
+        ctaHref={isSignedIn ? "/procurement-links" : "/sign-in"}
+      />
+
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-6 md:py-10">
-        <div className="tron-panel p-6 md:p-8 tron-grid-bg">
-          <h1 className="text-3xl md:text-4xl font-bold text-tron-white tron-glow-text">
-            Cobecium Dashboard
-          </h1>
-          <p className="mt-2 text-tron-muted max-w-3xl">
-            A quick map of what Cobecium can do. Use the cards below to jump
-            directly into each workflow.
-          </p>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link
-              to="/procurement-links"
-              className="px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-sm"
-            >
-              Start with Procurement Links
-            </Link>
-            {!isSignedIn && (
-              <Link
-                to="/sign-in"
-                className="px-4 py-2 bg-tron-bg-elevated border border-tron-cyan/20 rounded-lg text-tron-white hover:bg-tron-cyan/10 transition-colors text-sm"
-              >
-                Sign in for full access
-              </Link>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-8 space-y-8">
-          <section>
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-tron-white">Core</h2>
-              <div className="text-xs text-tron-muted">
-                Public + core workflows
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-12"
+        >
+          {/* Core Features - Bento Grid */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <h2 className="text-2xl font-display font-semibold text-tron-white">
+                Core Features
+              </h2>
+              <div className="text-xs text-tron-muted uppercase tracking-wide">
+                Public access
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {coreFeatures.map((feature) => (
-                <FeatureCard key={feature.to} feature={feature} />
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
+              {coreFeatures.map((feature, index) => (
+                <FeatureCard
+                  key={feature.to}
+                  feature={feature}
+                  delay={index * 0.1}
+                />
               ))}
             </div>
-          </section>
+          </motion.section>
 
-          <section>
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-tron-white">
+          {/* HR & Search Features - Bento Grid */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <h2 className="text-2xl font-display font-semibold text-tron-white">
                 HR & Search
               </h2>
-              <div className="text-xs text-tron-muted">
-                Matching, insights, and data
+              <div className="text-xs text-tron-muted uppercase tracking-wide">
+                Signed-in required
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {hrAndSearchFeatures.map((feature) => (
-                <FeatureCard key={feature.to} feature={feature} />
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
+              {hrAndSearchFeatures.map((feature, index) => (
+                <FeatureCard
+                  key={feature.to}
+                  feature={feature}
+                  delay={index * 0.1 + 0.3}
+                />
               ))}
             </div>
-          </section>
+          </motion.section>
 
-          <section>
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-tron-white">
-                Admin & Config
+          {/* Admin & Config Features - Bento Grid */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <h2 className="text-2xl font-display font-semibold text-tron-white">
+                Admin & Configuration
               </h2>
-              <div className="text-xs text-tron-muted">
-                Controls and optimization tools
+              <div className="text-xs text-tron-muted uppercase tracking-wide">
+                Admin access
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {adminAndConfigFeatures.map((feature) => (
-                <FeatureCard key={feature.to} feature={feature} />
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
+              {adminAndConfigFeatures.map((feature, index) => (
+                <FeatureCard
+                  key={feature.to}
+                  feature={feature}
+                  delay={index * 0.1 + 0.6}
+                />
               ))}
             </div>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>
       </div>
     </div>
   );

@@ -254,11 +254,11 @@ function UnauthenticatedApp() {
       <div className="min-h-screen bg-tron-bg-deep tron-grid-bg flex items-center justify-center p-8">
         <div className="w-full max-w-md mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-tron-white mb-4 tron-glow-text">
+            <h1 className="text-4xl font-display font-bold text-tron-white mb-4 tron-glow-text">
               Cobecium
             </h1>
             <p className="text-xl text-tron-gray">
-              Sign in to start chatting with AI
+              Sign in to access all features
             </p>
           </div>
           <SignInForm />
@@ -278,7 +278,7 @@ function PublicDashboardPage() {
   return (
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
-      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
+      <header className="glass-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6 sticky top-0 z-20">
         <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
           <h1 className="text-lg sm:text-xl font-bold text-tron-white">
             Cobecium
@@ -288,9 +288,9 @@ function PublicDashboardPage() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/sign-in"
-            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-xs sm:text-sm whitespace-nowrap"
+            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 hover:scale-105 active:scale-100 transition-all duration-300 text-xs sm:text-sm whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-tron-cyan focus-visible:ring-offset-2"
           >
-            <span className="hidden sm:inline">Sign In for Full Access</span>
+            <span className="hidden sm:inline">Sign In to Get Started</span>
             <span className="sm:hidden">Sign In</span>
           </Link>
         </div>
@@ -311,7 +311,7 @@ function PublicGovernmentLinksPage() {
   return (
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
-      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
+      <header className="glass-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6 sticky top-0 z-20">
         <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
           <h1 className="text-lg sm:text-xl font-bold text-tron-white">
             Cobecium
@@ -326,7 +326,7 @@ function PublicGovernmentLinksPage() {
             to="/sign-in"
             className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-xs sm:text-sm whitespace-nowrap text-center"
           >
-            <span className="hidden sm:inline">Sign In for Full Access</span>
+            <span className="hidden sm:inline">Sign In to Get Started</span>
             <span className="sm:hidden">Sign In</span>
           </Link>
         </div>
@@ -344,7 +344,7 @@ function PublicProcurementLinksPage() {
   return (
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
-      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
+      <header className="glass-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6 sticky top-0 z-20">
         <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
           <h1 className="text-lg sm:text-xl font-bold text-tron-white">
             Cobecium
@@ -354,9 +354,9 @@ function PublicProcurementLinksPage() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/sign-in"
-            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-xs sm:text-sm whitespace-nowrap"
+            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 hover:scale-105 active:scale-100 transition-all duration-300 text-xs sm:text-sm whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-tron-cyan focus-visible:ring-offset-2"
           >
-            <span className="hidden sm:inline">Sign In for Full Access</span>
+            <span className="hidden sm:inline">Sign In to Get Started</span>
             <span className="sm:hidden">Sign In</span>
           </Link>
         </div>
@@ -374,7 +374,7 @@ function PublicLeadsManagementPage() {
   return (
     <div className="h-screen bg-tron-bg-deep flex flex-col">
       {/* Simple header for public access */}
-      <header className="bg-tron-bg-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6">
+      <header className="glass-panel border-b border-tron-cyan/20 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-6 sticky top-0 z-20">
         <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6">
           <h1 className="text-lg sm:text-xl font-bold text-tron-white">
             Cobecium
@@ -384,9 +384,9 @@ function PublicLeadsManagementPage() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/sign-in"
-            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 transition-colors text-xs sm:text-sm whitespace-nowrap"
+            className="px-3 sm:px-4 py-2 bg-tron-cyan/10 border border-tron-cyan/30 rounded-lg text-tron-cyan hover:bg-tron-cyan/20 hover:scale-105 active:scale-100 transition-all duration-300 text-xs sm:text-sm whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-tron-cyan focus-visible:ring-offset-2"
           >
-            <span className="hidden sm:inline">Sign In for Full Access</span>
+            <span className="hidden sm:inline">Sign In to Get Started</span>
             <span className="sm:hidden">Sign In</span>
           </Link>
         </div>

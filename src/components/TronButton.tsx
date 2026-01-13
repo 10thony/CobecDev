@@ -61,13 +61,20 @@ export function TronButton({
       className={`
         relative overflow-hidden group
         inline-flex items-center justify-center gap-2
-        border font-medium rounded
-        transition-all duration-250 ease-out
+        border font-medium rounded-lg
+        transition-all duration-300 ease-out
+        hover:scale-105
+        active:scale-100
+        focus:outline-none
+        focus-visible:ring-2
+        focus-visible:ring-tron-cyan
+        focus-visible:ring-offset-2
+        focus-visible:ring-offset-tron-bg-deep
         ${sizes[size]}
         ${variants[variant]}
         ${colors[color].hover}
         ${colors[color].glow}
-        disabled:opacity-50 disabled:cursor-not-allowed
+        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
         ${className}
       `}
       disabled={disabled || loading}

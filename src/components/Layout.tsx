@@ -232,7 +232,7 @@ export function Layout({ children }: LayoutProps) {
           <div
             className={`hidden lg:flex relative flex-col transition-all duration-300 ease-in-out ${
               isCollapsed ? "w-16" : "w-64"
-            } bg-tron-bg-panel border-r border-tron-cyan/20`}
+            } glass-panel border-r border-tron-cyan/20 sticky top-0 h-screen`}
           >
             {/* Collapse Toggle Button */}
             <button
@@ -240,9 +240,9 @@ export function Layout({ children }: LayoutProps) {
               className="absolute -right-3 top-4 z-10 bg-tron-bg-panel rounded-full p-1 border border-tron-cyan/20 hover:bg-tron-cyan/10"
             >
               {isCollapsed ? (
-                <ChevronRight className="w-4 h-4 text-tron-white" />
+                <ChevronRight className="w-4 h-4 text-tron-white" strokeWidth={1.5} />
               ) : (
-                <ChevronLeft className="w-4 h-4 text-tron-white" />
+                <ChevronLeft className="w-4 h-4 text-tron-white" strokeWidth={1.5} />
               )}
             </button>
 
@@ -280,6 +280,7 @@ export function Layout({ children }: LayoutProps) {
                       <Icon
                         size={isCollapsed ? 24 : 18}
                         className="flex-shrink-0"
+                        strokeWidth={1.5}
                       />
                       {!isCollapsed && <span>{item.label}</span>}
                     </Link>
@@ -300,7 +301,7 @@ export function Layout({ children }: LayoutProps) {
 
           {/* Mobile Sidebar Drawer */}
           <div
-            className={`lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-tron-bg-panel border-r border-tron-cyan/20 transform transition-transform duration-300 ease-in-out ${
+            className={`lg:hidden fixed inset-y-0 left-0 z-40 w-64 glass-panel border-r border-tron-cyan/20 transform transition-transform duration-300 ease-in-out ${
               isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           >
@@ -314,7 +315,7 @@ export function Layout({ children }: LayoutProps) {
                 className="p-2 text-tron-gray hover:text-tron-white transition-colors"
                 aria-label="Close menu"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" strokeWidth={1.5} />
               </button>
             </div>
 
@@ -354,13 +355,13 @@ export function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header with Menu Button */}
-        <div className="lg:hidden bg-tron-bg-panel border-b border-tron-cyan/20 px-4 py-3 flex items-center">
+        <div className="lg:hidden glass-panel border-b border-tron-cyan/20 px-4 py-3 flex items-center sticky top-0 z-20">
           <button
             onClick={() => setIsMobileMenuOpen(true)}
             className="p-2 text-tron-gray hover:text-tron-white transition-colors"
             aria-label="Open menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-6 h-6" strokeWidth={1.5} />
           </button>
           <Link to="/" className="ml-3 text-lg font-bold text-tron-white">
             Cobecium

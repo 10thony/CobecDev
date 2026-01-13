@@ -40,11 +40,11 @@ export function HomePage() {
   return (
     <div className="min-h-full flex flex-col items-center justify-start py-8">
       <div className="max-w-2xl mx-auto text-center">
-        <h1 className="text-4xl font-bold text-mint_cream-500 mb-4">
+        <h1 className="text-4xl md:text-5xl font-display font-bold text-mint_cream-500 mb-4">
           Welcome to Cobecium
         </h1>
         <p className="text-xl text-powder_blue-700 mb-8">
-          Chat with AI models in real-time
+          Build tools that help you find opportunities faster
         </p>
 
         {loggedInUser && (

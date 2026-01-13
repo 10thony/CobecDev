@@ -135,13 +135,13 @@ export function PublicNavigation() {
           <Link
             key={item._id}
             to={item.path}
-            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap ${
               isActive
-                ? "bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30"
-                : "text-tron-gray hover:text-tron-white hover:bg-tron-bg-elevated"
+                ? "bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30 backdrop-blur-sm"
+                : "text-tron-gray hover:text-tron-white hover:bg-tron-bg-elevated/50 hover:backdrop-blur-sm"
             }`}
           >
-            <IconComponent className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+            <IconComponent className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" strokeWidth={1.5} />
             <span className="hidden sm:inline">{item.label}</span>
             <span className="sm:hidden">{item.label.split(" ")[0]}</span>
           </Link>

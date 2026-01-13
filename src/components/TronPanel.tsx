@@ -40,8 +40,11 @@ export function TronPanel({
   return (
     <div 
       className={`
-        relative overflow-hidden rounded-lg
+        relative overflow-hidden rounded-xl
         border border-opacity-20
+        transition-all duration-300 ease-out
+        hover:scale-[1.01]
+        hover:shadow-lg
         ${variants[variant]}
         ${className}
       `}

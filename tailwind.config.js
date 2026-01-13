@@ -6,7 +6,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter var", ...fontFamily.sans],
+        sans: ["Space Grotesk", "Inter var", ...fontFamily.sans],
+        serif: ["Playfair Display", ...fontFamily.serif],
+        display: ["Playfair Display", ...fontFamily.serif],
       },
       borderRadius: {
         DEFAULT: "8px",
@@ -24,34 +26,28 @@ module.exports = {
         'tron-inset': 'inset 0 0 20px rgba(0, 212, 255, 0.1)',
       },
       colors: {
-        // Tron Dark Backgrounds
+        // Monochromatic Backgrounds (Cloud Dancer inspired - breathable off-whites)
         tron: {
           bg: {
-            deep: '#0a0a0f',
-            panel: '#0d1117',
-            card: '#161b22',
-            elevated: '#21262d',
+            deep: '#0f0f15',
+            panel: '#1a1a24',
+            card: '#252530',
+            elevated: '#2f2f3a',
+            surface: '#f5f5f0',
+            surfaceLight: '#fafaf5',
+            surfaceSoft: '#f0f0eb',
           },
-          // Neon Accents
+          // Single Accent Color (Cyan - used sparingly for CTAs only)
           cyan: {
             DEFAULT: '#00d4ff',
             dim: '#00a8cc',
             bright: '#4de8ff',
           },
-          blue: {
-            DEFAULT: '#0066ff',
-            dim: '#0052cc',
-            bright: '#3385ff',
-          },
-          orange: {
-            DEFAULT: '#ff6600',
-            dim: '#cc5200',
-            bright: '#ff8533',
-          },
-          // Text
-          white: '#f0f6fc',
+          // Text Colors
+          white: '#f5f5f0',
           gray: '#8b949e',
-          muted: '#484f58',
+          muted: '#6b7280',
+          dim: '#4b5563',
         },
         // Status colors with glow potential
         neon: {
@@ -187,14 +183,25 @@ module.exports = {
           }
         },
         '.tron-panel': {
-          backgroundColor: '#0d1117',
+          backgroundColor: '#1a1a24',
           border: '1px solid rgba(0, 212, 255, 0.2)',
           borderRadius: '8px',
         },
         '.tron-card': {
-          backgroundColor: '#161b22',
+          backgroundColor: '#252530',
           border: '1px solid rgba(0, 212, 255, 0.15)',
           borderRadius: '6px',
+        },
+        /* Glassmorphism utilities */
+        '.glass-panel': {
+          backdropFilter: 'blur(20px)',
+          backgroundColor: 'rgba(26, 26, 36, 0.8)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        },
+        '.glass-card': {
+          backdropFilter: 'blur(16px)',
+          backgroundColor: 'rgba(37, 37, 48, 0.6)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
         },
         '.tron-text-glow': {
           textShadow: '0 0 10px rgba(0, 212, 255, 0.5)',
