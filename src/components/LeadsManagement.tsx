@@ -101,6 +101,15 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const [showJsonUpload, setShowJsonUpload] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<Id<"leads"> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const quickFiltersRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  
+  // Swipe gesture state for horizontal scroll
+  const [swipeState, setSwipeState] = useState({
+    isDown: false,
+    startX: 0,
+    scrollLeft: 0,
+  });
   
   // Load all leads at once
   // @ts-expect-error - TypeScript has issues with large array inference from Convex
@@ -124,6 +133,57 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [openMenuId]);
+
+  // Swipe gesture handlers for horizontal scroll
+  const handleSwipeStart = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!quickFiltersRef.current) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const rect = quickFiltersRef.current.getBoundingClientRect();
+    isDraggingRef.current = false;
+    setSwipeState({
+      isDown: true,
+      startX: clientX - rect.left,
+      scrollLeft: quickFiltersRef.current.scrollLeft,
+    });
+  };
+
+  const handleSwipeMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!swipeState.isDown || !quickFiltersRef.current) return;
+    e.preventDefault();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const rect = quickFiltersRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const walk = (x - swipeState.startX) * 2; // Scroll speed multiplier
+    
+    // Mark as dragging if the scroll distance is significant
+    if (Math.abs(walk) > 5) {
+      isDraggingRef.current = true;
+    }
+    
+    quickFiltersRef.current.scrollLeft = swipeState.scrollLeft - walk;
+  };
+
+  const handleSwipeEnd = () => {
+    // Reset dragging flag after a short delay to allow click events to check it
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 100);
+    setSwipeState({
+      isDown: false,
+      startX: 0,
+      scrollLeft: 0,
+    });
+  };
+
+  // Prevent button click if user was dragging
+  const handleFilterClick = (region: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isDraggingRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    setFilters(prev => ({ ...prev, region: prev.region === region ? '' : region }));
+  };
 
   // Mutations
   const deleteLead = useMutation(api.leads.deleteLead);
@@ -502,6 +562,62 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
               </TronButton>
             </div>
 
+            {/* State/Region Quick Filters with Horizontal Scroll */}
+            <div className="mt-4 pt-4 border-t border-tron-cyan/20">
+              <div className="mb-2">
+                <label className="block text-xs font-medium text-tron-gray mb-2">Quick Filters by Region</label>
+                <div
+                  ref={quickFiltersRef}
+                  onMouseDown={handleSwipeStart}
+                  onMouseMove={handleSwipeMove}
+                  onMouseUp={handleSwipeEnd}
+                  onMouseLeave={handleSwipeEnd}
+                  onTouchStart={handleSwipeStart}
+                  onTouchMove={handleSwipeMove}
+                  onTouchEnd={handleSwipeEnd}
+                  className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 cursor-grab active:cursor-grabbing select-none"
+                  style={{
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                  }}
+                >
+                  <style>{`
+                    .scrollbar-hide::-webkit-scrollbar {
+                      display: none;
+                    }
+                  `}</style>
+                  <button
+                    onClick={(e) => {
+                      if (!isDraggingRef.current) {
+                        setFilters(prev => ({ ...prev, region: '' }));
+                      }
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap flex-shrink-0 ${
+                      filters.region === ''
+                        ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                        : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                    }`}
+                  >
+                    All Regions
+                  </button>
+                  {uniqueValues.regions.map(region => (
+                    <button
+                      key={region}
+                      onClick={(e) => handleFilterClick(region, e)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap flex-shrink-0 ${
+                        filters.region === region
+                          ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                          : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                      }`}
+                    >
+                      {region}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Filter Options */}
             {showFilters && (
               <div className="mt-6 pt-6 border-t border-tron-cyan/20">
@@ -788,8 +904,8 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
         </div>
 
         {/* Lead Details */}
-        <div className="lg:col-span-1">
-          {selectedLead ? (
+        {selectedLead && (
+          <div className="lg:col-span-1">
             <div 
               className="sticky top-6"
               style={{ 
@@ -936,27 +1052,8 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
               </div>
               </TronPanel>
             </div>
-          ) : (
-            <div 
-              className="text-center sticky top-6"
-              style={{ 
-                height: '40vh',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
-              <TronPanel>
-                <div className="text-tron-gray mb-6">
-                  <Briefcase className="w-16 h-16 mx-auto" />
-                </div>
-                <h3 className="text-xl font-medium text-tron-white mb-3">No Lead Selected</h3>
-                <p className="text-tron-gray text-lg">Select a lead from the list to view its details</p>
-              </TronPanel>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Lead Form for creating/editing leads */}
