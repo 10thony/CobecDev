@@ -177,14 +177,22 @@ export function DashboardPage() {
     },
   };
 
+  // Combine all features for the book animation
+  const allFeatures = [
+    ...coreFeatures,
+    ...hrAndSearchFeatures,
+    ...adminAndConfigFeatures,
+  ];
+
   return (
     <div className="min-h-full bg-tron-bg-deep">
       {/* Hero Section */}
       <Hero
-        title="Cobecium Dashboard"
+        title="Cobecium"
         subtitle="Everything you need to find opportunities and manage workflows. Built for speed."
         ctaText={isSignedIn ? "Explore Features" : "Get Started"}
         ctaHref={isSignedIn ? "/procurement-links" : "/sign-in"}
+        features={allFeatures}
       />
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-6 md:py-10">

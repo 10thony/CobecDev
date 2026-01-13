@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { OrganicUnderline } from "./OrganicShapes";
+import { RevolvingBookAnimation, type Feature } from "./RevolvingBookAnimation";
 
 interface HeroProps {
   title?: string;
@@ -9,6 +10,7 @@ interface HeroProps {
   ctaText?: string;
   ctaHref?: string;
   showUnderline?: boolean;
+  features?: Feature[];
 }
 
 export function Hero({
@@ -17,6 +19,7 @@ export function Hero({
   ctaText = "Get Started",
   ctaHref = "/procurement-links",
   showUnderline = true,
+  features = [],
 }: HeroProps) {
   return (
     <motion.section
@@ -98,38 +101,14 @@ export function Hero({
           </Link>
         </motion.div>
 
-        {/* Optional 3D element placeholder - can be replaced with Spline or SVG illustration */}
+        {/* Revolving book animation */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
           className="mt-16 flex justify-center"
         >
-          <div className="w-64 h-64 md:w-80 md:h-80 rounded-3xl glass-card flex items-center justify-center">
-            <div className="text-tron-gray text-sm">
-              {/* Placeholder for 3D element or illustration */}
-              <svg
-                width="120"
-                height="120"
-                viewBox="0 0 120 120"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="opacity-30"
-              >
-                <rect
-                  x="20"
-                  y="20"
-                  width="80"
-                  height="80"
-                  rx="12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeDasharray="4 4"
-                />
-                <circle cx="60" cy="60" r="20" stroke="currentColor" strokeWidth="2" />
-              </svg>
-            </div>
-          </div>
+          <RevolvingBookAnimation features={features} rotationSpeed={30} />
         </motion.div>
       </div>
     </motion.section>
