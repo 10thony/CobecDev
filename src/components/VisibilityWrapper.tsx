@@ -28,10 +28,17 @@ export function VisibilityWrapper({
     );
   }
 
+  // Always include government-links even if not in visibleComponents
+  // This ensures it's always available for authenticated users
+  const alwaysVisibleComponents = ["government-links"];
+  const isAlwaysVisible = alwaysVisibleComponents.includes(componentId);
+
   // If visibleComponents is empty array, show all components (backward compatibility)
   // Otherwise, only show if componentId is in the visibleComponents array
   const isVisible =
-    visibleComponents.length === 0 || visibleComponents.includes(componentId);
+    isAlwaysVisible ||
+    visibleComponents.length === 0 ||
+    visibleComponents.includes(componentId);
 
   if (!isVisible) {
     return <>{fallback}</>;
