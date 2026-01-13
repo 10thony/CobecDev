@@ -220,6 +220,78 @@ export const toggleLeadActive = mutation({
   },
 });
 
+// Helper function to normalize URLs for duplicate detection
+const normalizeUrl = (url: string): string => {
+  if (!url) return '';
+  return url.trim().toLowerCase().replace(/\/$/, ''); // Remove trailing slash
+};
+
+// Helper function to normalize titles for duplicate detection
+const normalizeTitle = (title: string): string => {
+  if (!title) return '';
+  return title.trim().toLowerCase();
+};
+
+// Find and delete duplicate leads
+// Duplicates are detected by: 1) contractID match, or 2) opportunityTitle + source.url match
+export const deleteDuplicateLeads = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allLeads = await ctx.db.query("leads").collect();
+    const seen = new Map<string, string>(); // Map of normalized key -> first lead ID
+    const duplicates: Array<{ id: string; reason: string; duplicateOf: string }> = [];
+    const deletedIds: string[] = [];
+    
+    console.log(`[deleteDuplicateLeads] Checking ${allLeads.length} leads for duplicates...`);
+    
+    for (const lead of allLeads) {
+      let duplicateKey: string | null = null;
+      let reason = '';
+      
+      // Check by contractID first (most reliable)
+      if (lead.contractID) {
+        duplicateKey = `contractID:${lead.contractID}`;
+        reason = `contractID: ${lead.contractID}`;
+      } else {
+        // Check by title + URL
+        const normalizedUrl = normalizeUrl(lead.source?.url || '');
+        const normalizedTitle = normalizeTitle(lead.opportunityTitle || '');
+        if (normalizedTitle && normalizedUrl) {
+          duplicateKey = `title+url:${normalizedTitle}|${normalizedUrl}`;
+          reason = `title + URL: ${lead.opportunityTitle}`;
+        }
+      }
+      
+      if (duplicateKey) {
+        const firstLeadId = seen.get(duplicateKey);
+        if (firstLeadId) {
+          // This is a duplicate - keep the first one, delete this one
+          duplicates.push({
+            id: lead._id,
+            reason,
+            duplicateOf: firstLeadId
+          });
+          await ctx.db.delete(lead._id);
+          deletedIds.push(lead._id);
+          console.log(`[deleteDuplicateLeads] Deleted duplicate lead ${lead._id} (${reason}) - duplicate of ${firstLeadId}`);
+        } else {
+          // First occurrence - keep it
+          seen.set(duplicateKey, lead._id);
+        }
+      }
+    }
+    
+    console.log(`[deleteDuplicateLeads] Deleted ${deletedIds.length} duplicate leads out of ${allLeads.length} total`);
+    
+    return {
+      totalChecked: allLeads.length,
+      duplicatesFound: duplicates.length,
+      deleted: deletedIds.length,
+      duplicateDetails: duplicates.slice(0, 50), // Limit to first 50 for response size
+    };
+  },
+});
+
 // Get all leads
 export const getAllLeads = query({
   args: {},
@@ -253,6 +325,15 @@ export const getLeadsPaginated = query({
   },
   handler: async (ctx, args) => {
     const limit = args.limit;
+    const batchNumber = args.lastCreatedAt === undefined && args.lastId === undefined ? 1 : 'subsequent';
+    
+    console.log(`[getLeadsPaginated] Starting batch fetch:`, {
+      limit,
+      lastCreatedAt: args.lastCreatedAt,
+      lastId: args.lastId,
+      includeTotal: args.includeTotal,
+      batchNumber
+    });
     
     // Cursor-based pagination using compound cursor (createdAt + _id)
     // This handles duplicate timestamps correctly by using _id as tiebreaker
@@ -269,29 +350,35 @@ export const getLeadsPaginated = query({
           .filter(q => q.lt(q.field("createdAt"), args.lastCreatedAt!))
           .take(limit);
         
+        console.log(`[getLeadsPaginated] Step 1 - Found ${leadsBefore.length} leads with createdAt < ${args.lastCreatedAt}`);
+        
         // Step 2: If we need more, get leads with same createdAt and filter by _id in memory
-        // Use a very conservative approach to avoid byte limit issues
+        // Collect ALL same-timestamp leads at once, then filter and sort in memory
         if (leadsBefore.length < limit) {
           const remaining = limit - leadsBefore.length;
+          console.log(`[getLeadsPaginated] Step 2 - Need ${remaining} more leads, fetching same-timestamp leads`);
           try {
-            // Get leads with the same createdAt, but use a very small limit to avoid byte limit issues
-            // Use a conservative limit (remaining or max 20) to handle duplicates safely
-            const maxSameTimeLeads = Math.min(remaining, 20);
+            // Collect ALL leads with the same timestamp at once
+            // This avoids pagination issues since we can't use a cursor for same-timestamp queries
             const allLeadsSameTime = await ctx.db
               .query("leads")
               .withIndex("by_creation")
               .order("desc")
               .filter(q => q.eq(q.field("createdAt"), args.lastCreatedAt!))
-              .take(maxSameTimeLeads);
+              .collect(); // Get ALL same-timestamp leads
             
-            // Filter to only those with _id < lastId, then sort and take remaining
-            const leadsSameTime = allLeadsSameTime
+            console.log(`[getLeadsPaginated] Step 2 - Fetched ${allLeadsSameTime.length} total leads with same createdAt`);
+            
+            // Filter to only those with _id < lastFetchedId, sort by _id descending, and take what we need
+            const filteredSameTime = allLeadsSameTime
               .filter(lead => lead._id < args.lastId!)
               .sort((a, b) => b._id.localeCompare(a._id))
-              .slice(0, remaining);
+              .slice(0, remaining); // Only take as many as we need
+            
+            console.log(`[getLeadsPaginated] Step 2 - After filtering by _id < ${args.lastId}, got ${filteredSameTime.length} leads (needed ${remaining})`);
             
             // Combine and sort (by createdAt desc, then _id desc)
-            leads = [...leadsBefore, ...leadsSameTime].sort((a, b) => {
+            leads = [...leadsBefore, ...filteredSameTime].sort((a, b) => {
               if (b.createdAt !== a.createdAt) {
                 return b.createdAt - a.createdAt;
               }
@@ -301,6 +388,14 @@ export const getLeadsPaginated = query({
           } catch (error) {
             // If we hit byte limit or other error, just return what we have
             // The next pagination call will continue from where we left off
+            console.error(`[getLeadsPaginated] ERROR in Step 2 (same-timestamp fetch):`, {
+              error: error instanceof Error ? error.message : String(error),
+              errorType: error instanceof Error ? error.constructor.name : typeof error,
+              leadsBeforeCount: leadsBefore.length,
+              remaining,
+              lastCreatedAt: args.lastCreatedAt,
+              lastId: args.lastId
+            });
             leads = leadsBefore;
           }
         } else {
@@ -308,12 +403,14 @@ export const getLeadsPaginated = query({
         }
       } else {
         // Only createdAt provided (backward compatibility) - use simple filter
+        console.log(`[getLeadsPaginated] Using simple filter (only createdAt provided)`);
         leads = await ctx.db
           .query("leads")
           .withIndex("by_creation")
           .order("desc")
           .filter(q => q.lt(q.field("createdAt"), args.lastCreatedAt!))
           .take(limit);
+        console.log(`[getLeadsPaginated] Simple filter returned ${leads.length} leads`);
       }
     } else if (args.lastId !== undefined) {
       // Legacy approach: get the lead first to find its createdAt
@@ -328,37 +425,48 @@ export const getLeadsPaginated = query({
           .filter(q => q.lt(q.field("createdAt"), lastLead.createdAt))
           .take(limit);
         
-        // Step 2: If we need more, get leads with same createdAt and filter by _id in memory
-        // Use a very conservative approach to avoid byte limit issues
-        if (leadsBefore.length < limit) {
-          const remaining = limit - leadsBefore.length;
-          try {
-            // Get leads with the same createdAt, but use a very small limit to avoid byte limit issues
-            // Use a conservative limit (remaining or max 20) to handle duplicates safely
-            const maxSameTimeLeads = Math.min(remaining, 20);
-            const allLeadsSameTime = await ctx.db
-              .query("leads")
-              .withIndex("by_creation")
-              .order("desc")
-              .filter(q => q.eq(q.field("createdAt"), lastLead.createdAt))
-              .take(maxSameTimeLeads);
-            
-            // Filter to only those with _id < lastId, then sort and take remaining
-            const leadsSameTime = allLeadsSameTime
-              .filter(lead => lead._id < args.lastId!)
-              .sort((a, b) => b._id.localeCompare(a._id))
-              .slice(0, remaining);
-            
-            // Combine and sort
-            leads = [...leadsBefore, ...leadsSameTime].sort((a, b) => {
-              if (b.createdAt !== a.createdAt) {
-                return b.createdAt - a.createdAt;
-              }
-              return b._id.localeCompare(a._id);
-            });
+          // Step 2: If we need more, get leads with same createdAt and filter by _id in memory
+          // Collect ALL same-timestamp leads at once, then filter and sort in memory
+          if (leadsBefore.length < limit) {
+            const remaining = limit - leadsBefore.length;
+            console.log(`[getLeadsPaginated] Step 2 (legacy) - Need ${remaining} more leads, fetching same-timestamp leads`);
+            try {
+              // Collect ALL leads with the same timestamp at once
+              const allLeadsSameTime = await ctx.db
+                .query("leads")
+                .withIndex("by_creation")
+                .order("desc")
+                .filter(q => q.eq(q.field("createdAt"), lastLead.createdAt))
+                .collect(); // Get ALL same-timestamp leads
+              
+              console.log(`[getLeadsPaginated] Step 2 (legacy) - Fetched ${allLeadsSameTime.length} total leads with same createdAt`);
+              
+              // Filter to only those with _id < lastId, sort by _id descending, and take what we need
+              const filteredSameTime = allLeadsSameTime
+                .filter(lead => lead._id < args.lastId!)
+                .sort((a, b) => b._id.localeCompare(a._id))
+                .slice(0, remaining); // Only take as many as we need
+              
+              console.log(`[getLeadsPaginated] Step 2 (legacy) - After filtering by _id < ${args.lastId}, got ${filteredSameTime.length} leads (needed ${remaining})`);
+              
+              // Combine and sort
+              leads = [...leadsBefore, ...filteredSameTime].sort((a, b) => {
+                if (b.createdAt !== a.createdAt) {
+                  return b.createdAt - a.createdAt;
+                }
+                return b._id.localeCompare(a._id);
+              });
           } catch (error) {
             // If we hit byte limit or other error, just return what we have
             // The next pagination call will continue from where we left off
+            console.error(`[getLeadsPaginated] ERROR in Step 2 (legacy same-timestamp fetch):`, {
+              error: error instanceof Error ? error.message : String(error),
+              errorType: error instanceof Error ? error.constructor.name : typeof error,
+              leadsBeforeCount: leadsBefore.length,
+              remaining,
+              lastCreatedAt: lastLead.createdAt,
+              lastId: args.lastId
+            });
             leads = leadsBefore;
           }
         } else {
@@ -366,23 +474,63 @@ export const getLeadsPaginated = query({
         }
       } else {
         // If lastId not found, start from beginning
+        console.log(`[getLeadsPaginated] lastId not found, starting from beginning`);
         leads = await ctx.db
           .query("leads")
           .withIndex("by_creation")
           .order("desc")
           .take(limit);
+        console.log(`[getLeadsPaginated] Starting from beginning returned ${leads.length} leads`);
       }
     } else {
       // First batch: just take the limit
+      console.log(`[getLeadsPaginated] First batch - fetching initial ${limit} leads`);
       leads = await ctx.db
         .query("leads")
         .withIndex("by_creation")
         .order("desc")
         .take(limit);
+      console.log(`[getLeadsPaginated] First batch returned ${leads.length} leads`);
     }
     
     const lastId = leads.length > 0 ? leads[leads.length - 1]._id : undefined;
     const lastCreatedAt = leads.length > 0 ? leads[leads.length - 1].createdAt : undefined;
+    
+    // Validate and log problematic leads
+    const problematicLeads: Array<{ id: string; issues: string[] }> = [];
+    leads.forEach((lead, index) => {
+      const issues: string[] = [];
+      
+      // Check required fields
+      if (!lead._id) issues.push('missing _id');
+      if (!lead.opportunityTitle) issues.push('missing opportunityTitle');
+      if (!lead.opportunityType) issues.push('missing opportunityType');
+      if (!lead.issuingBody) issues.push('missing issuingBody');
+      if (!lead.issuingBody?.name) issues.push('missing issuingBody.name');
+      if (!lead.issuingBody?.level) issues.push('missing issuingBody.level');
+      if (!lead.location) issues.push('missing location');
+      if (!lead.location?.region) issues.push('missing location.region');
+      if (!lead.status) issues.push('missing status');
+      if (!lead.summary) issues.push('missing summary');
+      if (!lead.source) issues.push('missing source');
+      if (!lead.source?.documentName) issues.push('missing source.documentName');
+      if (!lead.source?.url) issues.push('missing source.url');
+      if (!lead.contacts || !Array.isArray(lead.contacts)) issues.push('missing or invalid contacts');
+      if (typeof lead.createdAt !== 'number') issues.push('invalid createdAt (not a number)');
+      if (typeof lead.updatedAt !== 'number') issues.push('invalid updatedAt (not a number)');
+      
+      // Check for unusually large fields that might cause serialization issues
+      const summaryLength = lead.summary?.length || 0;
+      if (summaryLength > 100000) issues.push(`summary too long (${summaryLength} chars)`);
+      
+      if (issues.length > 0) {
+        problematicLeads.push({ id: lead._id, issues });
+      }
+    });
+    
+    if (problematicLeads.length > 0) {
+      console.warn(`[getLeadsPaginated] Found ${problematicLeads.length} leads with issues:`, problematicLeads);
+    }
     
     // Only get total count if explicitly requested (to avoid expensive operation)
     // Note: This can be expensive for large datasets, so we skip it if it might cause issues
@@ -390,21 +538,100 @@ export const getLeadsPaginated = query({
     if (args.includeTotal && args.lastCreatedAt === undefined && args.lastId === undefined) {
       // Only calculate total on first batch if requested
       // For very large datasets, this might hit byte limits, so we wrap in try-catch
+      console.log(`[getLeadsPaginated] Calculating total count...`);
       try {
         // Use a simple approach but with error handling
         // If this fails, we'll just skip the total count
         const allLeads = await ctx.db.query("leads").collect();
         total = allLeads.length;
+        console.log(`[getLeadsPaginated] Total count calculated: ${total} leads`);
+        
+        // Log any issues with the total count calculation
+        const totalProblematic = allLeads.filter(lead => {
+          return !lead._id || !lead.opportunityTitle || !lead.issuingBody || !lead.location || !lead.status;
+        }).length;
+        if (totalProblematic > 0) {
+          console.warn(`[getLeadsPaginated] Found ${totalProblematic} leads with missing required fields in total count`);
+        }
       } catch (error) {
         // If counting fails due to byte limit, just skip it
         // The UI can work without the total count - it will show "X of ? leads"
+        console.error(`[getLeadsPaginated] ERROR calculating total count:`, {
+          error: error instanceof Error ? error.message : String(error),
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+          stack: error instanceof Error ? error.stack : undefined
+        });
         total = undefined;
       }
     }
     
     // Determine if there are more leads based on batch size
     // If we got a full batch, there might be more
-    const hasMore = leads.length === limit;
+    let hasMore = leads.length === limit;
+    
+    // If we got less than the limit, check if there are actually more leads available
+    if (leads.length < limit && lastCreatedAt !== undefined) {
+      try {
+        // First, check if there are any more leads with createdAt < lastCreatedAt (earlier timestamps)
+        const checkMore = await ctx.db
+          .query("leads")
+          .withIndex("by_creation")
+          .order("desc")
+          .filter(q => q.lt(q.field("createdAt"), lastCreatedAt))
+          .take(1);
+        
+        if (checkMore.length > 0) {
+          hasMore = true;
+          console.log(`[getLeadsPaginated] Found ${checkMore.length} more leads with earlier timestamps, hasMore=true`);
+        } else if (lastId !== undefined) {
+          // If no earlier timestamps, check if there are more leads with the same timestamp but smaller _id
+          // Collect ALL same-timestamp leads to check thoroughly
+          const allSameTime = await ctx.db
+            .query("leads")
+            .withIndex("by_creation")
+            .order("desc")
+            .filter(q => q.eq(q.field("createdAt"), lastCreatedAt))
+            .collect();
+          
+          const hasMoreSameTime = allSameTime.some(lead => lead._id < lastId);
+          
+          if (hasMoreSameTime) {
+            hasMore = true;
+            const count = allSameTime.filter(l => l._id < lastId).length;
+            console.log(`[getLeadsPaginated] Found more leads with same timestamp (${count} found out of ${allSameTime.length}), hasMore=true`);
+          } else {
+            console.log(`[getLeadsPaginated] No more leads found (checked ${allSameTime.length} same-timestamp leads), hasMore=false`);
+          }
+        }
+      } catch (error) {
+        // If check fails, be more aggressive - if we got a partial batch, assume there might be more
+        console.warn(`[getLeadsPaginated] Could not verify if more leads exist:`, {
+          error: error instanceof Error ? error.message : String(error),
+          leadsReturned: leads.length,
+          limit
+        });
+        // If we got a partial batch, assume there might be more (be more optimistic)
+        // This helps avoid stopping early due to query errors
+        if (leads.length > 0 && leads.length < limit) {
+          hasMore = true; // Assume there might be more if we got a partial batch
+          console.log(`[getLeadsPaginated] Assuming hasMore=true due to partial batch (${leads.length}/${limit})`);
+        }
+      }
+    } else if (leads.length === 0 && (lastCreatedAt !== undefined || lastId !== undefined)) {
+      // If we got zero leads but have a cursor, there might still be more (edge case)
+      // This can happen if the cursor points to a deleted lead
+      hasMore = false; // No leads returned, so no more
+    }
+    
+    console.log(`[getLeadsPaginated] Batch complete:`, {
+      leadsReturned: leads.length,
+      hasMore,
+      total,
+      lastId,
+      lastCreatedAt,
+      problematicLeadsCount: problematicLeads.length,
+      leadIds: leads.slice(0, 5).map(l => l._id) // Log first 5 IDs for debugging
+    });
     
     return {
       leads,

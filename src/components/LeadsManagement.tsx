@@ -102,64 +102,9 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const [openMenuId, setOpenMenuId] = useState<Id<"leads"> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   
-  // Progressive loading state
-  const [accumulatedLeads, setAccumulatedLeads] = useState<Lead[]>([]);
-  const [lastLoadedId, setLastLoadedId] = useState<Id<"leads"> | undefined>(undefined);
-  const [lastLoadedCreatedAt, setLastLoadedCreatedAt] = useState<number | undefined>(undefined);
-  const [hasMoreLeads, setHasMoreLeads] = useState(true);
-  const [totalLeads, setTotalLeads] = useState<number | null>(null);
-  const BATCH_SIZE = 50; // Load 50 leads at a time
-
-  // Progressive loading: Load leads in batches automatically
-  // Use compound cursor (createdAt + _id) for proper pagination with duplicate timestamps
-  const leadsBatch = useQuery(
-    api.leads.getLeadsPaginated,
-    hasMoreLeads ? { 
-      limit: BATCH_SIZE, 
-      lastCreatedAt: lastLoadedCreatedAt,
-      lastId: lastLoadedId, // Always pass both for compound cursor
-      includeTotal: lastLoadedCreatedAt === undefined && lastLoadedId === undefined, // Only get total on first batch
-    } : "skip"
-  );
-
-  // Accumulate leads as batches come in and automatically load next batch
-  useEffect(() => {
-    if (leadsBatch) {
-      setAccumulatedLeads(prev => {
-        // Avoid duplicates by checking IDs
-        const existingIds = new Set(prev.map(l => l._id));
-        const newLeads = leadsBatch.leads.filter(l => !existingIds.has(l._id));
-        const updated = [...prev, ...newLeads];
-        
-        // Update hasMore based on backend's determination (more reliable than total count)
-        setHasMoreLeads(leadsBatch.hasMore);
-        
-        // Store total if provided (only on first batch)
-        if (leadsBatch.total !== undefined) {
-          setTotalLeads(leadsBatch.total);
-        }
-        
-        return updated;
-      });
-      
-      // Update cursor for next batch - use compound cursor (both createdAt and _id)
-      if (leadsBatch.hasMore) {
-        if (leadsBatch.lastCreatedAt !== undefined) {
-          setLastLoadedCreatedAt(leadsBatch.lastCreatedAt);
-        }
-        if (leadsBatch.lastId) {
-          setLastLoadedId(leadsBatch.lastId);
-        }
-      } else {
-        // No more leads, clear cursors
-        setLastLoadedId(undefined);
-        setLastLoadedCreatedAt(undefined);
-      }
-    }
-  }, [leadsBatch]);
-
-  // Use accumulated leads instead of allLeads
-  const allLeads = accumulatedLeads;
+  // Load all leads at once
+  // @ts-expect-error - TypeScript has issues with large array inference from Convex
+  const allLeads = useQuery(api.leads.getAllLeads) as Lead[] | undefined;
 
   const selectedLead = useQuery(
     api.leads.getLeadById, 
@@ -184,35 +129,71 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const deleteLead = useMutation(api.leads.deleteLead);
   const toggleLeadActive = useMutation(api.leads.toggleLeadActive);
   const markLeadAsChecked = useMutation(api.leads.markLeadAsChecked);
+  const deleteDuplicateLeads = useMutation(api.leads.deleteDuplicateLeads);
 
   // Actions
   const importTexasLeads = useAction(api.leadsActions.importTexasLeadsFromJson);
 
   // Filter and search leads
   const filteredLeads = useMemo(() => {
-    if (!allLeads) return [];
+    if (!allLeads || allLeads.length === 0) return [];
 
-    return allLeads.filter(lead => {
+    const filterStats = {
+      total: allLeads.length,
+      filteredBySearch: 0,
+      filteredByOpportunityType: 0,
+      filteredByStatus: 0,
+      filteredByRegion: 0,
+      filteredByLevel: 0,
+      filteredByVerificationStatus: 0,
+      filteredByIsActive: 0,
+      filteredByDateRange: 0,
+      filteredByInvalidDate: 0,
+      passed: 0
+    };
+
+    const filtered = allLeads.filter(lead => {
       // Search term filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         const matchesSearch = 
-          lead.opportunityTitle.toLowerCase().includes(searchLower) ||
-          lead.summary.toLowerCase().includes(searchLower) ||
-          lead.issuingBody.name.toLowerCase().includes(searchLower) ||
+          lead.opportunityTitle?.toLowerCase().includes(searchLower) ||
+          lead.summary?.toLowerCase().includes(searchLower) ||
+          lead.issuingBody?.name?.toLowerCase().includes(searchLower) ||
           (lead.contractID && lead.contractID.toLowerCase().includes(searchLower)) ||
           (lead.searchableText && lead.searchableText.toLowerCase().includes(searchLower));
         
-        if (!matchesSearch) return false;
+        if (!matchesSearch) {
+          filterStats.filteredBySearch++;
+          return false;
+        }
       }
 
       // Apply filters
-      if (filters.opportunityType && lead.opportunityType !== filters.opportunityType) return false;
-      if (filters.status && lead.status !== filters.status) return false;
-      if (filters.region && lead.location.region !== filters.region) return false;
-      if (filters.level && lead.issuingBody.level !== filters.level) return false;
-      if (filters.verificationStatus && lead.verificationStatus !== filters.verificationStatus) return false;
-      if (filters.isActive !== null && lead.isActive !== filters.isActive) return false;
+      if (filters.opportunityType && lead.opportunityType !== filters.opportunityType) {
+        filterStats.filteredByOpportunityType++;
+        return false;
+      }
+      if (filters.status && lead.status !== filters.status) {
+        filterStats.filteredByStatus++;
+        return false;
+      }
+      if (filters.region && lead.location?.region !== filters.region) {
+        filterStats.filteredByRegion++;
+        return false;
+      }
+      if (filters.level && lead.issuingBody?.level !== filters.level) {
+        filterStats.filteredByLevel++;
+        return false;
+      }
+      if (filters.verificationStatus && lead.verificationStatus !== filters.verificationStatus) {
+        filterStats.filteredByVerificationStatus++;
+        return false;
+      }
+      if (filters.isActive !== null && lead.isActive !== filters.isActive) {
+        filterStats.filteredByIsActive++;
+        return false;
+      }
 
       // Date range filter - filter by bidDeadline or projectedStartDate
       if (filters.dateRange && filters.dateRange !== 'all') {
@@ -242,25 +223,54 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
         // Check if lead has a date in the future within the range
         // Use bidDeadline first, then projectedStartDate as fallback
         const leadDate = lead.keyDates?.bidDeadline || lead.keyDates?.projectedStartDate;
-        if (!leadDate) return false; // Exclude leads without dates
+        if (!leadDate) {
+          filterStats.filteredByDateRange++;
+          return false; // Exclude leads without dates
+        }
         
         try {
           const leadDateObj = new Date(leadDate);
           // Validate the date is valid
-          if (isNaN(leadDateObj.getTime())) return false;
+          if (isNaN(leadDateObj.getTime())) {
+            filterStats.filteredByInvalidDate++;
+            return false;
+          }
           
           // Only include leads with dates in the future and within the selected range
           // Set to start of day for comparison
           const leadDateStart = new Date(leadDateObj.getFullYear(), leadDateObj.getMonth(), leadDateObj.getDate());
-          if (leadDateStart < today || leadDateStart > futureDate) return false;
+          if (leadDateStart < today || leadDateStart > futureDate) {
+            filterStats.filteredByDateRange++;
+            return false;
+          }
         } catch {
           // Invalid date format, exclude this lead
+          filterStats.filteredByInvalidDate++;
           return false;
         }
       }
 
+      filterStats.passed++;
       return true;
     });
+
+    // Log filtering statistics
+    if (filterStats.total > 0) {
+      const activeFilters = Object.entries(filters).filter(([_, v]) => v !== '' && v !== null).length;
+      const hasSearch = searchTerm.length > 0;
+      
+      if (activeFilters > 0 || hasSearch) {
+        console.log('[LeadsManagement] Filter statistics:', {
+          ...filterStats,
+          activeFilters,
+          hasSearch,
+          finalCount: filtered.length,
+          filterRate: ((filterStats.total - filtered.length) / filterStats.total * 100).toFixed(2) + '%'
+        });
+      }
+    }
+
+    return filtered;
   }, [allLeads, searchTerm, filters]);
 
   // Get unique values for filter dropdowns
@@ -425,6 +435,26 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
             Import JSON
           </TronButton>
           <TronButton
+            onClick={async () => {
+              if (window.confirm('This will find and delete duplicate leads. Continue?')) {
+                try {
+                  const result = await deleteDuplicateLeads({});
+                  alert(`Deleted ${result.deleted} duplicate leads out of ${result.totalChecked} checked.`);
+                  // Refresh by clearing selected lead
+                  setSelectedLeadId(null);
+                } catch (error) {
+                  console.error('Error deleting duplicates:', error);
+                  alert(`Failed to delete duplicates: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+              }
+            }}
+            variant="outline"
+            color="orange"
+            icon={<Trash2 className="w-4 h-4" />}
+          >
+            Delete Duplicates
+          </TronButton>
+          <TronButton
             onClick={() => setIsCreating(true)}
             variant="primary"
             color="cyan"
@@ -579,8 +609,11 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
           <TronPanel>
             <div className="flex items-center justify-between text-sm text-tron-gray px-6 py-4 border-b border-tron-cyan/20">
               <span className="font-medium">
-                Showing {filteredLeads.length} of {totalLeads !== null ? totalLeads : accumulatedLeads.length} leads
-                {hasMoreLeads && ` (loading more...)`}
+                {allLeads === undefined ? (
+                  <span>Loading leads...</span>
+                ) : (
+                  <span>Showing {filteredLeads.length} of {allLeads.length} leads</span>
+                )}
               </span>
             </div>
             <div 
@@ -591,13 +624,47 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
               }}
             >
               <div className="p-4 space-y-3">
-              {filteredLeads.length === 0 && accumulatedLeads.length === 0 && (
+              {allLeads === undefined && (
+                <>
+                  {/* Skeleton loaders */}
+                  {[...Array(10)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="relative p-5 border rounded-xl border-tron-cyan/20 bg-tron-bg-card animate-pulse"
+                    >
+                      <div className="flex items-start justify-between pr-8">
+                        <div className="flex-1 min-w-0 space-y-3">
+                          <div className="h-6 bg-tron-cyan/20 rounded w-3/4"></div>
+                          <div className="flex items-center gap-6">
+                            <div className="h-4 bg-tron-cyan/10 rounded w-32"></div>
+                            <div className="h-4 bg-tron-cyan/10 rounded w-24"></div>
+                            <div className="h-4 bg-tron-cyan/10 rounded w-28"></div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="h-5 bg-tron-cyan/10 rounded-full w-20"></div>
+                            <div className="h-5 bg-tron-cyan/10 rounded w-24"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-center py-4">
+                    <RefreshCw className="w-5 h-5 animate-spin text-tron-cyan mr-2" />
+                    <span className="text-tron-gray">Loading all leads...</span>
+                  </div>
+                </>
+              )}
+              {allLeads !== undefined && allLeads.length === 0 && (
                 <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="w-6 h-6 animate-spin text-tron-cyan mr-2" />
-                  <span className="text-tron-gray">Loading leads...</span>
+                  <span className="text-tron-gray">No leads found</span>
                 </div>
               )}
-              {filteredLeads.map((lead) => (
+              {allLeads !== undefined && filteredLeads.length === 0 && allLeads.length > 0 && (
+                <div className="flex items-center justify-center py-12">
+                  <span className="text-tron-gray">No leads match your filters</span>
+                </div>
+              )}
+              {allLeads !== undefined && filteredLeads.map((lead) => (
                 <div
                   key={lead._id}
                   className={`relative p-5 border rounded-xl cursor-pointer transition-all duration-200 ${ selectedLeadId === lead._id ? 'border-tron-cyan bg-tron-bg-card shadow-md' : 'border-tron-cyan/20 hover:border-tron-cyan/40 hover:bg-tron-bg-card hover:shadow-sm' }`}
@@ -715,12 +782,6 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                   </div>
                 </div>
               ))}
-              {hasMoreLeads && (
-                <div className="flex items-center justify-center py-6">
-                  <RefreshCw className="w-5 h-5 animate-spin text-tron-cyan mr-2" />
-                  <span className="text-tron-gray">Loading more leads...</span>
-                </div>
-              )}
               </div>
             </div>
           </TronPanel>
