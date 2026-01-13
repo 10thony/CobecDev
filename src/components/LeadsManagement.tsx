@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -30,7 +30,8 @@ import {
   RefreshCw,
   Briefcase,
   Download,
-  Upload
+  Upload,
+  MoreVertical
 } from 'lucide-react';
 
 interface Lead {
@@ -91,12 +92,15 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
     level: '',
     verificationStatus: '',
     isActive: null as boolean | null,
+    dateRange: '', // '30days', '90days', '6months', '1year', 'all'
   });
   const [showFilters, setShowFilters] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [showJsonUpload, setShowJsonUpload] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<Id<"leads"> | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   
   // Progressive loading state
   const [accumulatedLeads, setAccumulatedLeads] = useState<Lead[]>([]);
@@ -162,6 +166,20 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
     selectedLeadId ? { id: selectedLeadId } : "skip"
   );
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    if (openMenuId !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [openMenuId]);
+
   // Mutations
   const deleteLead = useMutation(api.leads.deleteLead);
   const toggleLeadActive = useMutation(api.leads.toggleLeadActive);
@@ -195,6 +213,51 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
       if (filters.level && lead.issuingBody.level !== filters.level) return false;
       if (filters.verificationStatus && lead.verificationStatus !== filters.verificationStatus) return false;
       if (filters.isActive !== null && lead.isActive !== filters.isActive) return false;
+
+      // Date range filter - filter by bidDeadline or projectedStartDate
+      if (filters.dateRange && filters.dateRange !== 'all') {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        today.setHours(0, 0, 0, 0); // Set to start of day
+        
+        // Calculate the future date based on the selected range
+        let futureDate = new Date(today);
+        switch (filters.dateRange) {
+          case '30days':
+            futureDate.setDate(futureDate.getDate() + 30);
+            break;
+          case '90days':
+            futureDate.setDate(futureDate.getDate() + 90);
+            break;
+          case '6months':
+            futureDate.setMonth(futureDate.getMonth() + 6);
+            break;
+          case '1year':
+            futureDate.setFullYear(futureDate.getFullYear() + 1);
+            break;
+        }
+        // Set futureDate to start of day for consistent comparison
+        futureDate.setHours(0, 0, 0, 0);
+
+        // Check if lead has a date in the future within the range
+        // Use bidDeadline first, then projectedStartDate as fallback
+        const leadDate = lead.keyDates?.bidDeadline || lead.keyDates?.projectedStartDate;
+        if (!leadDate) return false; // Exclude leads without dates
+        
+        try {
+          const leadDateObj = new Date(leadDate);
+          // Validate the date is valid
+          if (isNaN(leadDateObj.getTime())) return false;
+          
+          // Only include leads with dates in the future and within the selected range
+          // Set to start of day for comparison
+          const leadDateStart = new Date(leadDateObj.getFullYear(), leadDateObj.getMonth(), leadDateObj.getDate());
+          if (leadDateStart < today || leadDateStart > futureDate) return false;
+        } catch {
+          // Invalid date format, exclude this lead
+          return false;
+        }
+      }
 
       return true;
     });
@@ -288,6 +351,7 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
       level: '',
       verificationStatus: '',
       isActive: null,
+      dateRange: '',
     });
     setSearchTerm('');
   };
@@ -379,13 +443,14 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tron-gray w-5 h-5" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tron-gray w-5 h-5 pointer-events-none z-10" />
                   <input
                     type="text"
                     placeholder="Search leads..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="tron-input w-full pl-12 pr-4 py-3"
+                    className="tron-input w-full pr-4 py-3"
+                    style={{ paddingLeft: '3.5rem' }}
                   />
                 </div>
               </div>
@@ -491,6 +556,20 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                       <option value="false">Inactive</option>
                     </select>
                   </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-tron-gray">Date Range (Future)</label>
+                    <select
+                      value={filters.dateRange}
+                      onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                      className="tron-select w-full"
+                    >
+                      <option value="all">All Dates</option>
+                      <option value="30days">Next 30 Days</option>
+                      <option value="90days">Next 90 Days</option>
+                      <option value="6months">Next 6 Months</option>
+                      <option value="1year">Next 1 Year</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
@@ -521,23 +600,73 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
               {filteredLeads.map((lead) => (
                 <div
                   key={lead._id}
-                  className={`p-5 border rounded-xl cursor-pointer transition-all duration-200 ${ selectedLeadId === lead._id ? 'border-tron-cyan bg-tron-bg-card shadow-md' : 'border-tron-cyan/20 hover:border-tron-cyan/40 hover:bg-tron-bg-card hover:shadow-sm' }`}
+                  className={`relative p-5 border rounded-xl cursor-pointer transition-all duration-200 ${ selectedLeadId === lead._id ? 'border-tron-cyan bg-tron-bg-card shadow-md' : 'border-tron-cyan/20 hover:border-tron-cyan/40 hover:bg-tron-bg-card hover:shadow-sm' }`}
                   onClick={() => setSelectedLeadId(lead._id)}
                 >
-                  <div className="flex items-start justify-between">
+                  {/* Tooltip Menu Button - Top Right */}
+                  <div className="absolute top-4 right-4 z-10">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === lead._id ? null : lead._id);
+                      }}
+                      className="p-1.5 hover:bg-tron-cyan/10 rounded-lg transition-colors text-tron-gray hover:text-tron-cyan"
+                      title="Actions"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    
+                    {/* Tooltip Menu */}
+                    {openMenuId === lead._id && (
+                      <div 
+                        ref={menuRef}
+                        className="absolute top-full right-0 mt-2 w-48 bg-tron-bg-card border border-tron-cyan/30 rounded-lg shadow-xl z-[60] overflow-hidden"
+                      >
+                        <div className="py-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleActive(lead._id);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                          >
+                            {lead.isActive ? <EyeOff className="w-4 h-4 text-tron-cyan" /> : <Eye className="w-4 h-4 text-tron-cyan" />}
+                            <span>{lead.isActive ? 'Deactivate' : 'Activate'}</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAsChecked(lead._id);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                          >
+                            <CheckCircle className="w-4 h-4 text-tron-cyan" />
+                            <span>Mark as checked</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteLead(lead._id);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-orange/20 flex items-center gap-2 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-tron-orange" />
+                            <span className="text-tron-orange">Delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-start justify-between pr-8">
                     <div className="flex-1 min-w-0 space-y-3">
                       <div className="flex items-center gap-3">
                         <h3 className="font-semibold text-tron-white truncate text-lg">
                           {lead.opportunityTitle}
                         </h3>
-                        <div className="flex items-center gap-2">
-                          {getVerificationStatusIcon(lead.verificationStatus)}
-                          {lead.isActive ? (
-                            <CheckCircle className="w-5 h-5 text-neon-success" />
-                          ) : (
-                            <EyeOff className="w-5 h-5 text-tron-gray" />
-                          )}
-                        </div>
                       </div>
                       <div className="flex items-center gap-6 text-sm text-tron-gray">
                         <div className="flex items-center gap-2">
@@ -563,44 +692,25 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                           {lead.opportunityType}
                         </span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-6">
-                      <TronButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleActive(lead._id);
-                        }}
-                        variant="ghost"
-                        color="cyan"
-                        size="sm"
-                        title={lead.isActive ? 'Deactivate' : 'Activate'}
-                      >
-                        {lead.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </TronButton>
-                      <TronButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMarkAsChecked(lead._id);
-                        }}
-                        variant="ghost"
-                        color="cyan"
-                        size="sm"
-                        title="Mark as checked"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                      </TronButton>
-                      <TronButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteLead(lead._id);
-                        }}
-                        variant="ghost"
-                        color="orange"
-                        size="sm"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </TronButton>
+                      {/* Start and End Dates */}
+                      {(lead.keyDates?.projectedStartDate || lead.keyDates?.bidDeadline) && (
+                        <div className="flex items-center gap-4 text-xs text-tron-gray">
+                          {lead.keyDates?.projectedStartDate && (
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-tron-cyan" />
+                              <span className="font-medium">Start:</span>
+                              <span className="text-tron-white">{formatDate(lead.keyDates.projectedStartDate)}</span>
+                            </div>
+                          )}
+                          {lead.keyDates?.bidDeadline && (
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-tron-orange" />
+                              <span className="font-medium">Deadline:</span>
+                              <span className="text-tron-white">{formatDate(lead.keyDates.bidDeadline)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -9,7 +9,6 @@ import { SearchExplanation } from '../components/SearchExplanation';
 import { LeadsManagement } from '../components/LeadsManagement';
 import { ProcurementLinkVerifier } from '../components/ProcurementLinkVerifier';
 import { ProcurementChat } from '../components/ProcurementChat';
-import { ScrapedProcurementDataGrid } from '../components/ScrapedProcurementDataGrid';
 import { FeedbackComponent } from '../components/FeedbackComponent';
 import KfcPointsManager from '../components/KfcPointsManager';
 import KfcNomination from '../components/KfcNomination';
@@ -531,7 +530,7 @@ import {
 export function HRDashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'search' | 'embeddings' | 'data-management' | 'kfc-management' | 'leads-management' | 'procurement-links'>('overview');
   const [kfcSubTab, setKfcSubTab] = useState<'points' | 'nominations'>('points');
-  const [procurementSubTab, setProcurementSubTab] = useState<'chat' | 'verifier' | 'scraper' | 'feedback'>('chat');
+  const [procurementSubTab, setProcurementSubTab] = useState<'chat' | 'verifier' | 'feedback'>('chat');
   const [searchResults, setSearchResults] = useState<any>(null);
   const [selectedResult, setSelectedResult] = useState<any>(null);
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
@@ -807,12 +806,6 @@ export function HRDashboardPage() {
                   Link Verifier
                 </button>
                 <button
-                  onClick={() => setProcurementSubTab('scraper')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${ procurementSubTab === 'scraper' ? 'border-tron-cyan text-tron-cyan' : 'border-transparent text-tron-gray hover:text-tron-white hover:border-tron-cyan/40' }`}
-                >
-                  AI Scraper
-                </button>
-                <button
                   onClick={() => setProcurementSubTab('feedback')}
                   className={`py-2 px-1 border-b-2 font-medium text-sm ${ procurementSubTab === 'feedback' ? 'border-tron-cyan text-tron-cyan' : 'border-transparent text-tron-gray hover:text-tron-white hover:border-tron-cyan/40' }`}
                 >
@@ -826,7 +819,6 @@ export function HRDashboardPage() {
               />
             )}
             {procurementSubTab === 'verifier' && <ProcurementLinkVerifier />}
-            {procurementSubTab === 'scraper' && <ScrapedProcurementDataGrid />}
             {procurementSubTab === 'feedback' && <FeedbackComponent />}
           </div>
         );

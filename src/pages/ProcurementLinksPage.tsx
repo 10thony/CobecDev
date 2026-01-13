@@ -1,20 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { ProcurementChat } from '../components/ProcurementChat';
 import { ProcurementLinkVerifier } from '../components/ProcurementLinkVerifier';
-import { ScrapedProcurementDataGrid } from '../components/ScrapedProcurementDataGrid';
 import { FeedbackComponent } from '../components/FeedbackComponent';
 
 export function ProcurementLinksPage() {
   const { isSignedIn } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState<'chat' | 'verifier' | 'scraper' | 'feedback'>('chat');
-
-  // If user is not signed in and tries to access scraper, redirect to chat
-  useEffect(() => {
-    if (!isSignedIn && activeSubTab === 'scraper') {
-      setActiveSubTab('chat');
-    }
-  }, [isSignedIn, activeSubTab]);
+  const [activeSubTab, setActiveSubTab] = useState<'chat' | 'verifier' | 'feedback'>('chat');
 
   return (
     <div className="min-h-screen bg-tron-bg-deep">
@@ -42,18 +34,6 @@ export function ProcurementLinksPage() {
               >
                 Verifier
               </button>
-              {isSignedIn && (
-                <button
-                  onClick={() => setActiveSubTab('scraper')}
-                  className={`py-2 px-2 sm:px-3 md:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                    activeSubTab === 'scraper'
-                      ? 'border-tron-cyan text-tron-cyan'
-                      : 'border-transparent text-tron-gray hover:text-tron-white hover:border-tron-cyan/40'
-                  }`}
-                >
-                  Scraper
-                </button>
-              )}
               <button
                 onClick={() => setActiveSubTab('feedback')}
                 className={`py-2 px-2 sm:px-3 md:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
@@ -72,7 +52,6 @@ export function ProcurementLinksPage() {
             />
           )}
           {activeSubTab === 'verifier' && <ProcurementLinkVerifier />}
-          {isSignedIn && activeSubTab === 'scraper' && <ScrapedProcurementDataGrid />}
           {activeSubTab === 'feedback' && <FeedbackComponent />}
         </div>
       </div>
