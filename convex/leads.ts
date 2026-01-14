@@ -1119,3 +1119,149 @@ export const getLeadIdsWithEmbeddingModel = internalQuery({
   },
 });
 
+// Get all source links from all leads
+// Uses index on source.url for fast and reliable access
+export const getAllSourceLinks = query({
+  args: {},
+  handler: async (ctx) => {
+    // Use the by_source_url index if available, otherwise fall back to full query
+    try {
+      // Try to use index for better performance
+      const allLeads = await ctx.db
+        .query("leads")
+        .withIndex("by_source_url")
+        .collect();
+      
+      // Extract unique source links with metadata
+      const sourceLinksMap = new Map<string, {
+        url: string;
+        documentName: string;
+        leadIds: string[];
+        count: number;
+      }>();
+      
+      allLeads.forEach(lead => {
+        if (lead.source?.url) {
+          const url = lead.source.url;
+          if (sourceLinksMap.has(url)) {
+            const existing = sourceLinksMap.get(url)!;
+            existing.leadIds.push(lead._id);
+            existing.count++;
+          } else {
+            sourceLinksMap.set(url, {
+              url,
+              documentName: lead.source.documentName || 'Unknown',
+              leadIds: [lead._id],
+              count: 1,
+            });
+          }
+        }
+      });
+      
+      return Array.from(sourceLinksMap.values());
+    } catch (error) {
+      // Fallback: if index doesn't exist, use regular query
+      // This handles the case where the index hasn't been deployed yet
+      const allLeads = await ctx.db.query("leads").collect();
+      
+      const sourceLinksMap = new Map<string, {
+        url: string;
+        documentName: string;
+        leadIds: string[];
+        count: number;
+      }>();
+      
+      allLeads.forEach(lead => {
+        if (lead.source?.url) {
+          const url = lead.source.url;
+          if (sourceLinksMap.has(url)) {
+            const existing = sourceLinksMap.get(url)!;
+            existing.leadIds.push(lead._id);
+            existing.count++;
+          } else {
+            sourceLinksMap.set(url, {
+              url,
+              documentName: lead.source.documentName || 'Unknown',
+              leadIds: [lead._id],
+              count: 1,
+            });
+          }
+        }
+      });
+      
+      return Array.from(sourceLinksMap.values());
+    }
+  },
+});
+
+// Get all source links as a simple array of URLs (lightweight version)
+export const getAllSourceUrls = query({
+  args: {},
+  handler: async (ctx) => {
+    try {
+      // Use index if available
+      const allLeads = await ctx.db
+        .query("leads")
+        .withIndex("by_source_url")
+        .collect();
+      
+      // Extract unique URLs
+      const urls = new Set<string>();
+      allLeads.forEach(lead => {
+        if (lead.source?.url) {
+          urls.add(lead.source.url);
+        }
+      });
+      
+      return Array.from(urls);
+    } catch (error) {
+      // Fallback: regular query
+      const allLeads = await ctx.db.query("leads").collect();
+      const urls = new Set<string>();
+      allLeads.forEach(lead => {
+        if (lead.source?.url) {
+          urls.add(lead.source.url);
+        }
+      });
+      return Array.from(urls);
+    }
+  },
+});
+
+// Get lead count for a specific state
+// Maps state name to lead regions and returns the count
+export const getLeadCountByState = query({
+  args: {
+    stateName: v.string(),
+  },
+  // @ts-expect-error - TypeScript has issues with large array inference from Convex
+  handler: async (ctx, args): Promise<number> => {
+    const allLeads = await ctx.db.query("leads").collect();
+    
+    if (!allLeads || allLeads.length === 0) return 0;
+    
+    const stateLower = args.stateName.toLowerCase();
+    
+    // Map of state names to common region patterns
+    const stateToRegionPatterns: Record<string, string[]> = {
+      "texas": ["texas", "dallas", "houston", "austin", "san antonio", "el paso", "fort worth"],
+      "florida": ["florida", "miami", "tampa", "orlando", "jacksonville", "tallahassee"],
+      "california": ["california", "los angeles", "san francisco", "san diego", "sacramento", "oakland"],
+      "new york": ["new york", "nyc", "albany", "buffalo", "rochester"],
+      // Add more mappings as needed
+    };
+    
+    // Get patterns for this state
+    const patterns = stateToRegionPatterns[stateLower] || [stateLower];
+    
+    // Filter leads where region matches any pattern
+    const matchingLeads = allLeads.filter(lead => {
+      if (!lead.location?.region) return false;
+      const regionLower = lead.location.region.toLowerCase();
+      return patterns.some(pattern => regionLower.includes(pattern));
+    });
+    
+    return matchingLeads.length;
+  },
+});
+

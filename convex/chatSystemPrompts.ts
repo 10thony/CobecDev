@@ -986,3 +986,302 @@ export const updatePromptWithStateLinks = mutation({
     };
   },
 });
+
+/**
+ * Get source links from leads for a specific state
+ * Maps state name to lead regions and returns unique source URLs
+ */
+function getLeadSourceLinksForState(
+  allLeads: any[],
+  stateName: string
+): Array<{ url: string; documentName: string; leadCount: number }> {
+  if (!allLeads || allLeads.length === 0) return [];
+  
+  const stateLower = stateName.toLowerCase();
+  
+  // Map of state names to common region patterns
+  const stateToRegionPatterns: Record<string, string[]> = {
+    "texas": ["texas", "dallas", "houston", "austin", "san antonio", "el paso", "fort worth"],
+    "florida": ["florida", "miami", "tampa", "orlando", "jacksonville", "tallahassee"],
+    "california": ["california", "los angeles", "san francisco", "san diego", "sacramento", "oakland"],
+    "new york": ["new york", "nyc", "albany", "buffalo", "rochester"],
+    // Add more mappings as needed
+  };
+  
+  // Get patterns for this state
+  const patterns = stateToRegionPatterns[stateLower] || [stateLower];
+  
+  // Filter leads where region matches any pattern
+  const matchingLeads = allLeads.filter(lead => {
+    if (!lead.location?.region) return false;
+    const regionLower = lead.location.region.toLowerCase();
+    return patterns.some(pattern => regionLower.includes(pattern));
+  });
+  
+  // Group by source URL and count
+  const sourceMap = new Map<string, { url: string; documentName: string; leadCount: number }>();
+  
+  matchingLeads.forEach(lead => {
+    if (lead.source?.url) {
+      const url = lead.source.url;
+      if (sourceMap.has(url)) {
+        sourceMap.get(url)!.leadCount++;
+      } else {
+        sourceMap.set(url, {
+          url,
+          documentName: lead.source.documentName || 'Unknown Document',
+          leadCount: 1,
+        });
+      }
+    }
+  });
+  
+  return Array.from(sourceMap.values()).sort((a, b) => b.leadCount - a.leadCount);
+}
+
+/**
+ * Format lead source links into a readable section for the system prompt
+ */
+function formatLeadSourceLinksForPrompt(
+  sourceLinks: Array<{ url: string; documentName: string; leadCount: number }>,
+  stateName: string
+): string {
+  if (sourceLinks.length === 0) return "";
+  
+  let formatted = "\n\n## EXISTING LEAD SOURCE DATA LINKS\n";
+  formatted += `The following source URLs have been used to collect lead data for ${stateName}. `;
+  formatted += "These links represent existing data sources in our system. ";
+  formatted += "When generating new leads, avoid duplicating data from these sources unless new opportunities are available.\n\n";
+  
+  formatted += `### ${stateName} Lead Sources\n`;
+  for (const link of sourceLinks) {
+    formatted += `- **${link.documentName}**: ${link.url}`;
+    if (link.leadCount > 1) {
+      formatted += ` (${link.leadCount} leads from this source)`;
+    }
+    formatted += "\n";
+  }
+  formatted += "\n";
+  
+  formatted += "CRITICAL: Before suggesting new lead sources, check this list. ";
+  formatted += "If a source URL already exists here, acknowledge that we already have data from this source. ";
+  formatted += "Only suggest new sources if they contain different opportunities or updated information.\n";
+  
+  return formatted;
+}
+
+/**
+ * Remove existing lead source links section from prompt text
+ */
+function removeExistingLeadSourceLinksSection(promptText: string): string {
+  // Find the start of the lead source links section
+  let sectionStart = promptText.indexOf("\n\n## EXISTING LEAD SOURCE DATA LINKS");
+  if (sectionStart === -1) {
+    sectionStart = promptText.indexOf("## EXISTING LEAD SOURCE DATA LINKS");
+  }
+  
+  if (sectionStart === -1) {
+    return promptText; // No section found, return as-is
+  }
+  
+  // Include leading newlines if present
+  let actualStart = sectionStart;
+  if (sectionStart > 0 && promptText[sectionStart - 1] === '\n') {
+    if (sectionStart > 1 && promptText[sectionStart - 2] === '\n') {
+      actualStart = sectionStart - 2;
+    } else {
+      actualStart = sectionStart - 1;
+    }
+  }
+  
+  // Find the end of the section
+  const afterSection = promptText.slice(sectionStart);
+  const nextSection = afterSection.indexOf("\n\n## ", 1);
+  const rememberIndex = afterSection.indexOf("\n\nRemember:");
+  
+  let endIndex = afterSection.length;
+  if (nextSection !== -1 && rememberIndex !== -1) {
+    endIndex = Math.min(nextSection, rememberIndex);
+  } else if (nextSection !== -1) {
+    endIndex = nextSection;
+  } else if (rememberIndex !== -1) {
+    endIndex = rememberIndex;
+  }
+  
+  // Remove the section
+  const beforeSection = promptText.slice(0, actualStart);
+  const afterRemoved = afterSection.slice(endIndex);
+  
+  // Clean up extra newlines
+  const cleaned = (beforeSection.trimEnd() + "\n" + afterRemoved.trimStart()).trim();
+  
+  return cleaned;
+}
+
+/**
+ * Inject lead source links section into the system prompt
+ */
+function injectLeadSourceLinksIntoPrompt(basePrompt: string, linksSection: string): string {
+  if (!linksSection) return basePrompt;
+  
+  // Insert the links section before the final "Remember:" instruction
+  // But after any existing procurement links section
+  const rememberIndex = basePrompt.lastIndexOf("Remember:");
+  const procurementLinksIndex = basePrompt.indexOf("## ALREADY APPROVED PROCUREMENT LINKS");
+  
+  if (rememberIndex !== -1) {
+    // If there's a procurement links section, insert after it
+    if (procurementLinksIndex !== -1 && procurementLinksIndex < rememberIndex) {
+      // Find the end of the procurement links section
+      const afterProcurement = basePrompt.slice(procurementLinksIndex);
+      const nextAfterProcurement = afterProcurement.indexOf("\n\n## ", 1);
+      const rememberAfterProcurement = afterProcurement.indexOf("\n\nRemember:");
+      
+      let insertPoint = procurementLinksIndex + afterProcurement.length;
+      if (nextAfterProcurement !== -1 && rememberAfterProcurement !== -1) {
+        insertPoint = procurementLinksIndex + Math.min(nextAfterProcurement, rememberAfterProcurement);
+      } else if (rememberAfterProcurement !== -1) {
+        insertPoint = procurementLinksIndex + rememberAfterProcurement;
+      }
+      
+      return basePrompt.slice(0, insertPoint) + linksSection + "\n\n" + basePrompt.slice(insertPoint);
+    }
+    
+    // Otherwise, insert before "Remember:"
+    return basePrompt.slice(0, rememberIndex) + linksSection + "\n\n" + basePrompt.slice(rememberIndex);
+  }
+  
+  // If "Remember:" not found, append at the end
+  return basePrompt + linksSection;
+}
+
+/**
+ * Update a specific system prompt with state-specific lead source links
+ * Extracts state name from prompt title and injects only that state's lead source URLs
+ * This helps reduce duplicate lead data by showing existing sources
+ */
+export const updatePromptWithLeadSourceLinks = mutation({
+  args: {
+    promptId: v.id("chatSystemPrompts"),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    linkCount: v.number(),
+    promptUpdated: v.boolean(),
+    stateName: v.optional(v.string()),
+    estimatedRequestTokens: v.optional(v.number()),
+    estimatedResponseTokens: v.optional(v.number()),
+    estimatedTotalTokens: v.optional(v.number()),
+    estimatedRequestCostCents: v.optional(v.number()),
+    estimatedResponseCostCents: v.optional(v.number()),
+    estimatedTotalCostCents: v.optional(v.number()),
+    model: v.optional(v.string()),
+    provider: v.optional(v.string()),
+    promptTextSize: v.optional(v.number()),
+  }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    
+    // Get the prompt
+    const prompt = await ctx.db.get(args.promptId);
+    if (!prompt) {
+      return {
+        success: false,
+        message: "Prompt not found.",
+        linkCount: 0,
+        promptUpdated: false,
+        stateName: undefined,
+        estimatedRequestTokens: undefined,
+        estimatedResponseTokens: undefined,
+        estimatedTotalTokens: undefined,
+        estimatedRequestCostCents: undefined,
+        estimatedResponseCostCents: undefined,
+        estimatedTotalCostCents: undefined,
+        model: undefined,
+        provider: undefined,
+        promptTextSize: undefined,
+      };
+    }
+    
+    // Extract state name from prompt title
+    const stateName = extractStateFromTitle(prompt.title);
+    if (!stateName) {
+      return {
+        success: false,
+        message: `Could not extract state name from prompt title: "${prompt.title}". Please ensure the title contains a US state name.`,
+        linkCount: 0,
+        promptUpdated: false,
+        stateName: undefined,
+        estimatedRequestTokens: undefined,
+        estimatedResponseTokens: undefined,
+        estimatedTotalTokens: undefined,
+        estimatedRequestCostCents: undefined,
+        estimatedResponseCostCents: undefined,
+        estimatedTotalCostCents: undefined,
+        model: undefined,
+        provider: undefined,
+        promptTextSize: undefined,
+      };
+    }
+    
+    // Get all leads (we'll filter by state in the function)
+    const allLeads = await ctx.db
+      .query("leads")
+      .collect();
+    
+    // Get source links for the specific state
+    const sourceLinks = getLeadSourceLinksForState(allLeads, stateName);
+    
+    // Format lead source links for the prompt
+    const linksSection = formatLeadSourceLinksForPrompt(sourceLinks, stateName);
+    
+    // Get the base prompt (remove any existing lead source links section)
+    let basePrompt = removeExistingLeadSourceLinksSection(prompt.systemPromptText);
+    
+    // If we have source links, inject them into the prompt
+    const updatedPromptText = linksSection 
+      ? injectLeadSourceLinksIntoPrompt(basePrompt, linksSection)
+      : basePrompt;
+    
+    // Calculate token estimates and costs for analytics
+    const model = "gpt-5-mini";
+    const provider = "openai";
+    const modelPricing = MODEL_PRICING[provider]?.[model] ?? DEFAULT_PRICING;
+    
+    // Estimate tokens for the updated prompt
+    const estimatedRequestTokens = estimateTokens(updatedPromptText);
+    const estimatedResponseTokens = 0;
+    const estimatedTotalTokens = estimatedRequestTokens + estimatedResponseTokens;
+    
+    // Calculate estimated costs
+    const estimatedRequestCostCents = calculateCost(estimatedRequestTokens, modelPricing.input);
+    const estimatedResponseCostCents = calculateCost(estimatedResponseTokens, modelPricing.output);
+    const estimatedTotalCostCents = estimatedRequestCostCents + estimatedResponseCostCents;
+    
+    // Update the prompt in the database
+    await ctx.db.patch(args.promptId, {
+      systemPromptText: updatedPromptText,
+      updatedAt: now,
+    });
+    
+    return {
+      success: true,
+      message: sourceLinks.length > 0
+        ? `Successfully updated prompt with ${sourceLinks.length} lead source links for ${stateName}.`
+        : `No lead source links found for ${stateName}. Prompt updated (removed existing links section).`,
+      linkCount: sourceLinks.length,
+      promptUpdated: true,
+      stateName: stateName,
+      estimatedRequestTokens,
+      estimatedResponseTokens,
+      estimatedTotalTokens,
+      estimatedRequestCostCents,
+      estimatedResponseCostCents,
+      estimatedTotalCostCents,
+      model,
+      provider,
+      promptTextSize: updatedPromptText.length,
+    };
+  },
+});

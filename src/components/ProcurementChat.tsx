@@ -82,6 +82,58 @@ interface ProcurementChatProps {
   onExportToVerifier?: () => void;
 }
 
+// Component to display lead count for a prompt
+function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitle: string; promptTypeId: Id<"chatSystemPromptTypes">; promptTypes?: any[] }) {
+  // Extract state from prompt title
+  const extractStateFromTitle = (title: string): string | null => {
+    if (!title) return null;
+    const titleLower = title.toLowerCase();
+    const states = [
+      "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
+      "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
+      "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana",
+      "maine", "maryland", "massachusetts", "michigan", "minnesota",
+      "mississippi", "missouri", "montana", "nebraska", "nevada",
+      "new hampshire", "new jersey", "new mexico", "new york",
+      "north carolina", "north dakota", "ohio", "oklahoma", "oregon",
+      "pennsylvania", "rhode island", "south carolina", "south dakota",
+      "tennessee", "texas", "utah", "vermont", "virginia", "washington",
+      "west virginia", "wisconsin", "wyoming"
+    ];
+    for (const state of states) {
+      if (titleLower.includes(state)) {
+        return state.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+      }
+    }
+    return null;
+  };
+  
+  // Check if this is a Leads type prompt
+  const leadsType = promptTypes?.find(t => t.name === "leads");
+  const isLeadsPrompt = leadsType && promptTypeId === leadsType._id;
+  
+  if (!isLeadsPrompt) return null;
+  
+  const stateName = extractStateFromTitle(promptTitle);
+  if (!stateName) return null;
+  
+  // Query lead count for this state
+  const leadCount = useQuery(
+    api.leads.getLeadCountByState,
+    { stateName }
+  );
+  
+  // Only show if count > 0
+  if (leadCount === undefined || leadCount === 0) return null;
+  
+  return (
+    <span className="flex items-center gap-1 px-2 py-0.5 bg-neon-success/20 text-neon-success text-xs rounded-full flex-shrink-0 border border-neon-success/30">
+      <span className="font-medium">{leadCount}</span>
+      <span className="text-[10px]">leads</span>
+    </span>
+  );
+}
+
 export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {}) {
   const { isSignedIn } = useAuth();
   // @ts-ignore - Type instantiation is excessively deep due to Convex type inference, but the query works correctly at runtime
@@ -174,6 +226,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const initializeDefaultPrompt = useMutation(api.chatSystemPrompts.initializeDefault);
   const updatePrimaryWithApprovedLinks = useMutation(api.chatSystemPrompts.updatePrimaryWithApprovedLinks);
   const updatePromptWithStateLinks = useMutation(api.chatSystemPrompts.updatePromptWithStateLinks);
+  const updatePromptWithLeadSourceLinks = useMutation(api.chatSystemPrompts.updatePromptWithLeadSourceLinks);
   const createLog = useMutation(api.logs.createLog);
   const [refreshingLinks, setRefreshingLinks] = useState(false);
   const [updatingPromptId, setUpdatingPromptId] = useState<Id<"chatSystemPrompts"> | null>(null);
@@ -283,9 +336,9 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       return; // Already attempted to inject for this prompt
     }
 
-    // Auto-inject links for this Leads prompt
+    // Auto-inject links for this Leads prompt (use lead source links, not procurement links)
     lastAutoInjectedPromptId.current = selectedPrompt._id;
-    handleUpdatePromptWithStateLinks(selectedPrompt._id, true); // true = auto-injection
+    handleUpdatePromptWithLeadSourceLinks(selectedPrompt._id, true); // true = auto-injection
   }, [selectedSystemPromptId, systemPrompts, promptTypes, updatingPromptId]);
 
   const handleNewChat = async () => {
@@ -733,6 +786,83 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       setTimeout(() => setModalMessage(null), 5000);
     } finally {
       setRefreshingLinks(false);
+    }
+  };
+
+  const handleUpdatePromptWithLeadSourceLinks = async (promptId: Id<"chatSystemPrompts">, isAutoInjection: boolean = false) => {
+    setUpdatingPromptId(promptId);
+    if (!isAutoInjection) {
+      setModalMessage(null);
+    }
+    
+    // Get prompt info for analytics
+    const prompt = systemPrompts?.find(p => p._id === promptId);
+    const promptTitle = prompt?.title || 'Unknown';
+    
+    try {
+      const result = await updatePromptWithLeadSourceLinks({ promptId });
+      if (result.success) {
+        // Record analytics for successful update
+        try {
+          await createLog({
+            action: isAutoInjection 
+              ? 'system_prompt_auto_inject_lead_source_links' 
+              : 'system_prompt_manual_update_lead_source_links',
+            type: 'action',
+            details: {
+              metadata: {
+                promptId: promptId,
+                promptTitle: promptTitle,
+                stateName: result.stateName || null,
+                linkCount: result.linkCount,
+                isAutoInjection: isAutoInjection,
+                success: true,
+                // Token and cost estimates
+                estimatedRequestTokens: result.estimatedRequestTokens || 0,
+                estimatedResponseTokens: result.estimatedResponseTokens || 0,
+                estimatedTotalTokens: result.estimatedTotalTokens || 0,
+                estimatedRequestCostCents: result.estimatedRequestCostCents || 0,
+                estimatedResponseCostCents: result.estimatedResponseCostCents || 0,
+                estimatedTotalCostCents: result.estimatedTotalCostCents || 0,
+                model: result.model || 'gpt-5-mini',
+                provider: result.provider || 'openai',
+                promptTextSize: result.promptTextSize || 0,
+              },
+            },
+          });
+        } catch (analyticsError) {
+          // Don't fail the operation if analytics fails
+          console.error('Failed to record analytics:', analyticsError);
+        }
+        
+        // Show success message only if manually triggered
+        if (!isAutoInjection) {
+          setModalMessage({
+            type: 'success',
+            text: result.message
+          });
+        }
+        
+        // Refresh prompts to show updated content
+        // The prompts will be refetched automatically by the query
+      } else {
+        if (!isAutoInjection) {
+          setModalMessage({
+            type: 'error',
+            text: result.message || 'Failed to update prompt with lead source links'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating prompt with lead source links:', error);
+      if (!isAutoInjection) {
+        setModalMessage({
+          type: 'error',
+          text: error instanceof Error ? error.message : 'Failed to update prompt with lead source links'
+        });
+      }
+    } finally {
+      setUpdatingPromptId(null);
     }
   };
 
@@ -1699,6 +1829,11 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                                     </span>
                                   ) : null;
                                 })()}
+                                <LeadCountBadge 
+                                  promptTitle={prompt.title} 
+                                  promptTypeId={prompt.type}
+                                  promptTypes={promptTypes}
+                                />
                               </div>
                               {prompt.description && (
                                 <p className="text-xs text-tron-gray mb-2 line-clamp-2">{prompt.description}</p>
@@ -1724,10 +1859,10 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                                     
                                     return isLeadsPrompt ? (
                                       <button
-                                        onClick={() => handleUpdatePromptWithStateLinks(prompt._id)}
+                                        onClick={() => handleUpdatePromptWithLeadSourceLinks(prompt._id)}
                                         disabled={updatingPromptId === prompt._id}
                                         className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        title="Update this prompt with approved procurement links for the state in the title"
+                                        title="Update this prompt with existing lead source data links for the state in the title"
                                       >
                                         {updatingPromptId === prompt._id ? (
                                           <Loader2 className="w-4 h-4 text-tron-cyan animate-spin" />

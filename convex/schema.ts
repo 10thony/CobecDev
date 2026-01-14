@@ -434,6 +434,7 @@ const applicationTables = {
     .index("by_embedding_model", ["embeddingModel"])
     .index("by_embedding_generated", ["embeddingGeneratedAt"])
     .index("by_estimated_value", ["estimatedValueUSD"])
+    .index("by_source_url", ["source.url"])
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
