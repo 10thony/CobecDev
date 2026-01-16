@@ -1,7 +1,3 @@
 {
-  "deployments": {
-    "prod": {
-      "url": "https://keen-ant-543.convex.cloud"
-    }
-  }
+  "functions": "convex"
 }
