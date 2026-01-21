@@ -230,6 +230,15 @@ const applicationTables = {
         date: v.string(),
       })),
     })),
+    // AI Resume Generation fields
+    sourceLeadId: v.optional(v.id("leads")), // Track which lead this resume was generated from
+    generationMetadata: v.optional(v.object({
+      systemPromptId: v.optional(v.id("resumeGenerationSystemPrompts")),
+      generatedAt: v.number(),
+      model: v.string(), // e.g., "gpt-5-mini"
+      tokensUsed: v.optional(v.number()),
+      generationTimeMs: v.optional(v.number()),
+    })),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_filename", ["filename"])
@@ -739,6 +748,19 @@ const applicationTables = {
     .index("by_primary", ["isPrimarySystemPrompt"])
     .index("by_creation", ["createdAt"]),
 
+  // Resume Generation System Prompts - configurable system prompts for AI resume generation
+  resumeGenerationSystemPrompts: defineTable({
+    systemPromptText: v.string(), // The full system prompt text
+    isPrimarySystemPrompt: v.boolean(), // Whether this is the active/primary prompt
+    title: v.string(), // A descriptive title for this prompt
+    description: v.optional(v.string()), // Optional description
+    createdBy: v.optional(v.string()), // Clerk user ID who created this
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_primary", ["isPrimarySystemPrompt"])
+    .index("by_creation", ["createdAt"]),
+
   // Procurement URLs - for ingesting and verifying procurement links before they become available for pins
   procurementUrls: defineTable({
     state: v.string(), // Full state name: "Alabama", "Alaska"
@@ -1186,6 +1208,40 @@ const applicationTables = {
     .index("by_order", ["order"])
     .index("by_visible", ["isVisible"])
     .index("by_path", ["path"]),
+
+  // Resume Generation Jobs - track active and completed generation jobs
+  resumeGenerationJobs: defineTable({
+    jobType: v.union(v.literal("single"), v.literal("batch")),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+    leadIds: v.array(v.id("leads")), // Array of lead IDs being processed
+    systemPromptId: v.optional(v.id("resumeGenerationSystemPrompts")),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    progress: v.optional(v.object({
+      current: v.number(),
+      total: v.number(),
+    })),
+    result: v.optional(v.object({
+      successful: v.number(),
+      failed: v.number(),
+      resumeIds: v.array(v.id("resumes")),
+      errors: v.optional(v.array(v.object({
+        leadId: v.id("leads"),
+        error: v.string(),
+      }))),
+    })),
+    error: v.optional(v.string()),
+    createdBy: v.optional(v.string()), // Clerk user ID
+  })
+    .index("by_status", ["status"])
+    .index("by_creation", ["startedAt"])
+    .index("by_user", ["createdBy"]),
 };
 
 export default defineSchema({

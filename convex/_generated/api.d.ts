@@ -10,6 +10,9 @@
 
 import type * as agent_procurementVerifier from "../agent/procurementVerifier.js";
 import type * as aiModels from "../aiModels.js";
+import type * as aiResumeGenerator from "../aiResumeGenerator.js";
+import type * as aiResumeGeneratorMutations from "../aiResumeGeneratorMutations.js";
+import type * as aiResumeManagement from "../aiResumeManagement.js";
 import type * as aiResumeParser from "../aiResumeParser.js";
 import type * as approvedProcurementLinksLookup from "../approvedProcurementLinksLookup.js";
 import type * as auth from "../auth.js";
@@ -75,6 +78,7 @@ import type * as procurementUrls from "../procurementUrls.js";
 import type * as publicNavigation from "../publicNavigation.js";
 import type * as resumeEmbeddingPipeline from "../resumeEmbeddingPipeline.js";
 import type * as resumeFormatHandlers from "../resumeFormatHandlers.js";
+import type * as resumeGenerationSystemPrompts from "../resumeGenerationSystemPrompts.js";
 import type * as resumeParser from "../resumeParser.js";
 import type * as resumeParsingAnalytics from "../resumeParsingAnalytics.js";
 import type * as resumeSectionExtractors from "../resumeSectionExtractors.js";
@@ -107,6 +111,9 @@ import type {
 declare const fullApi: ApiFromModules<{
   "agent/procurementVerifier": typeof agent_procurementVerifier;
   aiModels: typeof aiModels;
+  aiResumeGenerator: typeof aiResumeGenerator;
+  aiResumeGeneratorMutations: typeof aiResumeGeneratorMutations;
+  aiResumeManagement: typeof aiResumeManagement;
   aiResumeParser: typeof aiResumeParser;
   approvedProcurementLinksLookup: typeof approvedProcurementLinksLookup;
   auth: typeof auth;
@@ -172,6 +179,7 @@ declare const fullApi: ApiFromModules<{
   publicNavigation: typeof publicNavigation;
   resumeEmbeddingPipeline: typeof resumeEmbeddingPipeline;
   resumeFormatHandlers: typeof resumeFormatHandlers;
+  resumeGenerationSystemPrompts: typeof resumeGenerationSystemPrompts;
   resumeParser: typeof resumeParser;
   resumeParsingAnalytics: typeof resumeParsingAnalytics;
   resumeSectionExtractors: typeof resumeSectionExtractors;

@@ -100,7 +100,10 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [showJsonUpload, setShowJsonUpload] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<Id<"leads"> | null>(null);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [actionsMenuClickedOpen, setActionsMenuClickedOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
   const quickFiltersRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   
@@ -126,13 +129,17 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setOpenMenuId(null);
       }
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setShowActionsMenu(false);
+        setActionsMenuClickedOpen(false);
+      }
     };
 
-    if (openMenuId !== null) {
+    if (openMenuId !== null || showActionsMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [openMenuId]);
+  }, [openMenuId, showActionsMenu]);
 
   // Swipe gesture handlers for horizontal scroll
   const handleSwipeStart = (e: React.TouchEvent | React.MouseEvent) => {
@@ -475,62 +482,135 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
           <h1 className="text-3xl font-bold text-tron-white">Leads Management</h1>
           <p className="text-lg text-tron-gray">Manage procurement opportunity leads</p>
         </div>
-        <div className="flex gap-3 flex-wrap">
-          <TronButton
-            onClick={handleImportTexasLeads}
-            disabled={isImporting}
-            variant="primary"
-            color="cyan"
-            icon={isImporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            loading={isImporting}
-          >
-            {isImporting ? 'Importing...' : 'Import Texas Leads'}
-          </TronButton>
-          <TronButton
-            onClick={() => setShowJsonUpload(true)}
-            variant="outline"
-            color="cyan"
-            icon={<Upload className="w-4 h-4" />}
-          >
-            Import JSON
-          </TronButton>
-          <TronButton
-            onClick={async () => {
-              if (window.confirm('This will find and delete duplicate leads. Continue?')) {
-                try {
-                  const result = await deleteDuplicateLeads({});
-                  alert(`Deleted ${result.deleted} duplicate leads out of ${result.totalChecked} checked.`);
-                  // Refresh by clearing selected lead
-                  setSelectedLeadId(null);
-                } catch (error) {
-                  console.error('Error deleting duplicates:', error);
-                  alert(`Failed to delete duplicates: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        <div 
+          className="relative group"
+          onMouseEnter={() => {
+            // Show on hover (unless it was clicked closed)
+            if (!actionsMenuClickedOpen) {
+              setShowActionsMenu(true);
+            }
+          }}
+          onMouseLeave={() => {
+            // Close on mouse leave only if not explicitly opened via click
+            if (!actionsMenuClickedOpen) {
+              setTimeout(() => {
+                if (actionsMenuRef.current && !actionsMenuRef.current.matches(':hover')) {
+                  setShowActionsMenu(false);
                 }
+              }, 150);
+            }
+          }}
+        >
+          <button
+            onClick={() => {
+              const newState = !showActionsMenu;
+              setShowActionsMenu(newState);
+              setActionsMenuClickedOpen(newState);
+            }}
+            className="p-2 hover:bg-tron-cyan/10 rounded-lg transition-colors text-tron-gray hover:text-tron-cyan border border-tron-cyan/20 hover:border-tron-cyan/40 flex items-center gap-2"
+            title="Actions"
+          >
+            <MoreVertical className="w-5 h-5" />
+            <span className="text-sm font-medium">Actions</span>
+          </button>
+          
+          {/* Actions Tooltip Menu */}
+          <div 
+            ref={actionsMenuRef}
+            className={`absolute top-full right-0 mt-2 w-56 bg-tron-bg-card border border-tron-cyan/30 rounded-lg shadow-xl z-[60] overflow-hidden transition-all duration-200 pointer-events-auto ${
+              showActionsMenu 
+                ? 'opacity-100 visible' 
+                : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
+            }`}
+            onMouseEnter={() => {
+              setShowActionsMenu(true);
+            }}
+            onMouseLeave={() => {
+              // Close on mouse leave only if not explicitly opened via click
+              if (!actionsMenuClickedOpen) {
+                setTimeout(() => {
+                  setShowActionsMenu(false);
+                  setActionsMenuClickedOpen(false);
+                }, 150);
               }
             }}
-            variant="outline"
-            color="orange"
-            icon={<Trash2 className="w-4 h-4" />}
           >
-            Delete Duplicates
-          </TronButton>
-          <TronButton
-            onClick={() => setIsCreating(true)}
-            variant="primary"
-            color="cyan"
-            icon={<Plus className="w-4 h-4" />}
-          >
-            Add Lead
-          </TronButton>
+              <div className="py-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleImportTexasLeads();
+                    setShowActionsMenu(false);
+                    setActionsMenuClickedOpen(false);
+                  }}
+                  disabled={isImporting}
+                  className="w-full px-4 py-2.5 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isImporting ? (
+                    <RefreshCw className="w-4 h-4 text-tron-cyan animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 text-tron-cyan" />
+                  )}
+                  <span>{isImporting ? 'Importing...' : 'Import Texas Leads'}</span>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowJsonUpload(true);
+                    setShowActionsMenu(false);
+                    setActionsMenuClickedOpen(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                >
+                  <Upload className="w-4 h-4 text-tron-cyan" />
+                  <span>Import JSON</span>
+                </button>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setShowActionsMenu(false);
+                    setActionsMenuClickedOpen(false);
+                    if (window.confirm('This will find and delete duplicate leads. Continue?')) {
+                      try {
+                        const result = await deleteDuplicateLeads({});
+                        alert(`Deleted ${result.deleted} duplicate leads out of ${result.totalChecked} checked.`);
+                        // Refresh by clearing selected lead
+                        setSelectedLeadId(null);
+                      } catch (error) {
+                        console.error('Error deleting duplicates:', error);
+                        alert(`Failed to delete duplicates: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                      }
+                    }
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-tron-white hover:bg-tron-orange/20 flex items-center gap-2 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 text-tron-orange" />
+                  <span className="text-tron-orange">Delete Duplicates</span>
+                </button>
+                <div className="border-t border-tron-cyan/20 my-1"></div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCreating(true);
+                    setShowActionsMenu(false);
+                    setActionsMenuClickedOpen(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                >
+                  <Plus className="w-4 h-4 text-tron-cyan" />
+                  <span>Add Lead</span>
+                </button>
+              </div>
+            </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className={`grid grid-cols-1 gap-8 ${selectedLead ? 'lg:grid-cols-3' : 'lg:grid-cols-1'}`}>
         {/* Leads List */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className={`space-y-4 ${selectedLead ? 'lg:col-span-2' : 'lg:col-span-1'}`}>
           {/* Search and Filters */}
-          <TronPanel>
-            <div className="flex flex-col sm:flex-row gap-4">
+          <TronPanel className="!p-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tron-gray w-5 h-5 pointer-events-none z-10" />
@@ -563,9 +643,9 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
             </div>
 
             {/* State/Region Quick Filters with Horizontal Scroll */}
-            <div className="mt-4 pt-4 border-t border-tron-cyan/20">
-              <div className="mb-2">
-                <label className="block text-xs font-medium text-tron-gray mb-2">Quick Filters by Region</label>
+            <div className="mt-3 pt-3 border-t border-tron-cyan/20">
+              <div className="mb-1.5">
+                <label className="block text-xs font-medium text-tron-gray mb-1.5">Quick Filters by Region</label>
                 <div
                   ref={quickFiltersRef}
                   onMouseDown={handleSwipeStart}
@@ -620,8 +700,8 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
 
             {/* Filter Options */}
             {showFilters && (
-              <div className="mt-6 pt-6 border-t border-tron-cyan/20">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="mt-4 pt-4 border-t border-tron-cyan/20">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-tron-gray">Opportunity Type</label>
                     <select
@@ -722,8 +802,8 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
           </TronPanel>
 
           {/* Leads List */}
-          <TronPanel>
-            <div className="flex items-center justify-between text-sm text-tron-gray px-6 py-4 border-b border-tron-cyan/20">
+          <TronPanel className="!p-0">
+            <div className="flex items-center justify-between text-sm text-tron-gray px-4 py-3 border-b border-tron-cyan/20">
               <span className="font-medium">
                 {allLeads === undefined ? (
                   <span>Loading leads...</span>
@@ -735,11 +815,12 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
             <div 
               className="overflow-y-auto"
               style={{ 
-                height: selectedLead ? '60vh' : '80vh',
+                height: selectedLead ? 'calc(100vh - 420px)' : 'calc(100vh - 320px)',
+                minHeight: selectedLead ? '400px' : '500px',
                 transition: 'height 0.3s ease-in-out'
               }}
             >
-              <div className="p-4 space-y-3">
+              <div className="p-3 space-y-2">
               {allLeads === undefined && (
                 <>
                   {/* Skeleton loaders */}

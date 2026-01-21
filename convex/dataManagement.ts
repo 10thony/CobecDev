@@ -642,6 +642,73 @@ export const clearResumes = mutation({
   },
 });
 
+// Insert a resume (for AI-generated resumes)
+export const insertResume = mutation({
+  args: {
+    filename: v.string(),
+    originalText: v.string(),
+    personalInfo: v.object({
+      firstName: v.string(),
+      middleName: v.string(),
+      lastName: v.string(),
+      email: v.string(),
+      phone: v.string(),
+      yearsOfExperience: v.number(),
+    }),
+    professionalSummary: v.string(),
+    education: v.array(v.string()),
+    experience: v.array(v.object({
+      title: v.string(),
+      company: v.string(),
+      location: v.string(),
+      duration: v.string(),
+      responsibilities: v.array(v.string()),
+    })),
+    skills: v.array(v.string()),
+    certifications: v.string(),
+    professionalMemberships: v.string(),
+    securityClearance: v.string(),
+    metadata: v.optional(v.object({
+      fileName: v.string(),
+      importedAt: v.number(),
+      parsedAt: v.number(),
+      dataType: v.optional(v.string()),
+    })),
+    sourceLeadId: v.optional(v.id("leads")),
+    generationMetadata: v.optional(v.object({
+      systemPromptId: v.optional(v.id("resumeGenerationSystemPrompts")),
+      generatedAt: v.number(),
+      model: v.string(),
+      tokensUsed: v.optional(v.number()),
+      generationTimeMs: v.optional(v.number()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    return await ctx.db.insert("resumes", {
+      filename: args.filename,
+      originalText: args.originalText,
+      personalInfo: args.personalInfo,
+      professionalSummary: args.professionalSummary,
+      education: args.education,
+      experience: args.experience,
+      skills: args.skills,
+      certifications: args.certifications,
+      professionalMemberships: args.professionalMemberships,
+      securityClearance: args.securityClearance,
+      metadata: args.metadata || {
+        fileName: args.filename,
+        importedAt: now,
+        parsedAt: now,
+      },
+      sourceLeadId: args.sourceLeadId,
+      generationMetadata: args.generationMetadata,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
 // Export data to JSON
 export const exportData = action({
   args: {

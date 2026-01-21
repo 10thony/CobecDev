@@ -18,7 +18,9 @@ import {
   FileType,
   ChevronDown,
   Settings,
-  Sparkles
+  Sparkles,
+  Wand2,
+  X
 } from 'lucide-react';
 
 interface Resume {
@@ -49,6 +51,20 @@ interface Resume {
   embedding?: number[];
   createdAt?: number;
   updatedAt?: number;
+  sourceLeadId?: string;
+  generationMetadata?: {
+    systemPromptId?: string;
+    generatedAt: number;
+    model: string;
+    tokensUsed?: number;
+    generationTimeMs?: number;
+  };
+  metadata?: {
+    dataType?: string;
+    fileName: string;
+    importedAt: number;
+    parsedAt: number;
+  };
 }
 
 const ResumeManager: React.FC = () => {
@@ -59,6 +75,14 @@ const ResumeManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const [showActionsTooltip, setShowActionsTooltip] = useState(false);
+  const [showAIGenerationModal, setShowAIGenerationModal] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [selectedSystemPromptId, setSelectedSystemPromptId] = useState<string | null>(null);
+  const [batchLeadIds, setBatchLeadIds] = useState<string[]>([]);
+  const [generationMode, setGenerationMode] = useState<'single' | 'batch'>('single');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
+  const [cancelled, setCancelled] = useState(false);
   const searchHeaderRef = React.useRef<HTMLDivElement>(null);
   const actionsTooltipRef = React.useRef<HTMLDivElement>(null);
 
@@ -74,6 +98,14 @@ const ResumeManager: React.FC = () => {
   const clearResumesAction = useMutation(api.dataManagement.clearResumes);
   const parseResumeFileAction = useAction(api.resumeParser.parseResumeFile);
   const parseResumeFileWithAIAction = useAction(api.aiResumeParser.parseResumeFileWithAI);
+  const generateResumeFromLeadAction = useAction(api.aiResumeGenerator.generateResumeFromLead);
+  const generateResumesFromLeadsAction = useAction(api.aiResumeGenerator.generateResumesFromLeads);
+  const clearAIGeneratedResumesAction = useMutation(api.aiResumeManagement.clearAIGeneratedResumes);
+  
+  // Convex queries for AI generation
+  const leadsQuery = useQuery(api.leads.getLeadsForResumeGeneration, { limit: 100, offset: 0 });
+  const systemPromptsQuery = useQuery(api.resumeGenerationSystemPrompts.list, {});
+  const activeJobsQuery = useQuery(api.aiResumeManagement.getActiveGenerationJobs, {});
 
   const resumes = (resumesQuery?.resumes || []) as Resume[];
   const isLoadingResumes = resumesQuery === undefined;
@@ -324,6 +356,151 @@ const ResumeManager: React.FC = () => {
     }
   };
 
+  // Clear AI-generated resumes only
+  const handleClearAIGeneratedResumes = async () => {
+    if (!window.confirm('WARNING: This will clear all AI-generated resumes from the database. This action cannot be undone. Are you sure you want to continue?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await clearAIGeneratedResumesAction({ confirm: true });
+      setMessage(result.message || 'AI-generated resumes cleared successfully');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to clear AI-generated resumes: ${errorMessage}`);
+      setMessage(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cancel generation
+  const handleCancelGeneration = () => {
+    setCancelled(true);
+    setIsGenerating(false);
+    setGenerationProgress(null);
+    setMessage('Generation cancelled');
+    // Note: The action will continue running server-side, but we stop tracking it
+  };
+
+  // Generate single resume from lead
+  const handleGenerateResume = async () => {
+    if (!selectedLeadId) {
+      setError('Please select a lead');
+      return;
+    }
+
+    setLoading(true);
+    setIsGenerating(true);
+    setCancelled(false);
+    setError(null);
+    setMessage('Generating resume...');
+    setGenerationProgress({ current: 0, total: 1 });
+    
+    try {
+      const result = await generateResumeFromLeadAction({
+        leadId: selectedLeadId as any,
+        systemPromptId: selectedSystemPromptId ? (selectedSystemPromptId as any) : undefined,
+      });
+      
+      if (cancelled) {
+        return; // User cancelled, don't update UI
+      }
+      
+      if (result.success) {
+        setMessage('Resume generated successfully!');
+        setIsGenerating(false);
+        setGenerationProgress(null);
+        // Keep modal open for a moment to show success, then close
+        setTimeout(() => {
+          setShowAIGenerationModal(false);
+          setSelectedLeadId(null);
+          setSelectedSystemPromptId(null);
+        }, 1500);
+      } else {
+        setError(result.error || 'Failed to generate resume');
+        setMessage(null);
+        setIsGenerating(false);
+        setGenerationProgress(null);
+      }
+    } catch (error) {
+      if (cancelled) {
+        return; // User cancelled, don't update UI
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to generate resume: ${errorMessage}`);
+      setMessage(null);
+      setIsGenerating(false);
+      setGenerationProgress(null);
+    } finally {
+      setLoading(false);
+      if (!cancelled) {
+        setIsGenerating(false);
+      }
+    }
+  };
+
+  // Generate batch of resumes
+  const handleGenerateBatchResumes = async () => {
+    if (batchLeadIds.length === 0) {
+      setError('Please select at least one lead');
+      return;
+    }
+
+    setLoading(true);
+    setIsGenerating(true);
+    setCancelled(false);
+    setError(null);
+    setMessage(`Generating ${batchLeadIds.length} resumes...`);
+    setGenerationProgress({ current: 0, total: batchLeadIds.length });
+    
+    try {
+      const result = await generateResumesFromLeadsAction({
+        leadIds: batchLeadIds as any[],
+        systemPromptId: selectedSystemPromptId ? (selectedSystemPromptId as any) : undefined,
+        batchSize: 5,
+      });
+      
+      if (cancelled) {
+        return; // User cancelled, don't update UI
+      }
+      
+      if (result.success) {
+        setMessage(`Successfully generated ${result.successful} out of ${result.total} resumes${result.failed > 0 ? ` (${result.failed} failed)` : ''}`);
+        setIsGenerating(false);
+        setGenerationProgress(null);
+        // Keep modal open for a moment to show success, then close
+        setTimeout(() => {
+          setShowAIGenerationModal(false);
+          setBatchLeadIds([]);
+          setSelectedSystemPromptId(null);
+        }, 2000);
+      } else {
+        setError(`Failed to generate some resumes. ${result.successful} succeeded, ${result.failed} failed.`);
+        setMessage(null);
+        setIsGenerating(false);
+        setGenerationProgress(null);
+      }
+    } catch (error) {
+      if (cancelled) {
+        return; // User cancelled, don't update UI
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to generate resumes: ${errorMessage}`);
+      setMessage(null);
+      setIsGenerating(false);
+      setGenerationProgress(null);
+    } finally {
+      setLoading(false);
+      if (!cancelled) {
+        setIsGenerating(false);
+      }
+    }
+  };
+
   // Refresh data
   const handleRefresh = () => {
     setMessage('Refreshing data...');
@@ -396,8 +573,9 @@ const ResumeManager: React.FC = () => {
             onClick={handleRefresh}
             disabled={loading}
             variant="outline"
-            color="cyan"
+            color="blue"
             icon={<RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />}
+            className="border-purple-500/40 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/60"
           >
             Refresh Data
           </TronButton>
@@ -469,8 +647,9 @@ const ResumeManager: React.FC = () => {
                 <TronButton
                   onClick={() => setSearchTerm('')}
                   variant="ghost"
-                  color="cyan"
+                  color="blue"
                   size="sm"
+                  className="text-purple-300 hover:bg-purple-500/20"
                 >
                   Clear Search
                 </TronButton>
@@ -522,12 +701,15 @@ const ResumeManager: React.FC = () => {
                         id="json-upload"
                       />
                       <TronButton
-                        onClick={() => document.getElementById('json-upload')?.click()}
+                        onClick={() => {
+                          document.getElementById('json-upload')?.click();
+                          setShowActionsTooltip(false);
+                        }}
                         disabled={loading}
                         variant="primary"
-                        color="cyan"
+                        color="blue"
                         icon={<Upload className="w-4 h-4" />}
-                        className="w-full"
+                        className="w-full border-purple-500/40 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/60"
                       >
                         {loading ? 'Importing...' : 'Choose File'}
                       </TronButton>
@@ -553,12 +735,15 @@ const ResumeManager: React.FC = () => {
                         id="doc-upload"
                       />
                       <TronButton
-                        onClick={() => document.getElementById('doc-upload')?.click()}
+                        onClick={() => {
+                          document.getElementById('doc-upload')?.click();
+                          setShowActionsTooltip(false);
+                        }}
                         disabled={loading}
                         variant="primary"
                         color="blue"
                         icon={<Upload className="w-4 h-4" />}
-                        className="w-full"
+                        className="w-full border-purple-500/40 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/60"
                       >
                         {loading ? 'Processing...' : 'Choose File'}
                       </TronButton>
@@ -587,7 +772,10 @@ const ResumeManager: React.FC = () => {
                         id="ai-doc-upload"
                       />
                       <TronButton
-                        onClick={() => document.getElementById('ai-doc-upload')?.click()}
+                        onClick={() => {
+                          document.getElementById('ai-doc-upload')?.click();
+                          setShowActionsTooltip(false);
+                        }}
                         disabled={loading}
                         variant="primary"
                         color="blue"
@@ -601,6 +789,68 @@ const ResumeManager: React.FC = () => {
                 </div>
               </div>
 
+              {/* AI Resume Generation Section */}
+              <div className="border-t border-tron-cyan/20 pt-4">
+                <h4 className="text-lg font-semibold text-tron-white mb-4 flex items-center gap-2">
+                  <Wand2 className="w-5 h-5 text-purple-400" />
+                  AI Resume Generation
+                </h4>
+                <div className="space-y-3">
+                  <p className="text-xs text-tron-gray">
+                    Generate synthetic resumes tailored to lead data using GPT-5-mini
+                  </p>
+                  
+                  {/* Active Jobs Indicator */}
+                  {activeJobsQuery && activeJobsQuery.length > 0 && (
+                    <div className="p-3 bg-yellow-500/20 border border-yellow-500/40 rounded-lg">
+                      <div className="flex items-center gap-2 text-yellow-300 text-sm">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>
+                          {activeJobsQuery.length} generation job(s) currently running
+                        </span>
+                      </div>
+                      {activeJobsQuery.map((job) => (
+                        <div key={job._id} className="mt-2 text-xs text-yellow-200">
+                          {job.jobType === 'batch' ? 'Batch' : 'Single'} job: {job.progress?.current || 0} / {job.progress?.total || job.leadIds.length} resumes
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-3">
+                    <TronButton
+                      onClick={() => {
+                        setGenerationMode('single');
+                        setShowAIGenerationModal(true);
+                        setShowActionsTooltip(false);
+                      }}
+                      disabled={loading}
+                      variant="primary"
+                      color="blue"
+                      icon={<Sparkles className="w-4 h-4 text-purple-300" />}
+                      className="border-purple-500/40 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/60"
+                    >
+                      Generate from Lead
+                    </TronButton>
+                    
+                    <TronButton
+                      onClick={() => {
+                        setGenerationMode('batch');
+                        setShowAIGenerationModal(true);
+                        setShowActionsTooltip(false);
+                      }}
+                      disabled={loading}
+                      variant="primary"
+                      color="blue"
+                      icon={<Sparkles className="w-4 h-4 text-purple-300" />}
+                      className="border-purple-500/40 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/60"
+                    >
+                      Batch Generate
+                    </TronButton>
+                  </div>
+                </div>
+              </div>
+
               {/* Actions Section */}
               <div className="border-t border-tron-cyan/20 pt-4">
                 <h4 className="text-lg font-semibold text-tron-white mb-4 flex items-center gap-2">
@@ -609,23 +859,45 @@ const ResumeManager: React.FC = () => {
                 </h4>
                 <div className="flex flex-wrap gap-4">
                   <TronButton
-                    onClick={handleExportResumes}
+                    onClick={() => {
+                      handleExportResumes();
+                      setShowActionsTooltip(false);
+                    }}
                     disabled={loading || resumes.length === 0}
                     variant="primary"
-                    color="cyan"
+                    color="blue"
                     icon={<Download className="w-4 h-4" />}
+                    className="border-purple-500/40 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/60"
                   >
                     Export Resumes
                   </TronButton>
                   
                   <TronButton
-                    onClick={handleClearResumes}
+                    onClick={() => {
+                      handleClearAIGeneratedResumes();
+                      setShowActionsTooltip(false);
+                    }}
                     disabled={loading}
                     variant="primary"
-                    color="orange"
+                    color="blue"
                     icon={<Trash2 className="w-4 h-4" />}
+                    className="border-purple-500/40 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/60"
                   >
-                    Clear Resume Data
+                    Clear AI Resumes
+                  </TronButton>
+                  
+                  <TronButton
+                    onClick={() => {
+                      handleClearResumes();
+                      setShowActionsTooltip(false);
+                    }}
+                    disabled={loading}
+                    variant="primary"
+                    color="blue"
+                    icon={<Trash2 className="w-4 h-4" />}
+                    className="border-purple-500/40 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/60"
+                  >
+                    Clear All Resumes
                   </TronButton>
                 </div>
               </div>
@@ -734,6 +1006,201 @@ const ResumeManager: React.FC = () => {
             <span className="text-tron-gray">Processing...</span>
           </div>
         </TronPanel>
+      )}
+
+      {/* AI Generation Modal */}
+      {showAIGenerationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-tron-bg-panel border border-tron-cyan/30 rounded-lg shadow-tron-glow p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-tron-white flex items-center gap-2">
+                <Wand2 className="w-5 h-5 text-purple-400" />
+                {generationMode === 'single' ? 'Generate Resume from Lead' : 'Batch Generate Resumes'}
+              </h3>
+              <button
+                onClick={() => {
+                  if (isGenerating) {
+                    handleCancelGeneration();
+                  }
+                  setShowAIGenerationModal(false);
+                  setSelectedLeadId(null);
+                  setBatchLeadIds([]);
+                  setSelectedSystemPromptId(null);
+                  setIsGenerating(false);
+                  setGenerationProgress(null);
+                  setCancelled(false);
+                }}
+                className="text-tron-gray hover:text-tron-white transition-colors"
+                disabled={isGenerating && !cancelled}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Generation Progress */}
+            {isGenerating && generationProgress && (
+              <div className="mb-4 p-4 bg-tron-bg-elevated rounded-lg border border-tron-cyan/20">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-tron-white">
+                    {cancelled ? 'Cancelling...' : 'Generating resumes...'}
+                  </span>
+                  <span className="text-sm text-tron-cyan">
+                    {generationProgress.current} / {generationProgress.total}
+                  </span>
+                </div>
+                <div className="w-full bg-tron-bg-panel rounded-full h-2">
+                  <div
+                    className="bg-tron-cyan h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
+                  />
+                </div>
+                {generationMode === 'batch' && (
+                  <p className="text-xs text-tron-gray mt-2">
+                    Processing in batches of 5. This may take a while...
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* System Prompt Selection */}
+              <div>
+                <label className="block text-sm font-medium text-tron-white mb-2">
+                  System Prompt (Optional)
+                </label>
+                <select
+                  value={selectedSystemPromptId || ''}
+                  onChange={(e) => setSelectedSystemPromptId(e.target.value || null)}
+                  className="tron-input w-full"
+                  disabled={loading || isGenerating}
+                >
+                  <option value="">Use Default Prompt</option>
+                  {systemPromptsQuery?.map((prompt) => (
+                    <option key={prompt._id} value={prompt._id}>
+                      {prompt.title} {prompt.isPrimarySystemPrompt ? '(Primary)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Lead Selection */}
+              {generationMode === 'single' ? (
+                <div>
+                  <label className="block text-sm font-medium text-tron-white mb-2">
+                    Select Lead *
+                  </label>
+                  <select
+                    value={selectedLeadId || ''}
+                    onChange={(e) => setSelectedLeadId(e.target.value || null)}
+                    className="tron-input w-full"
+                    disabled={loading || isGenerating}
+                  >
+                    <option value="">-- Select a lead --</option>
+                    {leadsQuery?.map((lead) => (
+                      <option key={lead._id} value={lead._id}>
+                        {lead.opportunityTitle} - {lead.location?.region || 'Unknown Region'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-tron-white">
+                      Select Leads (Multiple) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (batchLeadIds.length === leadsQuery?.length) {
+                          // Deselect all
+                          setBatchLeadIds([]);
+                        } else {
+                          // Select all
+                          setBatchLeadIds(leadsQuery?.map(lead => lead._id) || []);
+                        }
+                      }}
+                      disabled={loading || isGenerating || !leadsQuery || leadsQuery.length === 0}
+                      className="text-xs text-tron-cyan hover:text-tron-white transition-colors disabled:text-tron-gray disabled:cursor-not-allowed"
+                    >
+                      {batchLeadIds.length === leadsQuery?.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto border border-tron-cyan/20 rounded p-2 space-y-2">
+                    {leadsQuery?.map((lead) => (
+                      <label key={lead._id} className="flex items-center gap-2 text-sm text-tron-white cursor-pointer hover:bg-tron-bg-elevated p-2 rounded">
+                        <input
+                          type="checkbox"
+                          checked={batchLeadIds.includes(lead._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setBatchLeadIds([...batchLeadIds, lead._id]);
+                            } else {
+                              setBatchLeadIds(batchLeadIds.filter(id => id !== lead._id));
+                            }
+                          }}
+                          disabled={loading || isGenerating}
+                          className="rounded"
+                        />
+                        <span>{lead.opportunityTitle} - {lead.location?.region || 'Unknown Region'}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {batchLeadIds.length > 0 && (
+                    <p className="text-xs text-tron-gray mt-2">
+                      {batchLeadIds.length} lead(s) selected
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-tron-cyan/20">
+                {!isGenerating ? (
+                  <>
+                    <TronButton
+                      onClick={generationMode === 'single' ? handleGenerateResume : handleGenerateBatchResumes}
+                      disabled={loading || (generationMode === 'single' ? !selectedLeadId : batchLeadIds.length === 0)}
+                      variant="primary"
+                      color="blue"
+                      icon={<Sparkles className="w-4 h-4 text-purple-300" />}
+                      className="border-purple-500/40 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/60"
+                    >
+                      Generate
+                    </TronButton>
+                    <TronButton
+                      onClick={() => {
+                        setShowAIGenerationModal(false);
+                        setSelectedLeadId(null);
+                        setBatchLeadIds([]);
+                        setSelectedSystemPromptId(null);
+                        setIsGenerating(false);
+                        setGenerationProgress(null);
+                        setCancelled(false);
+                      }}
+                      disabled={loading}
+                      variant="outline"
+                      color="cyan"
+                    >
+                      Cancel
+                    </TronButton>
+                  </>
+                ) : (
+                  <TronButton
+                    onClick={handleCancelGeneration}
+                    disabled={cancelled}
+                    variant="primary"
+                    color="blue"
+                    icon={<X className="w-4 h-4" />}
+                    className="border-red-500/40 bg-red-500/20 text-red-300 hover:bg-red-500/30 hover:border-red-500/60"
+                  >
+                    {cancelled ? 'Cancelling...' : 'Cancel Generation'}
+                  </TronButton>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

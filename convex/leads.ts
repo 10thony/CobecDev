@@ -1464,3 +1464,141 @@ export const getLeadCountByState = query({
     return matchingLeads.length;
   },
 });
+
+// Get leads for resume generation - returns only essential fields to avoid loading large data
+// This query is optimized to exclude large fields like searchableText and adHoc
+export const getLeadsForResumeGeneration = query({
+  args: {
+    limit: v.number(),
+    offset: v.optional(v.number()),
+    filters: v.optional(v.object({
+      region: v.optional(v.string()),
+      category: v.optional(v.string()),
+      opportunityType: v.optional(v.string()),
+      status: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit;
+    const offset = args.offset ?? 0;
+    
+    // Get leads with filters if provided
+    let allLeads;
+    
+    if (args.filters) {
+      if (args.filters.region) {
+        allLeads = await ctx.db
+          .query("leads")
+          .withIndex("by_region", (q) => 
+            q.eq("location.region", args.filters!.region!)
+          )
+          .order("desc")
+          .collect();
+      } else if (args.filters.category) {
+        allLeads = await ctx.db
+          .query("leads")
+          .withIndex("by_category", (q) => 
+            q.eq("category", args.filters!.category!)
+          )
+          .order("desc")
+          .collect();
+      } else if (args.filters.opportunityType) {
+        allLeads = await ctx.db
+          .query("leads")
+          .withIndex("by_opportunity_type", (q) => 
+            q.eq("opportunityType", args.filters!.opportunityType!)
+          )
+          .order("desc")
+          .collect();
+      } else if (args.filters.status) {
+        allLeads = await ctx.db
+          .query("leads")
+          .withIndex("by_status", (q) => 
+            q.eq("status", args.filters!.status!)
+          )
+          .order("desc")
+          .collect();
+      } else {
+        allLeads = await ctx.db.query("leads").order("desc").collect();
+      }
+    } else {
+      allLeads = await ctx.db.query("leads").order("desc").collect();
+    }
+    
+    // Additional filtering is already handled by the index queries above
+    const filteredLeads = allLeads;
+    
+    // Paginate
+    const paginatedLeads = filteredLeads.slice(offset, offset + limit);
+    
+    // Return only essential fields, truncating large text fields
+    return paginatedLeads.map(lead => ({
+      _id: lead._id,
+      opportunityTitle: lead.opportunityTitle,
+      opportunityType: lead.opportunityType,
+      issuingBody: {
+        name: lead.issuingBody?.name || "",
+        level: lead.issuingBody?.level || "",
+      },
+      location: {
+        region: lead.location?.region || "",
+        city: lead.location?.city || undefined,
+        county: lead.location?.county || undefined,
+      },
+      status: lead.status,
+      category: lead.category || undefined,
+      subcategory: lead.subcategory || undefined,
+      summary: lead.summary ? (lead.summary.length > 2000 ? lead.summary.substring(0, 2000) + "..." : lead.summary) : "",
+      keyDates: lead.keyDates || {
+        publishedDate: undefined,
+        bidDeadline: undefined,
+        projectedStartDate: undefined,
+      },
+      estimatedValueUSD: lead.estimatedValueUSD || undefined,
+      contractID: lead.contractID || undefined,
+      // Exclude: searchableText, adHoc, contacts (can be large)
+    }));
+  },
+});
+
+// Get minimal lead summary for single lead generation
+// Returns only essential fields with truncated text
+export const getLeadSummaryForGeneration = query({
+  args: {
+    leadId: v.id("leads"),
+  },
+  handler: async (ctx, args) => {
+    const lead = await ctx.db.get(args.leadId);
+    
+    if (!lead) {
+      return null;
+    }
+    
+    // Return only essential fields, truncating large text fields
+    return {
+      _id: lead._id,
+      opportunityTitle: lead.opportunityTitle,
+      opportunityType: lead.opportunityType,
+      issuingBody: {
+        name: lead.issuingBody?.name || "",
+        level: lead.issuingBody?.level || "",
+      },
+      location: {
+        region: lead.location?.region || "",
+        city: lead.location?.city || undefined,
+        county: lead.location?.county || undefined,
+      },
+      status: lead.status,
+      category: lead.category || undefined,
+      subcategory: lead.subcategory || undefined,
+      summary: lead.summary ? (lead.summary.length > 2000 ? lead.summary.substring(0, 2000) + "..." : lead.summary) : "",
+      keyDates: lead.keyDates || {
+        publishedDate: undefined,
+        bidDeadline: undefined,
+        projectedStartDate: undefined,
+      },
+      estimatedValueUSD: lead.estimatedValueUSD || undefined,
+      contractID: lead.contractID || undefined,
+    };
+  },
+});
