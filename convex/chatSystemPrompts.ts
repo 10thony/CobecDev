@@ -1,6 +1,7 @@
-import { query, mutation, internalQuery } from "./_generated/server";
+import { query, mutation, internalQuery, action, internalAction, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 
 // Pricing constants (in cents per 1K tokens) - updated with latest OpenAI pricing
 interface ModelPricing {
@@ -470,27 +471,69 @@ function extractStateFromTitle(title: string): string | null {
   
   const titleLower = title.toLowerCase();
   
-  // List of US states for matching
-  const states = [
-    "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
-    "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
-    "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana",
-    "maine", "maryland", "massachusetts", "michigan", "minnesota",
-    "mississippi", "missouri", "montana", "nebraska", "nevada",
-    "new hampshire", "new jersey", "new mexico", "new york",
-    "north carolina", "north dakota", "ohio", "oklahoma", "oregon",
-    "pennsylvania", "rhode island", "south carolina", "south dakota",
-    "tennessee", "texas", "utah", "vermont", "virginia", "washington",
-    "west virginia", "wisconsin", "wyoming"
-  ];
+  // Map of lowercase state names to their proper capitalized form
+  // IMPORTANT: Order matters! Longer/more specific names must come first
+  // to avoid false matches (e.g., "west virginia" before "virginia")
+  const stateMap: Record<string, string> = {
+    "district of columbia": "District of Columbia",
+    "new hampshire": "New Hampshire",
+    "new jersey": "New Jersey",
+    "new mexico": "New Mexico",
+    "new york": "New York",
+    "north carolina": "North Carolina",
+    "north dakota": "North Dakota",
+    "south carolina": "South Carolina",
+    "south dakota": "South Dakota",
+    "west virginia": "West Virginia",
+    "rhode island": "Rhode Island",
+    "alabama": "Alabama",
+    "alaska": "Alaska",
+    "arizona": "Arizona",
+    "arkansas": "Arkansas",
+    "california": "California",
+    "colorado": "Colorado",
+    "connecticut": "Connecticut",
+    "delaware": "Delaware",
+    "florida": "Florida",
+    "georgia": "Georgia",
+    "hawaii": "Hawaii",
+    "idaho": "Idaho",
+    "illinois": "Illinois",
+    "indiana": "Indiana",
+    "iowa": "Iowa",
+    "kansas": "Kansas",
+    "kentucky": "Kentucky",
+    "louisiana": "Louisiana",
+    "maine": "Maine",
+    "maryland": "Maryland",
+    "massachusetts": "Massachusetts",
+    "michigan": "Michigan",
+    "minnesota": "Minnesota",
+    "mississippi": "Mississippi",
+    "missouri": "Missouri",
+    "montana": "Montana",
+    "nebraska": "Nebraska",
+    "nevada": "Nevada",
+    "ohio": "Ohio",
+    "oklahoma": "Oklahoma",
+    "oregon": "Oregon",
+    "pennsylvania": "Pennsylvania",
+    "tennessee": "Tennessee",
+    "texas": "Texas",
+    "utah": "Utah",
+    "vermont": "Vermont",
+    "virginia": "Virginia",
+    "washington": "Washington",
+    "wisconsin": "Wisconsin",
+    "wyoming": "Wyoming"
+  };
   
-  for (const state of states) {
-    if (titleLower.includes(state)) {
-      // Capitalize first letter of each word
-      return state
-        .split(" ")
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
+  // Check states in order (longer names first to avoid false matches)
+  const stateKeys = Object.keys(stateMap).sort((a, b) => b.length - a.length);
+  
+  for (const stateKey of stateKeys) {
+    if (titleLower.includes(stateKey)) {
+      return stateMap[stateKey];
     }
   }
   
@@ -904,29 +947,20 @@ export const updatePromptWithStateLinks = mutation({
     }
     
     // Get approved procurement links for the specific state
+    // Only extract the procurementLink URL - agents only need the URL to know what's already collected
     const approvedLinks = await ctx.db
       .query("procurementUrls")
       .withIndex("by_state_status", (q) => q.eq("state", stateName).eq("status", "approved"))
       .collect();
     
-    // Transform to lookup format
-    type FormattedLink = {
-      state: string;
-      capital: string;
-      officialWebsite: string;
-      procurementLink: string;
-      entityType: string | null;
-      linkType: string | null;
-      requiresRegistration: boolean | null;
-    };
-    
-    const formattedLinks: FormattedLink[] = approvedLinks.map((link) => ({
+    // Transform to lookup format - only include fields needed for prompt
+    const formattedLinks: ApprovedLink[] = approvedLinks.map((link) => ({
       state: link.state,
       capital: link.capital,
-      officialWebsite: link.officialWebsite,
+      officialWebsite: "", // Not needed for prompt
       procurementLink: link.procurementLink,
-      entityType: null,
-      linkType: null,
+      entityType: null, // Not needed for prompt
+      linkType: null, // Not needed for prompt
       requiresRegistration: link.requiresRegistration ?? null,
     }));
     
@@ -990,13 +1024,12 @@ export const updatePromptWithStateLinks = mutation({
 /**
  * Get source links from leads for a specific state
  * Maps state name to lead regions and returns unique source URLs
+ * Optimized to only query and extract source URLs, not full lead objects
  */
-function getLeadSourceLinksForState(
-  allLeads: any[],
+async function getLeadSourceLinksForState(
+  ctx: any,
   stateName: string
-): Array<{ url: string; documentName: string; leadCount: number }> {
-  if (!allLeads || allLeads.length === 0) return [];
-  
+): Promise<Array<{ url: string; documentName: string; leadCount: number }>> {
   const stateLower = stateName.toLowerCase();
   
   // Map of state names to common region patterns
@@ -1011,30 +1044,63 @@ function getLeadSourceLinksForState(
   // Get patterns for this state
   const patterns = stateToRegionPatterns[stateLower] || [stateLower];
   
-  // Filter leads where region matches any pattern
-  const matchingLeads = allLeads.filter(lead => {
-    if (!lead.location?.region) return false;
-    const regionLower = lead.location.region.toLowerCase();
-    return patterns.some(pattern => regionLower.includes(pattern));
-  });
-  
-  // Group by source URL and count
+  // Query leads by region patterns - only get source URLs to minimize data transfer
   const sourceMap = new Map<string, { url: string; documentName: string; leadCount: number }>();
   
-  matchingLeads.forEach(lead => {
-    if (lead.source?.url) {
-      const url = lead.source.url;
-      if (sourceMap.has(url)) {
-        sourceMap.get(url)!.leadCount++;
-      } else {
-        sourceMap.set(url, {
-          url,
-          documentName: lead.source.documentName || 'Unknown Document',
-          leadCount: 1,
-        });
+  // Query leads for each region pattern and extract only source URLs
+  for (const pattern of patterns) {
+    try {
+      const leads = await ctx.db
+        .query("leads")
+        .withIndex("by_region", (q: any) => q.eq("location.region", pattern))
+        .collect();
+      
+      // Extract only source URLs from matching leads
+      for (const lead of leads) {
+        if (lead.source?.url) {
+          const url = lead.source.url;
+          if (sourceMap.has(url)) {
+            sourceMap.get(url)!.leadCount++;
+          } else {
+            sourceMap.set(url, {
+              url,
+              documentName: lead.source.documentName || 'Unknown Document',
+              leadCount: 1,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      // If index query fails, try case-insensitive matching
+      // This is a fallback for regions that don't match exactly
+      continue;
+    }
+  }
+  
+  // Also try the state name directly as a fallback
+  try {
+    const stateLeads = await ctx.db
+      .query("leads")
+      .withIndex("by_region", (q: any) => q.eq("location.region", stateName))
+      .collect();
+    
+    for (const lead of stateLeads) {
+      if (lead.source?.url) {
+        const url = lead.source.url;
+        if (sourceMap.has(url)) {
+          sourceMap.get(url)!.leadCount++;
+        } else {
+          sourceMap.set(url, {
+            url,
+            documentName: lead.source.documentName || 'Unknown Document',
+            leadCount: 1,
+          });
+        }
       }
     }
-  });
+  } catch (error) {
+    // Ignore if query fails
+  }
   
   return Array.from(sourceMap.values()).sort((a, b) => b.leadCount - a.leadCount);
 }
@@ -1225,13 +1291,8 @@ export const updatePromptWithLeadSourceLinks = mutation({
       };
     }
     
-    // Get all leads (we'll filter by state in the function)
-    const allLeads = await ctx.db
-      .query("leads")
-      .collect();
-    
-    // Get source links for the specific state
-    const sourceLinks = getLeadSourceLinksForState(allLeads, stateName);
+    // Get source links for the specific state - optimized to only get source URLs
+    const sourceLinks = await getLeadSourceLinksForState(ctx, stateName);
     
     // Format lead source links for the prompt
     const linksSection = formatLeadSourceLinksForPrompt(sourceLinks, stateName);
@@ -1283,5 +1344,1046 @@ export const updatePromptWithLeadSourceLinks = mutation({
       provider,
       promptTextSize: updatedPromptText.length,
     };
+  },
+});
+
+/**
+ * Update all system prompts with their respective state data
+ * Iterates through all prompts and updates:
+ * - procurementHubs prompts with approved procurement links for their state
+ * - leads prompts with lead source links for their state
+ */
+export const updateAllPromptsWithStateData = mutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    results: v.array(v.object({
+      promptId: v.id("chatSystemPrompts"),
+      promptTitle: v.string(),
+      promptType: v.string(),
+      stateName: v.union(v.string(), v.null()),
+      success: v.boolean(),
+      message: v.string(),
+      linkCount: v.number(),
+      errorType: v.optional(v.string()),
+      errorDetails: v.optional(v.string()),
+    })),
+    totalProcessed: v.number(),
+    totalSucceeded: v.number(),
+    totalFailed: v.number(),
+  }),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const results: Array<{
+      promptId: Id<"chatSystemPrompts">;
+      promptTitle: string;
+      promptType: string;
+      stateName: string | null;
+      success: boolean;
+      message: string;
+      linkCount: number;
+      errorType?: string;
+      errorDetails?: string;
+    }> = [];
+
+    // Get all prompts
+    const allPrompts = await ctx.db
+      .query("chatSystemPrompts")
+      .collect();
+
+    // Get all prompt types
+    const promptTypes = await ctx.db
+      .query("chatSystemPromptTypes")
+      .collect();
+
+    const leadsType = promptTypes.find(t => t.name === "leads");
+    const procurementHubsType = promptTypes.find(t => t.name === "procurementHubs");
+
+    let totalSucceeded = 0;
+    let totalFailed = 0;
+
+    // Process each prompt
+    for (const prompt of allPrompts) {
+      const promptType = promptTypes.find(t => t._id === prompt.type);
+      const promptTypeName = promptType?.name || "unknown";
+      const stateName = extractStateFromTitle(prompt.title);
+
+      // Skip prompts without a state name
+      if (!stateName) {
+        results.push({
+          promptId: prompt._id,
+          promptTitle: prompt.title,
+          promptType: promptTypeName,
+          stateName: null,
+          success: false,
+          message: `Could not extract state name from prompt title: "${prompt.title}"`,
+          linkCount: 0,
+          errorType: "STATE_EXTRACTION_FAILED",
+          errorDetails: `The prompt title "${prompt.title}" does not contain a recognizable US state name.`,
+        });
+        totalFailed++;
+        continue;
+      }
+
+      try {
+        // Update based on prompt type
+        if (procurementHubsType && prompt.type === procurementHubsType._id) {
+          // Update with procurement links - only include the procurementLink URL
+          const approvedLinks = await ctx.db
+            .query("procurementUrls")
+            .withIndex("by_state_status", (q) => q.eq("state", stateName).eq("status", "approved"))
+            .collect();
+
+          // Only extract the procurementLink URL - agents only need the URL to know what's already collected
+          const formattedLinks: ApprovedLink[] = approvedLinks.map((link) => ({
+            state: link.state,
+            capital: link.capital,
+            officialWebsite: "", // Not needed for prompt
+            procurementLink: link.procurementLink,
+            entityType: null, // Not needed for prompt
+            linkType: null, // Not needed for prompt
+            requiresRegistration: link.requiresRegistration ?? null,
+          }));
+
+          const linksSection = formatApprovedLinksForPrompt(formattedLinks);
+          let basePrompt = removeExistingApprovedLinksSection(prompt.systemPromptText);
+          const updatedPromptText = linksSection
+            ? injectApprovedLinksIntoPrompt(basePrompt, linksSection)
+            : basePrompt;
+
+          await ctx.db.patch(prompt._id, {
+            systemPromptText: updatedPromptText,
+            updatedAt: now,
+          });
+
+          results.push({
+            promptId: prompt._id,
+            promptTitle: prompt.title,
+            promptType: promptTypeName,
+            stateName: stateName,
+            success: true,
+            message: `Updated with ${formattedLinks.length} approved procurement links`,
+            linkCount: formattedLinks.length,
+          });
+          totalSucceeded++;
+        } else if (leadsType && prompt.type === leadsType._id) {
+          // Update with lead source links - optimized to only get source URLs
+          const sourceLinks = await getLeadSourceLinksForState(ctx, stateName);
+          const linksSection = formatLeadSourceLinksForPrompt(sourceLinks, stateName);
+          let basePrompt = removeExistingLeadSourceLinksSection(prompt.systemPromptText);
+          const updatedPromptText = linksSection
+            ? injectLeadSourceLinksIntoPrompt(basePrompt, linksSection)
+            : basePrompt;
+
+          await ctx.db.patch(prompt._id, {
+            systemPromptText: updatedPromptText,
+            updatedAt: now,
+          });
+
+          results.push({
+            promptId: prompt._id,
+            promptTitle: prompt.title,
+            promptType: promptTypeName,
+            stateName: stateName,
+            success: true,
+            message: `Updated with ${sourceLinks.length} lead source links`,
+            linkCount: sourceLinks.length,
+          });
+          totalSucceeded++;
+        } else {
+          // Unknown or unsupported prompt type
+          results.push({
+            promptId: prompt._id,
+            promptTitle: prompt.title,
+            promptType: promptTypeName,
+            stateName: stateName,
+            success: false,
+            message: `Prompt type "${promptTypeName}" is not supported for automatic updates`,
+            linkCount: 0,
+            errorType: "UNSUPPORTED_PROMPT_TYPE",
+            errorDetails: `Only "procurementHubs" and "leads" prompt types are supported. This prompt has type "${promptTypeName}".`,
+          });
+          totalFailed++;
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        results.push({
+          promptId: prompt._id,
+          promptTitle: prompt.title,
+          promptType: promptTypeName,
+          stateName: stateName,
+          success: false,
+          message: errorMessage,
+          linkCount: 0,
+          errorType: "EXECUTION_ERROR",
+          errorDetails: errorStack || errorMessage,
+        });
+        totalFailed++;
+      }
+    }
+
+    return {
+      success: totalSucceeded > 0,
+      message: `Processed ${allPrompts.length} prompts: ${totalSucceeded} succeeded, ${totalFailed} failed`,
+      results: results,
+      totalProcessed: allPrompts.length,
+      totalSucceeded: totalSucceeded,
+      totalFailed: totalFailed,
+    };
+  },
+});
+
+// US States list (50 states + DC)
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California",
+  "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
+  "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
+  "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
+  "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri",
+  "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
+  "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio",
+  "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+  "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
+  "District of Columbia"
+];
+
+/**
+ * Get list of states that have system prompts
+ * Extracts state names from prompt titles
+ */
+export const getStatesWithPrompts = query({
+  args: {},
+  returns: v.array(v.string()),
+  handler: async (ctx) => {
+    const prompts = await ctx.db
+      .query("chatSystemPrompts")
+      .collect();
+    
+    const statesWithPrompts = new Set<string>();
+    
+    for (const prompt of prompts) {
+      const stateName = extractStateFromTitle(prompt.title);
+      if (stateName) {
+        statesWithPrompts.add(stateName);
+      }
+    }
+    
+    return Array.from(statesWithPrompts).sort();
+  },
+});
+
+/**
+ * Get list of states that are missing system prompts
+ */
+export const getMissingStates = query({
+  args: {},
+  returns: v.array(v.string()),
+  handler: async (ctx) => {
+    // Get states with prompts
+    const prompts = await ctx.db
+      .query("chatSystemPrompts")
+      .collect();
+    
+    const statesWithPrompts = new Set<string>();
+    
+    for (const prompt of prompts) {
+      const stateName = extractStateFromTitle(prompt.title);
+      if (stateName) {
+        statesWithPrompts.add(stateName);
+      }
+    }
+    
+    // Find missing states
+    const missingStates = US_STATES.filter(state => !statesWithPrompts.has(state));
+    
+    return missingStates.sort();
+  },
+});
+
+/**
+ * Get the default lead prompt template
+ * Returns the primary prompt for the "leads" type, or first prompt of that type
+ */
+export const getDefaultLeadPrompt = query({
+  args: {},
+  returns: v.union(
+    v.object({
+      _id: v.id("chatSystemPrompts"),
+      systemPromptText: v.string(),
+      title: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx) => {
+    // First, find the "leads" type
+    const leadsType = await ctx.db
+      .query("chatSystemPromptTypes")
+      .filter((q) => q.eq(q.field("name"), "leads"))
+      .first();
+    
+    if (!leadsType) {
+      return null;
+    }
+    
+    // Try to get the primary prompt for leads type
+    const primaryPrompt = await ctx.db
+      .query("chatSystemPrompts")
+      .withIndex("by_type_primary", (q) => 
+        q.eq("type", leadsType._id).eq("isPrimarySystemPrompt", true)
+      )
+      .first();
+    
+    if (primaryPrompt) {
+      return {
+        _id: primaryPrompt._id,
+        systemPromptText: primaryPrompt.systemPromptText,
+        title: primaryPrompt.title,
+      };
+    }
+    
+    // If no primary, get the first prompt of leads type
+    const firstPrompt = await ctx.db
+      .query("chatSystemPrompts")
+      .withIndex("by_type", (q) => q.eq("type", leadsType._id))
+      .first();
+    
+    if (firstPrompt) {
+      return {
+        _id: firstPrompt._id,
+        systemPromptText: firstPrompt.systemPromptText,
+        title: firstPrompt.title,
+      };
+    }
+    
+    // Fallback to DEFAULT_SYSTEM_PROMPT
+    return null;
+  },
+});
+
+/**
+ * Generate geographical section for a state using OpenAI
+ * This is an internal action that calls OpenAI API
+ */
+export const generateGeographicalSection = internalAction({
+  args: {
+    stateName: v.string(),
+    approvedLinks: v.array(v.object({
+      state: v.string(),
+      capital: v.string(),
+      officialWebsite: v.string(),
+      procurementLink: v.string(),
+      entityType: v.union(v.string(), v.null()),
+      linkType: v.union(v.string(), v.null()),
+      requiresRegistration: v.union(v.boolean(), v.null()),
+    })),
+  },
+  returns: v.string(),
+  handler: async (ctx: any, args: any): Promise<string> => {
+    // Format approved links for the prompt
+    let formattedLinks = "";
+    if (args.approvedLinks.length > 0) {
+      formattedLinks = args.approvedLinks.map((link: any) => {
+        let linkText = `- ${link.capital}: ${link.procurementLink}`;
+        if (link.requiresRegistration) {
+          linkText += " (Requires Registration)";
+        }
+        return linkText;
+      }).join("\n");
+    } else {
+      formattedLinks = "No approved procurement links available for this state yet.";
+    }
+
+    // Create the prompt for OpenAI
+    const prompt = `You are creating a geographical section for a system prompt about procurement opportunities in ${args.stateName}.
+
+Approved Procurement Links for ${args.stateName}:
+${formattedLinks}
+
+Generate a concise, informative geographical section (2-3 paragraphs) that:
+1. Describes the procurement landscape in ${args.stateName}
+2. References the approved procurement links provided (if any)
+3. Highlights key cities, regions, or procurement hubs
+4. Uses professional, clear language suitable for a system prompt
+
+Format the output as markdown with a heading: ## GEOGRAPHICAL CONTEXT: ${args.stateName}`;
+
+    // Get OpenAI API key from environment
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY not found in environment variables");
+    }
+
+    // Call OpenAI API
+    // @ts-ignore - Type instantiation is excessively deep due to Convex type inference
+    const response: any = await ctx.runAction(internal.nodeActions.sendOpenAIMessageWithKey, {
+      message: prompt,
+      modelId: "gpt-5-mini",
+      apiKey: apiKey,
+    });
+
+    return response.content;
+  },
+});
+
+/**
+ * Internal query to get approved links for a state
+ */
+export const getApprovedLinksForStateInternal = internalQuery({
+  args: {
+    stateName: v.string(),
+  },
+  returns: v.array(v.object({
+    state: v.string(),
+    capital: v.string(),
+    officialWebsite: v.string(),
+    procurementLink: v.string(),
+    entityType: v.union(v.string(), v.null()),
+    linkType: v.union(v.string(), v.null()),
+    requiresRegistration: v.union(v.boolean(), v.null()),
+  })),
+  handler: async (ctx, args) => {
+    const approvedLinks = await ctx.db
+      .query("procurementUrls")
+      .withIndex("by_state_status", (q) => q.eq("state", args.stateName).eq("status", "approved"))
+      .collect();
+
+    return approvedLinks.map((link) => ({
+      state: link.state,
+      capital: link.capital,
+      officialWebsite: link.officialWebsite,
+      procurementLink: link.procurementLink,
+      entityType: null,
+      linkType: null,
+      requiresRegistration: link.requiresRegistration ?? null,
+    }));
+  },
+});
+
+/**
+ * Internal query to check if prompt exists for state
+ */
+export const checkPromptExistsInternal = internalQuery({
+  args: {
+    stateName: v.string(),
+    typeId: v.id("chatSystemPromptTypes"),
+  },
+  returns: v.union(
+    v.object({
+      exists: v.boolean(),
+      promptId: v.union(v.id("chatSystemPrompts"), v.null()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const existingPrompts = await ctx.db
+      .query("chatSystemPrompts")
+      .collect();
+    
+    for (const prompt of existingPrompts) {
+      const extractedState = extractStateFromTitle(prompt.title);
+      if (extractedState === args.stateName && prompt.type === args.typeId) {
+        return {
+          exists: true,
+          promptId: prompt._id,
+        };
+      }
+    }
+    
+    return {
+      exists: false,
+      promptId: null,
+    };
+  },
+});
+
+/**
+ * Internal mutation to create the state prompt
+ */
+export const createStatePromptInternal = internalMutation({
+  args: {
+    stateName: v.string(),
+    typeId: v.id("chatSystemPromptTypes"),
+    combinedPrompt: v.string(),
+  },
+  returns: v.id("chatSystemPrompts"),
+  handler: async (ctx: any, args: any): Promise<any> => {
+    const now = Date.now();
+    return await ctx.db.insert("chatSystemPrompts", {
+      systemPromptText: args.combinedPrompt,
+      isPrimarySystemPrompt: false,
+      title: `${args.stateName} - Leads Generation Prompt`,
+      description: `Auto-generated state-specific prompt for ${args.stateName}`,
+      type: args.typeId,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+/**
+ * Generate a system prompt for a single state
+ * Combines default lead prompt with AI-generated geographical section
+ * This is a public action so it can be called from the frontend for real-time progress updates
+ */
+export const generateStatePrompt = action({
+  args: {
+    stateName: v.string(),
+    typeId: v.id("chatSystemPromptTypes"),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    promptId: v.union(v.id("chatSystemPrompts"), v.null()),
+  }),
+  handler: async (ctx: any, args: any): Promise<any> => {
+    // Check if prompt already exists
+    const existsCheck: any = await ctx.runQuery(internal.chatSystemPrompts.checkPromptExistsInternal, {
+      stateName: args.stateName,
+      typeId: args.typeId,
+    });
+    
+    if (existsCheck?.exists) {
+      return {
+        success: false,
+        message: `A prompt for ${args.stateName} already exists.`,
+        promptId: existsCheck.promptId,
+      };
+    }
+
+    // Get approved procurement links for the state
+    const formattedLinks: any = await ctx.runQuery(internal.chatSystemPrompts.getApprovedLinksForStateInternal, {
+      stateName: args.stateName,
+    });
+
+    // Get default lead prompt
+    const defaultPrompt: any = await ctx.runQuery(internal.chatSystemPrompts.getDefaultLeadPromptInternal, {});
+    
+    // Use default prompt if available, otherwise use DEFAULT_SYSTEM_PROMPT
+    let defaultPromptText: string = defaultPrompt?.systemPromptText || DEFAULT_SYSTEM_PROMPT;
+
+    // Generate geographical section using action
+    let geographicalSection: string = "";
+    try {
+      geographicalSection = await ctx.runAction(internal.chatSystemPrompts.generateGeographicalSection, {
+        stateName: args.stateName,
+        approvedLinks: formattedLinks,
+      });
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to generate geographical section: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        promptId: null,
+      };
+    }
+
+    // Combine default prompt with geographical section
+    // Remove any existing geographical section from default prompt
+    let basePrompt: string = defaultPromptText;
+    const existingGeoSection = basePrompt.indexOf("## GEOGRAPHICAL CONTEXT:");
+    if (existingGeoSection !== -1) {
+      // Find the end of the geographical section
+      const afterGeo = basePrompt.slice(existingGeoSection);
+      const nextSection = afterGeo.indexOf("\n\n## ", 1);
+      if (nextSection !== -1) {
+        basePrompt = basePrompt.slice(0, existingGeoSection) + basePrompt.slice(existingGeoSection + nextSection);
+      } else {
+        basePrompt = basePrompt.slice(0, existingGeoSection);
+      }
+    }
+
+    // Insert geographical section before the final "Remember:" instruction
+    const rememberIndex: number = basePrompt.lastIndexOf("Remember:");
+    const combinedPrompt: string = rememberIndex !== -1
+      ? basePrompt.slice(0, rememberIndex) + "\n\n" + geographicalSection + "\n\n" + basePrompt.slice(rememberIndex)
+      : basePrompt + "\n\n" + geographicalSection;
+
+    // Create the new system prompt using internal mutation
+    const promptId: any = await ctx.runMutation(internal.chatSystemPrompts.createStatePromptInternal, {
+      stateName: args.stateName,
+      typeId: args.typeId,
+      combinedPrompt: combinedPrompt,
+    });
+
+    return {
+      success: true,
+      message: `Successfully generated prompt for ${args.stateName}.`,
+      promptId: promptId,
+    };
+  },
+});
+
+/**
+ * Internal query to get default lead prompt
+ */
+export const getDefaultLeadPromptInternal = internalQuery({
+  args: {},
+  returns: v.union(
+    v.object({
+      _id: v.id("chatSystemPrompts"),
+      systemPromptText: v.string(),
+      title: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx) => {
+    // First, find the "leads" type
+    const leadsType = await ctx.db
+      .query("chatSystemPromptTypes")
+      .filter((q) => q.eq(q.field("name"), "leads"))
+      .first();
+    
+    if (!leadsType) {
+      return null;
+    }
+    
+    // Try to get the primary prompt for leads type
+    const primaryPrompt = await ctx.db
+      .query("chatSystemPrompts")
+      .withIndex("by_type_primary", (q) => 
+        q.eq("type", leadsType._id).eq("isPrimarySystemPrompt", true)
+      )
+      .first();
+    
+    if (primaryPrompt) {
+      return {
+        _id: primaryPrompt._id,
+        systemPromptText: primaryPrompt.systemPromptText,
+        title: primaryPrompt.title,
+      };
+    }
+    
+    // If no primary, get the first prompt of leads type
+    const firstPrompt = await ctx.db
+      .query("chatSystemPrompts")
+      .withIndex("by_type", (q) => q.eq("type", leadsType._id))
+      .first();
+    
+    if (firstPrompt) {
+      return {
+        _id: firstPrompt._id,
+        systemPromptText: firstPrompt.systemPromptText,
+        title: firstPrompt.title,
+      };
+    }
+    
+    // Fallback: return null and use DEFAULT_SYSTEM_PROMPT in action
+    return null;
+  },
+});
+
+/**
+ * Set cancellation flag for prompt generation
+ * This allows the generateAllMissingStatePrompts action to check for cancellation
+ */
+export const setPromptGenerationCancelled = mutation({
+  args: {
+    cancelled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    // Store cancellation flag in logs table using metadata field
+    const existing = await ctx.db
+      .query("logs")
+      .filter((q) => q.eq(q.field("action"), "prompt_generation_cancellation"))
+      .first();
+    
+    if (existing) {
+      // Update existing record's metadata
+      await ctx.db.patch(existing._id, {
+        details: {
+          ...existing.details,
+          metadata: {
+            ...(existing.details.metadata || {}),
+            cancelled: args.cancelled,
+          },
+        },
+        createdAt: Date.now(),
+      });
+    } else {
+      // Create new record
+      await ctx.db.insert("logs", {
+        userId: "system",
+        action: "prompt_generation_cancellation",
+        type: "action",
+        details: {
+          metadata: {
+            cancelled: args.cancelled,
+          },
+        },
+        createdAt: Date.now(),
+      });
+    }
+  },
+});
+
+/**
+ * Internal query to check if prompt generation is cancelled
+ */
+export const isPromptGenerationCancelledInternal = internalQuery({
+  args: {},
+  returns: v.boolean(),
+  handler: async (ctx) => {
+    const cancellationRecord = await ctx.db
+      .query("logs")
+      .filter((q) => q.eq(q.field("action"), "prompt_generation_cancellation"))
+      .order("desc")
+      .first();
+    
+    if (!cancellationRecord) {
+      return false;
+    }
+    
+    return cancellationRecord.details?.metadata?.cancelled === true;
+  },
+});
+
+/**
+ * Generate prompts for all missing states sequentially
+ * Processes states one at a time with rate limiting and error handling
+ * Can be cancelled by calling setPromptGenerationCancelled mutation
+ */
+export const generateAllMissingStatePrompts = action({
+  args: {
+    typeId: v.optional(v.id("chatSystemPromptTypes")),
+  },
+  returns: v.object({
+    totalStates: v.number(),
+    completed: v.number(),
+    failed: v.number(),
+    cancelled: v.boolean(),
+    errors: v.array(v.object({
+      state: v.string(),
+      error: v.string(),
+    })),
+  }),
+  handler: async (ctx: any, args: any) => {
+    // Reset cancellation flag at start
+    await ctx.runMutation(internal.chatSystemPrompts.setPromptGenerationCancelledInternal, {
+      cancelled: false,
+    });
+
+    // Get missing states
+    const missingStates: string[] = await ctx.runQuery(internal.chatSystemPrompts.getMissingStatesInternal, {});
+    
+    if (missingStates.length === 0) {
+      return {
+        totalStates: 0,
+        completed: 0,
+        failed: 0,
+        cancelled: false,
+        errors: [],
+      };
+    }
+
+    // Get the type ID (use provided or find leads type)
+    let typeId: any = args.typeId;
+    if (!typeId) {
+      const leadsType: any = await ctx.runQuery(internal.chatSystemPrompts.getLeadsTypeInternal, {});
+      if (!leadsType) {
+        return {
+          totalStates: missingStates.length,
+          completed: 0,
+          failed: missingStates.length,
+          cancelled: false,
+          errors: missingStates.map((state: string) => ({
+            state,
+            error: "Leads prompt type not found",
+          })),
+        };
+      }
+      typeId = leadsType._id;
+    }
+
+    const results = {
+      totalStates: missingStates.length,
+      completed: 0,
+      failed: 0,
+      cancelled: false,
+      errors: [] as Array<{ state: string; error: string }>,
+    };
+
+    // Process each state sequentially with rate limiting
+    for (const state of missingStates) {
+      // Check for cancellation before processing each state
+      const isCancelled: boolean = await ctx.runQuery(internal.chatSystemPrompts.isPromptGenerationCancelledInternal, {});
+      if (isCancelled) {
+        results.cancelled = true;
+        break;
+      }
+
+      try {
+        // Add delay between requests (1-2 seconds) to avoid rate limits
+        if (results.completed > 0 || results.failed > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
+        // Check for cancellation again after delay
+        const isCancelledAfterDelay: boolean = await ctx.runQuery(internal.chatSystemPrompts.isPromptGenerationCancelledInternal, {});
+        if (isCancelledAfterDelay) {
+          results.cancelled = true;
+          break;
+        }
+
+        // @ts-ignore - Type instantiation is excessively deep due to Convex type inference
+        const result: any = await ctx.runAction(api.chatSystemPrompts.generateStatePrompt as any, {
+          stateName: state,
+          typeId: typeId,
+        });
+
+        if (result.success) {
+          results.completed++;
+        } else {
+          results.failed++;
+          results.errors.push({
+            state,
+            error: result.message,
+          });
+        }
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          state,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    // Reset cancellation flag when done
+    await ctx.runMutation(internal.chatSystemPrompts.setPromptGenerationCancelledInternal, {
+      cancelled: false,
+    });
+
+    return results;
+  },
+});
+
+/**
+ * Internal query to get missing states
+ */
+export const getMissingStatesInternal = internalQuery({
+  args: {},
+  returns: v.array(v.string()),
+  handler: async (ctx) => {
+    const prompts = await ctx.db
+      .query("chatSystemPrompts")
+      .collect();
+    
+    const statesWithPrompts = new Set<string>();
+    
+    for (const prompt of prompts) {
+      const stateName = extractStateFromTitle(prompt.title);
+      if (stateName) {
+        statesWithPrompts.add(stateName);
+      }
+    }
+    
+    const missingStates = US_STATES.filter(state => !statesWithPrompts.has(state));
+    
+    return missingStates.sort();
+  },
+});
+
+/**
+ * Internal query to get leads type
+ */
+export const getLeadsTypeInternal = internalQuery({
+  args: {},
+  returns: v.union(
+    v.object({
+      _id: v.id("chatSystemPromptTypes"),
+      name: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx) => {
+    const leadsType = await ctx.db
+      .query("chatSystemPromptTypes")
+      .withIndex("by_name", (q) => q.eq("name", "leads"))
+      .first();
+    
+    if (!leadsType) {
+      return null;
+    }
+    
+    return {
+      _id: leadsType._id,
+      name: leadsType.name,
+    };
+  },
+});
+
+/**
+ * Internal mutation to set cancellation flag
+ */
+export const setPromptGenerationCancelledInternal = internalMutation({
+  args: {
+    cancelled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    // Store cancellation flag in logs table using metadata field
+    const existing = await ctx.db
+      .query("logs")
+      .filter((q) => q.eq(q.field("action"), "prompt_generation_cancellation"))
+      .first();
+    
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        details: {
+          ...existing.details,
+          metadata: {
+            ...(existing.details.metadata || {}),
+            cancelled: args.cancelled,
+          },
+        },
+        createdAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("logs", {
+        userId: "system",
+        action: "prompt_generation_cancellation",
+        type: "action",
+        details: {
+          metadata: {
+            cancelled: args.cancelled,
+          },
+        },
+        createdAt: Date.now(),
+      });
+    }
+  },
+});
+
+/**
+ * Remove duplicate system prompts
+ * Groups prompts by:
+ * 1. Exact title match
+ * 2. Same state extracted from title
+ * For each group, keeps only the prompt with the largest character count
+ */
+export const removeDuplicateSystemPrompts = mutation({
+  args: {},
+  returns: v.object({
+    totalPrompts: v.number(),
+    groupsFound: v.number(),
+    promptsDeleted: v.number(),
+    groups: v.array(v.object({
+      groupKey: v.string(),
+      promptsInGroup: v.number(),
+      keptPromptId: v.id("chatSystemPrompts"),
+      deletedPromptIds: v.array(v.id("chatSystemPrompts")),
+    })),
+  }),
+  handler: async (ctx) => {
+    // Get all system prompts
+    const allPrompts = await ctx.db
+      .query("chatSystemPrompts")
+      .collect();
+
+    // Create groups: by exact title and by state
+    const groupsByTitle = new Map<string, typeof allPrompts>();
+    const groupsByState = new Map<string, typeof allPrompts>();
+
+    // Group by exact title
+    for (const prompt of allPrompts) {
+      const titleKey = prompt.title.toLowerCase().trim();
+      if (!groupsByTitle.has(titleKey)) {
+        groupsByTitle.set(titleKey, []);
+      }
+      groupsByTitle.get(titleKey)!.push(prompt);
+    }
+
+    // Group by state extracted from title
+    for (const prompt of allPrompts) {
+      const stateName = extractStateFromTitle(prompt.title);
+      if (stateName) {
+        const stateKey = stateName.toLowerCase();
+        if (!groupsByState.has(stateKey)) {
+          groupsByState.set(stateKey, []);
+        }
+        groupsByState.get(stateKey)!.push(prompt);
+      }
+    }
+
+    // Combine groups: prioritize title groups, then state groups
+    // Use a Set to track which prompts we've already processed
+    const processedPromptIds = new Set<string>();
+    const finalGroups: Array<{
+      groupKey: string;
+      prompts: typeof allPrompts;
+    }> = [];
+
+    // Add title-based groups (exact title matches)
+    for (const [titleKey, prompts] of groupsByTitle.entries()) {
+      if (prompts.length > 1) {
+        finalGroups.push({
+          groupKey: `title:${titleKey}`,
+          prompts,
+        });
+        prompts.forEach(p => processedPromptIds.add(p._id));
+      }
+    }
+
+    // Add state-based groups (same state in title, even if different titles)
+    // Only include prompts not already in title groups
+    for (const [stateKey, prompts] of groupsByState.entries()) {
+      // Filter out prompts already processed in title groups
+      const unprocessedPrompts = prompts.filter(p => !processedPromptIds.has(p._id));
+      if (unprocessedPrompts.length > 1) {
+        finalGroups.push({
+          groupKey: `state:${stateKey}`,
+          prompts: unprocessedPrompts,
+        });
+        unprocessedPrompts.forEach(p => processedPromptIds.add(p._id));
+      }
+    }
+
+    // Process each group: find the largest prompt and delete others
+    const results: {
+      totalPrompts: number;
+      groupsFound: number;
+      promptsDeleted: number;
+      groups: Array<{
+        groupKey: string;
+        promptsInGroup: number;
+        keptPromptId: any;
+        deletedPromptIds: any[];
+      }>;
+    } = {
+      totalPrompts: allPrompts.length,
+      groupsFound: finalGroups.length,
+      promptsDeleted: 0,
+      groups: [],
+    };
+
+    for (const group of finalGroups) {
+      // Find the prompt with the largest character count
+      let largestPrompt = group.prompts[0];
+      for (const prompt of group.prompts) {
+        if (prompt.systemPromptText.length > largestPrompt.systemPromptText.length) {
+          largestPrompt = prompt;
+        }
+      }
+
+      // Delete all other prompts in the group
+      const deletedIds: string[] = [];
+      for (const prompt of group.prompts) {
+        if (prompt._id !== largestPrompt._id) {
+          await ctx.db.delete(prompt._id);
+          deletedIds.push(prompt._id);
+          results.promptsDeleted++;
+        }
+      }
+
+      results.groups.push({
+        groupKey: group.groupKey,
+        promptsInGroup: group.prompts.length,
+        keptPromptId: largestPrompt._id,
+        deletedPromptIds: deletedIds,
+      });
+    }
+
+    return results;
   },
 });

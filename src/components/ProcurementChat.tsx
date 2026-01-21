@@ -36,7 +36,11 @@ import {
   Search,
   Filter,
   XCircle,
-  MoreVertical
+  MoreVertical,
+  Sparkles,
+  CheckSquare2,
+  Square,
+  Layers
 } from 'lucide-react';
 
 interface ProcurementLink {
@@ -84,25 +88,71 @@ interface ProcurementChatProps {
 
 // Component to display lead count for a prompt
 function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitle: string; promptTypeId: Id<"chatSystemPromptTypes">; promptTypes?: any[] }) {
-  // Extract state from prompt title
+  // Extract state from prompt title - using same logic as backend
   const extractStateFromTitle = (title: string): string | null => {
     if (!title) return null;
     const titleLower = title.toLowerCase();
-    const states = [
-      "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
-      "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
-      "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana",
-      "maine", "maryland", "massachusetts", "michigan", "minnesota",
-      "mississippi", "missouri", "montana", "nebraska", "nevada",
-      "new hampshire", "new jersey", "new mexico", "new york",
-      "north carolina", "north dakota", "ohio", "oklahoma", "oregon",
-      "pennsylvania", "rhode island", "south carolina", "south dakota",
-      "tennessee", "texas", "utah", "vermont", "virginia", "washington",
-      "west virginia", "wisconsin", "wyoming"
-    ];
-    for (const state of states) {
-      if (titleLower.includes(state)) {
-        return state.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+    
+    // Map of lowercase state names to their proper capitalized form
+    // IMPORTANT: Order matters! Longer/more specific names must come first
+    const stateMap: Record<string, string> = {
+      "district of columbia": "District of Columbia",
+      "new hampshire": "New Hampshire",
+      "new jersey": "New Jersey",
+      "new mexico": "New Mexico",
+      "new york": "New York",
+      "north carolina": "North Carolina",
+      "north dakota": "North Dakota",
+      "south carolina": "South Carolina",
+      "south dakota": "South Dakota",
+      "west virginia": "West Virginia",
+      "rhode island": "Rhode Island",
+      "alabama": "Alabama",
+      "alaska": "Alaska",
+      "arizona": "Arizona",
+      "arkansas": "Arkansas",
+      "california": "California",
+      "colorado": "Colorado",
+      "connecticut": "Connecticut",
+      "delaware": "Delaware",
+      "florida": "Florida",
+      "georgia": "Georgia",
+      "hawaii": "Hawaii",
+      "idaho": "Idaho",
+      "illinois": "Illinois",
+      "indiana": "Indiana",
+      "iowa": "Iowa",
+      "kansas": "Kansas",
+      "kentucky": "Kentucky",
+      "louisiana": "Louisiana",
+      "maine": "Maine",
+      "maryland": "Maryland",
+      "massachusetts": "Massachusetts",
+      "michigan": "Michigan",
+      "minnesota": "Minnesota",
+      "mississippi": "Mississippi",
+      "missouri": "Missouri",
+      "montana": "Montana",
+      "nebraska": "Nebraska",
+      "nevada": "Nevada",
+      "ohio": "Ohio",
+      "oklahoma": "Oklahoma",
+      "oregon": "Oregon",
+      "pennsylvania": "Pennsylvania",
+      "tennessee": "Tennessee",
+      "texas": "Texas",
+      "utah": "Utah",
+      "vermont": "Vermont",
+      "virginia": "Virginia",
+      "washington": "Washington",
+      "wisconsin": "Wisconsin",
+      "wyoming": "Wyoming"
+    };
+    
+    // Check each state in the map (order matters for multi-word states)
+    for (const [key, value] of Object.entries(stateMap)) {
+      if (titleLower.includes(key)) {
+        return value;
       }
     }
     return null;
@@ -130,6 +180,104 @@ function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitl
     <span className="flex items-center gap-1 px-2 py-0.5 bg-neon-success/20 text-neon-success text-xs rounded-full flex-shrink-0 border border-neon-success/30">
       <span className="font-medium">{leadCount}</span>
       <span className="text-[10px]">leads</span>
+    </span>
+  );
+}
+
+// Component to display procurement link count for a prompt
+function ProcurementLinkCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitle: string; promptTypeId: Id<"chatSystemPromptTypes">; promptTypes?: any[] }) {
+  // Extract state from prompt title - using same logic as backend
+  const extractStateFromTitle = (title: string): string | null => {
+    if (!title) return null;
+    const titleLower = title.toLowerCase();
+    
+    // Map of lowercase state names to their proper capitalized form
+    // IMPORTANT: Order matters! Longer/more specific names must come first
+    const stateMap: Record<string, string> = {
+      "district of columbia": "District of Columbia",
+      "new hampshire": "New Hampshire",
+      "new jersey": "New Jersey",
+      "new mexico": "New Mexico",
+      "new york": "New York",
+      "north carolina": "North Carolina",
+      "north dakota": "North Dakota",
+      "south carolina": "South Carolina",
+      "south dakota": "South Dakota",
+      "west virginia": "West Virginia",
+      "rhode island": "Rhode Island",
+      "alabama": "Alabama",
+      "alaska": "Alaska",
+      "arizona": "Arizona",
+      "arkansas": "Arkansas",
+      "california": "California",
+      "colorado": "Colorado",
+      "connecticut": "Connecticut",
+      "delaware": "Delaware",
+      "florida": "Florida",
+      "georgia": "Georgia",
+      "hawaii": "Hawaii",
+      "idaho": "Idaho",
+      "illinois": "Illinois",
+      "indiana": "Indiana",
+      "iowa": "Iowa",
+      "kansas": "Kansas",
+      "kentucky": "Kentucky",
+      "louisiana": "Louisiana",
+      "maine": "Maine",
+      "maryland": "Maryland",
+      "massachusetts": "Massachusetts",
+      "michigan": "Michigan",
+      "minnesota": "Minnesota",
+      "mississippi": "Mississippi",
+      "missouri": "Missouri",
+      "montana": "Montana",
+      "nebraska": "Nebraska",
+      "nevada": "Nevada",
+      "ohio": "Ohio",
+      "oklahoma": "Oklahoma",
+      "oregon": "Oregon",
+      "pennsylvania": "Pennsylvania",
+      "tennessee": "Tennessee",
+      "texas": "Texas",
+      "utah": "Utah",
+      "vermont": "Vermont",
+      "virginia": "Virginia",
+      "washington": "Washington",
+      "wisconsin": "Wisconsin",
+      "wyoming": "Wyoming"
+    };
+    
+    // Check each state in the map (order matters for multi-word states)
+    for (const [key, value] of Object.entries(stateMap)) {
+      if (titleLower.includes(key)) {
+        return value;
+      }
+    }
+    return null;
+  };
+  
+  // Check if this is a Procurement Hubs type prompt
+  const procurementHubsType = promptTypes?.find(t => t.name === "procurementHubs");
+  const isProcurementHubsPrompt = procurementHubsType && promptTypeId === procurementHubsType._id;
+  
+  if (!isProcurementHubsPrompt) return null;
+  
+  const stateName = extractStateFromTitle(promptTitle);
+  if (!stateName) return null;
+  
+  // Query procurement link count for this state
+  const linkCount = useQuery(
+    api.procurementUrls.getApprovedProcurementLinkCountByState,
+    { stateName }
+  );
+  
+  // Only show if count > 0
+  if (linkCount === undefined || linkCount === 0) return null;
+  
+  return (
+    <span className="flex items-center gap-1 px-2 py-0.5 bg-tron-cyan/20 text-tron-cyan text-xs rounded-full flex-shrink-0 border border-tron-cyan/30">
+      <span className="font-medium">{linkCount}</span>
+      <span className="text-[10px]">links</span>
     </span>
   );
 }
@@ -193,6 +341,23 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const [modalMessage, setModalMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [promptSearchQuery, setPromptSearchQuery] = useState('');
   const [selectedPromptTypeFilter, setSelectedPromptTypeFilter] = useState<Id<"chatSystemPromptTypes"> | 'all' | 'primary'>('all');
+  const [updateResults, setUpdateResults] = useState<{
+    totalProcessed: number;
+    totalSucceeded: number;
+    totalFailed: number;
+    results: Array<{
+      promptId: Id<"chatSystemPrompts">;
+      promptTitle: string;
+      promptType: string;
+      stateName: string | null;
+      success: boolean;
+      message: string;
+      linkCount: number;
+      errorType?: string;
+      errorDetails?: string;
+    }>;
+  } | null>(null);
+  const [showUpdateResults, setShowUpdateResults] = useState(false);
   
   // Convex queries and mutations
   const anonymousId = !isSignedIn ? getOrCreateAnonymousId() : undefined;
@@ -227,10 +392,32 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const updatePrimaryWithApprovedLinks = useMutation(api.chatSystemPrompts.updatePrimaryWithApprovedLinks);
   const updatePromptWithStateLinks = useMutation(api.chatSystemPrompts.updatePromptWithStateLinks);
   const updatePromptWithLeadSourceLinks = useMutation(api.chatSystemPrompts.updatePromptWithLeadSourceLinks);
+  const updateAllPromptsWithStateData = useMutation(api.chatSystemPrompts.updateAllPromptsWithStateData);
+  const removeDuplicateSystemPrompts = useMutation(api.chatSystemPrompts.removeDuplicateSystemPrompts);
   const createLog = useMutation(api.logs.createLog);
+  
+  // State System Prompt Generator queries and actions
+  const statesWithPrompts = useQuery(api.chatSystemPrompts.getStatesWithPrompts, {});
+  const missingStates = useQuery(api.chatSystemPrompts.getMissingStates, {});
+  const generateStatePrompt = useAction(api.chatSystemPrompts.generateStatePrompt);
   const [refreshingLinks, setRefreshingLinks] = useState(false);
   const [updatingPromptId, setUpdatingPromptId] = useState<Id<"chatSystemPrompts"> | null>(null);
   const lastAutoInjectedPromptId = useRef<Id<"chatSystemPrompts"> | null>(null);
+  
+  // State System Prompt Generator state
+  const [generatingPrompts, setGeneratingPrompts] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{
+    currentState: string | null;
+    completed: number;
+    total: number;
+    completedStates: string[];
+    failedStates: Array<{ state: string; error: string }>;
+    cancelled: boolean;
+  } | null>(null);
+  const cancellationRef = useRef(false);
+  
+  // Multi-select state for batch operations
+  const [selectedPromptIds, setSelectedPromptIds] = useState<Set<Id<"chatSystemPrompts">>>(new Set());
   
   // Free message tracking state
   const [freeMessagesUsed, setFreeMessagesUsed] = useState(getFreeMessagesUsed());
@@ -746,8 +933,65 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const handleDeletePrompt = async (id: Id<"chatSystemPrompts">) => {
     try {
       await deleteSystemPrompt({ id });
+      // Remove from selection if it was selected
+      setSelectedPromptIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete prompt');
+    }
+  };
+
+  const handleTogglePromptSelection = (id: Id<"chatSystemPrompts">) => {
+    setSelectedPromptIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllPrompts = () => {
+    if (!filteredSystemPrompts) return;
+    const allIds = new Set(filteredSystemPrompts.map(p => p._id));
+    setSelectedPromptIds(allIds);
+  };
+
+  const handleDeselectAllPrompts = () => {
+    setSelectedPromptIds(new Set());
+  };
+
+  const handleBatchDeletePrompts = async () => {
+    if (selectedPromptIds.size === 0) return;
+    
+    const idsToDelete = Array.from(selectedPromptIds);
+    const deletingCount = idsToDelete.length;
+    
+    try {
+      // Delete all selected prompts
+      for (const id of idsToDelete) {
+        await deleteSystemPrompt({ id });
+      }
+      
+      // Clear selection
+      setSelectedPromptIds(new Set());
+      
+      setModalMessage({
+        type: 'success',
+        text: `Successfully deleted ${deletingCount} prompt${deletingCount > 1 ? 's' : ''}.`
+      });
+      setTimeout(() => setModalMessage(null), 3000);
+    } catch (err) {
+      setModalMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to delete prompts'
+      });
+      setTimeout(() => setModalMessage(null), 5000);
     }
   };
 
@@ -759,34 +1003,241 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     }
   };
 
+  const handleRemoveDuplicates = async () => {
+    try {
+      setModalMessage({
+        type: 'info',
+        text: 'Removing duplicate system prompts...'
+      });
+      
+      const result = await removeDuplicateSystemPrompts({});
+      
+      if (result.promptsDeleted > 0) {
+        setModalMessage({
+          type: 'success',
+          text: `Successfully removed ${result.promptsDeleted} duplicate prompt${result.promptsDeleted > 1 ? 's' : ''} from ${result.groupsFound} group${result.groupsFound > 1 ? 's' : ''}.`
+        });
+      } else {
+        setModalMessage({
+          type: 'info',
+          text: 'No duplicate prompts found.'
+        });
+      }
+      
+      setTimeout(() => setModalMessage(null), 5000);
+    } catch (err) {
+      setModalMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to remove duplicates'
+      });
+      setTimeout(() => setModalMessage(null), 5000);
+    }
+  };
+
   const handleRefreshApprovedLinks = async () => {
     setRefreshingLinks(true);
     setModalMessage(null);
+    setUpdateResults(null);
     try {
-      const result = await updatePrimaryWithApprovedLinks({});
+      const result = await updateAllPromptsWithStateData({});
+      // Store results for detailed display
+      setUpdateResults({
+        totalProcessed: result.totalProcessed,
+        totalSucceeded: result.totalSucceeded,
+        totalFailed: result.totalFailed,
+        results: result.results,
+      });
+      
       if (result.success) {
-        // Show success message briefly
+        // Show success message with summary
+        const successCount = result.results.filter(r => r.success).length;
+        const failedCount = result.results.filter(r => !r.success).length;
         setModalMessage({
-          type: 'success',
-          text: result.message
+          type: failedCount > 0 ? 'error' : 'success',
+          text: `Updated ${successCount} prompts successfully${failedCount > 0 ? `, ${failedCount} failed. Click to view details.` : ''}. ${result.message}`
         });
-        setTimeout(() => setModalMessage(null), 5000);
+        // Auto-show results if there are failures
+        if (failedCount > 0) {
+          setShowUpdateResults(true);
+        }
+        setTimeout(() => setModalMessage(null), failedCount > 0 ? 12000 : 8000);
       } else {
         setModalMessage({
           type: 'error',
           text: result.message
         });
-        setTimeout(() => setModalMessage(null), 5000);
+        setShowUpdateResults(true);
+        setTimeout(() => setModalMessage(null), 12000);
       }
     } catch (err) {
       setModalMessage({
         type: 'error',
-        text: err instanceof Error ? err.message : 'Failed to update system prompt with approved links'
+        text: err instanceof Error ? err.message : 'Failed to update prompts with state data'
       });
       setTimeout(() => setModalMessage(null), 5000);
     } finally {
       setRefreshingLinks(false);
     }
+  };
+
+  const handleGenerateAllMissingStatePrompts = async () => {
+    if (generatingPrompts || !missingStates || missingStates.length === 0) {
+      return;
+    }
+
+    // Reset cancellation flag
+    cancellationRef.current = false;
+    
+    setGeneratingPrompts(true);
+    setGenerationProgress({
+      currentState: null,
+      completed: 0,
+      total: missingStates.length,
+      completedStates: [],
+      failedStates: [],
+      cancelled: false,
+    });
+
+    try {
+      // Get the leads type ID
+      const leadsType = promptTypes?.find(t => t.name === "leads");
+      if (!leadsType) {
+        setModalMessage({
+          type: 'error',
+          text: 'Leads prompt type not found. Please create it first.'
+        });
+        setGeneratingPrompts(false);
+        setGenerationProgress(null);
+        return;
+      }
+
+      const completedStates: string[] = [];
+      const failedStates: Array<{ state: string; error: string }> = [];
+
+      // Generate prompts one at a time for real-time progress updates
+      for (let i = 0; i < missingStates.length; i++) {
+        // Check for cancellation before each state
+        if (cancellationRef.current) {
+          setGenerationProgress(prev => prev ? {
+            ...prev,
+            cancelled: true,
+            currentState: null,
+          } : null);
+          break;
+        }
+
+        const state = missingStates[i];
+        
+        // Update current state
+        setGenerationProgress(prev => prev ? {
+          ...prev,
+          currentState: state,
+        } : null);
+
+        try {
+          // Add small delay between requests to avoid rate limits
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
+
+          // Check for cancellation again after delay
+          if (cancellationRef.current) {
+            setGenerationProgress(prev => prev ? {
+              ...prev,
+              cancelled: true,
+              currentState: null,
+            } : null);
+            break;
+          }
+
+          const result = await generateStatePrompt({
+            stateName: state,
+            typeId: leadsType._id,
+          });
+
+          if (result.success) {
+            completedStates.push(state);
+          } else {
+            failedStates.push({
+              state,
+              error: result.message,
+            });
+          }
+
+          // Update progress after each state
+          setGenerationProgress(prev => prev ? {
+            ...prev,
+            completed: completedStates.length,
+            completedStates: [...completedStates],
+            failedStates: [...failedStates],
+            currentState: null, // Clear current state after completion
+          } : null);
+        } catch (error) {
+          failedStates.push({
+            state,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          
+          // Update progress with error
+          setGenerationProgress(prev => prev ? {
+            ...prev,
+            completed: completedStates.length,
+            completedStates: [...completedStates],
+            failedStates: [...failedStates],
+            currentState: null,
+          } : null);
+        }
+      }
+
+      // Final update
+      const finalCancelled = cancellationRef.current;
+      setGenerationProgress(prev => prev ? {
+        ...prev,
+        cancelled: finalCancelled,
+        currentState: null,
+      } : null);
+
+      if (completedStates.length > 0) {
+        setModalMessage({
+          type: 'success',
+          text: `Successfully generated ${completedStates.length} state prompt${completedStates.length > 1 ? 's' : ''}.${failedStates.length > 0 ? ` ${failedStates.length} failed.` : ''}${finalCancelled ? ' (Cancelled)' : ''}`
+        });
+      } else if (failedStates.length > 0) {
+        setModalMessage({
+          type: 'error',
+          text: `Failed to generate prompts. ${failedStates.map(e => `${e.state}: ${e.error}`).join('; ')}`
+        });
+      } else if (finalCancelled) {
+        setModalMessage({
+          type: 'error',
+          text: 'Generation cancelled.'
+        });
+      }
+    } catch (error) {
+      setModalMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to generate state prompts'
+      });
+    } finally {
+      setGeneratingPrompts(false);
+      // Keep progress visible for a few seconds, then clear
+      setTimeout(() => {
+        setGenerationProgress(null);
+      }, 5000);
+    }
+  };
+
+  const handleCancelGeneration = () => {
+    // Set cancellation flag
+    cancellationRef.current = true;
+    
+    if (generationProgress) {
+      setGenerationProgress(prev => prev ? {
+        ...prev,
+        cancelled: true,
+      } : null);
+    }
+    // Don't set generatingPrompts to false here - let the loop check the flag and exit naturally
   };
 
   const handleUpdatePromptWithLeadSourceLinks = async (promptId: Id<"chatSystemPrompts">, isAutoInjection: boolean = false) => {
@@ -1526,6 +1977,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                   setModalMessage(null);
                   setPromptSearchQuery('');
                   setSelectedPromptTypeFilter('all');
+                  setSelectedPromptIds(new Set()); // Clear selection when closing modal
                 }}
                 className="p-2 hover:bg-tron-cyan/10 rounded-lg transition-colors"
               >
@@ -1553,6 +2005,68 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                         ? 'text-neon-success'
                         : 'text-neon-error'
                     }`}>{modalMessage.text}</p>
+                    {updateResults && updateResults.totalFailed > 0 && (
+                      <button
+                        onClick={() => setShowUpdateResults(!showUpdateResults)}
+                        className="ml-2 text-xs underline text-tron-cyan hover:text-tron-cyan/80"
+                      >
+                        {showUpdateResults ? 'Hide' : 'Show'} details ({updateResults.totalFailed} failures)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Update Results Modal */}
+              {showUpdateResults && updateResults && updateResults.totalFailed > 0 && (
+                <div className="mt-4 bg-tron-bg-deep border border-tron-cyan/30 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-tron-cyan">
+                      Update Results - {updateResults.totalFailed} Failed
+                    </h3>
+                    <button
+                      onClick={() => setShowUpdateResults(false)}
+                      className="text-tron-gray hover:text-tron-white transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {updateResults.results
+                      .filter(r => !r.success)
+                      .map((result, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-tron-bg-card border border-neon-error/30 rounded p-3 text-xs"
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-tron-white truncate">
+                                {result.promptTitle}
+                              </div>
+                              <div className="text-tron-gray text-[10px] mt-0.5">
+                                Type: {result.promptType} | State: {result.stateName || 'N/A'}
+                              </div>
+                            </div>
+                            {result.errorType && (
+                              <span className="px-2 py-0.5 bg-neon-error/20 text-neon-error text-[10px] rounded flex-shrink-0">
+                                {result.errorType}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-neon-error mt-1">{result.message}</div>
+                          {result.errorDetails && (
+                            <div className="text-tron-gray text-[10px] mt-1 font-mono bg-tron-bg-deep p-2 rounded border border-tron-cyan/10">
+                              {result.errorDetails}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-tron-cyan/20 text-xs text-tron-gray">
+                    <div>Total Processed: {updateResults.totalProcessed}</div>
+                    <div className="text-neon-success">Succeeded: {updateResults.totalSucceeded}</div>
+                    <div className="text-neon-error">Failed: {updateResults.totalFailed}</div>
                   </div>
                 </div>
               )}
@@ -1682,6 +2196,29 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                         Manage system prompts for the Procurement Chat AI. The primary prompt will be used for all conversations.
                       </p>
                       <div className="flex items-center gap-2">
+                        {selectedPromptIds.size > 0 && (
+                          <>
+                            <TronButton
+                              onClick={handleBatchDeletePrompts}
+                              variant="primary"
+                              color="orange"
+                              size="sm"
+                              icon={<Trash2 className="w-4 h-4" />}
+                              title={`Delete ${selectedPromptIds.size} selected prompt${selectedPromptIds.size > 1 ? 's' : ''}`}
+                            >
+                              Delete Selected ({selectedPromptIds.size})
+                            </TronButton>
+                            <TronButton
+                              onClick={handleDeselectAllPrompts}
+                              variant="outline"
+                              color="cyan"
+                              size="sm"
+                              title="Deselect all prompts"
+                            >
+                              Deselect All
+                            </TronButton>
+                          </>
+                        )}
                         <TronButton
                           onClick={handleRefreshApprovedLinks}
                           variant="outline"
@@ -1693,6 +2230,19 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                         >
                           {refreshingLinks ? 'Updating...' : 'Update Prompt with Links'}
                         </TronButton>
+                        {missingStates && missingStates.length > 0 && (
+                          <TronButton
+                            onClick={handleGenerateAllMissingStatePrompts}
+                            variant="primary"
+                            color="cyan"
+                            size="sm"
+                            disabled={generatingPrompts || !missingStates || missingStates.length === 0}
+                            icon={generatingPrompts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            title="Generate system prompts for all missing states"
+                          >
+                            {generatingPrompts ? 'Generating...' : 'Generate Missing State Prompts'}
+                          </TronButton>
+                        )}
                         <TronButton
                           onClick={handleStartCreatePrompt}
                           variant="primary"
@@ -1704,6 +2254,49 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                         </TronButton>
                       </div>
                     </div>
+
+                    {/* State Analysis Section */}
+                    {missingStates && missingStates.length > 0 && (
+                      <div className="p-4 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg">
+                        <h3 className="text-sm font-medium text-tron-white mb-3 flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-tron-cyan" />
+                          State Prompt Coverage
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-tron-cyan">51</div>
+                            <div className="text-xs text-tron-gray">Total States</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-neon-success">
+                              {statesWithPrompts?.length ?? 0}
+                            </div>
+                            <div className="text-xs text-tron-gray">With Prompts</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-neon-warning">
+                              {missingStates?.length ?? 0}
+                            </div>
+                            <div className="text-xs text-tron-gray">Missing</div>
+                          </div>
+                        </div>
+                        {missingStates && missingStates.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-tron-cyan/10">
+                            <p className="text-xs text-tron-gray mb-2">Missing states:</p>
+                            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                              {missingStates.map((state) => (
+                                <span
+                                  key={state}
+                                  className="px-2 py-1 bg-tron-bg-card border border-tron-cyan/20 rounded text-xs text-tron-gray"
+                                >
+                                  {state}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Search Bar */}
                     <div className="relative">
@@ -1726,7 +2319,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                       )}
                     </div>
 
-                    {/* Quick Filters */}
+                    {/* Quick Filters and Selection Controls */}
                     <div className="flex flex-wrap items-center gap-2">
                       <div className="flex items-center gap-1.5 text-xs text-tron-gray">
                         <Filter className="w-3.5 h-3.5" />
@@ -1773,6 +2366,38 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                           Clear Filters
                         </button>
                       )}
+                      {filteredSystemPrompts && filteredSystemPrompts.length > 0 && (
+                        <>
+                          <div className="h-4 w-px bg-tron-cyan/20 mx-1" />
+                          <button
+                            onClick={handleSelectAllPrompts}
+                            className="px-3 py-1.5 text-xs text-tron-gray hover:text-tron-cyan transition-colors flex items-center gap-1.5"
+                            title="Select all visible prompts"
+                          >
+                            <CheckSquare2 className="w-3.5 h-3.5" />
+                            Select All
+                          </button>
+                          {selectedPromptIds.size > 0 && (
+                            <button
+                              onClick={handleDeselectAllPrompts}
+                              className="px-3 py-1.5 text-xs text-tron-gray hover:text-tron-cyan transition-colors flex items-center gap-1.5"
+                              title="Deselect all prompts"
+                            >
+                              <Square className="w-3.5 h-3.5" />
+                              Deselect All
+                            </button>
+                          )}
+                          <div className="h-4 w-px bg-tron-cyan/20 mx-1" />
+                          <button
+                            onClick={handleRemoveDuplicates}
+                            className="px-3 py-1.5 text-xs text-tron-gray hover:text-tron-cyan transition-colors flex items-center gap-1.5"
+                            title="Remove duplicate system prompts (groups by title or state, keeps largest)"
+                          >
+                            <Layers className="w-3.5 h-3.5" />
+                            Remove Duplicates
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1801,18 +2426,39 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                         </p>
                       </div>
                     ) : (
-                      filteredSystemPrompts.map((prompt: SystemPrompt) => (
+                      filteredSystemPrompts.map((prompt: SystemPrompt) => {
+                        const isSelected = selectedPromptIds.has(prompt._id);
+                        return (
                         <div
                           key={prompt._id}
                           className={`p-4 rounded-lg border transition-colors flex flex-col h-full ${
-                            prompt.isPrimarySystemPrompt
+                            isSelected
+                              ? 'bg-tron-cyan/20 border-tron-cyan/50 ring-2 ring-tron-cyan/50'
+                              : prompt.isPrimarySystemPrompt
                               ? 'bg-tron-cyan/10 border-tron-cyan/40'
                               : 'bg-tron-bg-deep border-tron-cyan/10 hover:border-tron-cyan/30'
                           }`}
                         >
                           {/* Card Header */}
                           <div className="flex items-start justify-between gap-2 mb-3">
-                            <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-2 flex-1 min-w-0">
+                              {/* Selection Checkbox */}
+                              <button
+                                onClick={() => handleTogglePromptSelection(prompt._id)}
+                                className={`mt-0.5 p-1 rounded transition-colors flex-shrink-0 ${
+                                  isSelected
+                                    ? 'text-tron-cyan bg-tron-cyan/20'
+                                    : 'text-tron-gray hover:text-tron-cyan hover:bg-tron-cyan/10'
+                                }`}
+                                title={isSelected ? 'Deselect' : 'Select'}
+                              >
+                                {isSelected ? (
+                                  <CheckSquare2 className="w-4 h-4" />
+                                ) : (
+                                  <Square className="w-4 h-4" />
+                                )}
+                              </button>
+                              <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <h4 className="font-medium text-tron-white truncate text-sm">{prompt.title}</h4>
                                 {prompt.isPrimarySystemPrompt && (
@@ -1834,10 +2480,16 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                                   promptTypeId={prompt.type}
                                   promptTypes={promptTypes}
                                 />
+                                <ProcurementLinkCountBadge 
+                                  promptTitle={prompt.title} 
+                                  promptTypeId={prompt.type}
+                                  promptTypes={promptTypes}
+                                />
                               </div>
                               {prompt.description && (
                                 <p className="text-xs text-tron-gray mb-2 line-clamp-2">{prompt.description}</p>
                               )}
+                              </div>
                             </div>
                             
                             {/* Action Menu - Top Right Corner */}
@@ -1933,10 +2585,128 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                             </div>
                           </div>
                         </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generation Progress Modal */}
+      {generationProgress && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-tron-bg-card border border-tron-cyan/30 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-tron-cyan/20">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-tron-cyan" />
+                <h2 className="text-lg font-semibold text-tron-white">Generating State Prompts</h2>
+              </div>
+              <button
+                onClick={handleCancelGeneration}
+                className="p-2 hover:bg-tron-cyan/10 rounded-lg transition-colors"
+                disabled={!generatingPrompts}
+              >
+                <X className="w-5 h-5 text-tron-gray" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* Progress Bar */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-tron-white">
+                    {generationProgress.currentState 
+                      ? `Processing ${generationProgress.currentState}...`
+                      : generationProgress.completed === generationProgress.total
+                      ? 'Complete!'
+                      : 'Preparing...'}
+                  </span>
+                  <span className="text-sm text-tron-gray">
+                    {generationProgress.completed} / {generationProgress.total}
+                  </span>
+                </div>
+                <div className="w-full bg-tron-bg-deep rounded-full h-2.5 border border-tron-cyan/20">
+                  <div
+                    className="bg-tron-cyan h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${(generationProgress.completed / generationProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Completed States */}
+              {generationProgress.completedStates.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-neon-success mb-2 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Completed ({generationProgress.completedStates.length})
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                    {generationProgress.completedStates.map((state) => (
+                      <span
+                        key={state}
+                        className="px-2 py-1 bg-neon-success/20 border border-neon-success/30 rounded text-xs text-neon-success flex items-center gap-1"
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        {state}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Failed States */}
+              {generationProgress.failedStates.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-neon-error mb-2 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Failed ({generationProgress.failedStates.length})
+                  </h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {generationProgress.failedStates.map((failed, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2 bg-neon-error/10 border border-neon-error/30 rounded text-xs"
+                      >
+                        <div className="font-medium text-neon-error mb-1">{failed.state}</div>
+                        <div className="text-tron-gray">{failed.error}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cancel Button */}
+              {generatingPrompts && (
+                <div className="mt-4 pt-4 border-t border-tron-cyan/10">
+                  <TronButton
+                    onClick={handleCancelGeneration}
+                    variant="outline"
+                    color="orange"
+                    className="w-full"
+                  >
+                    Cancel Generation
+                  </TronButton>
+                </div>
+              )}
+
+              {/* Close Button (when complete) */}
+              {!generatingPrompts && (
+                <div className="mt-4 pt-4 border-t border-tron-cyan/10">
+                  <TronButton
+                    onClick={() => setGenerationProgress(null)}
+                    variant="primary"
+                    color="cyan"
+                    className="w-full"
+                  >
+                    Close
+                  </TronButton>
+                </div>
               )}
             </div>
           </div>

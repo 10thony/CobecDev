@@ -217,11 +217,22 @@ export const sendOpenAIMessageWithKey = internalAction({
         apiKey: args.apiKey,
       });
 
-      const response = await client.chat.completions.create({
+      // Some models like gpt-5-mini only support default temperature (1)
+      // Check if this is a model that requires default temperature
+      const modelsWithFixedTemperature = ["gpt-5-mini"];
+      const useDefaultTemperature = modelsWithFixedTemperature.includes(args.modelId);
+      
+      const requestOptions: any = {
         model: args.modelId,
         messages: [{ role: "user", content: args.message }],
-        temperature: 0.7,
-      });
+      };
+      
+      // Only set temperature if the model supports custom values
+      if (!useDefaultTemperature) {
+        requestOptions.temperature = 0.7;
+      }
+      
+      const response = await client.chat.completions.create(requestOptions);
 
       return {
         content: response.choices[0].message.content || "No response generated",
