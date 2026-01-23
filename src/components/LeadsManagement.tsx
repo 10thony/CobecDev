@@ -31,8 +31,11 @@ import {
   Briefcase,
   Download,
   Upload,
-  MoreVertical
+  MoreVertical,
+  Target
 } from 'lucide-react';
+import { LeadHuntChat } from './LeadHuntChat';
+import { LeadReviewPanel } from './LeadReviewPanel';
 
 interface Lead {
   _id: Id<"leads">;
@@ -102,6 +105,9 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const [openMenuId, setOpenMenuId] = useState<Id<"leads"> | null>(null);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [actionsMenuClickedOpen, setActionsMenuClickedOpen] = useState(false);
+  const [showLeadHuntChat, setShowLeadHuntChat] = useState(false);
+  const [leadHuntState, setLeadHuntState] = useState<string>('');
+  const [activeWorkflowId, setActiveWorkflowId] = useState<Id<"leadHuntWorkflows"> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const quickFiltersRef = useRef<HTMLDivElement>(null);
@@ -474,6 +480,36 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   // Show page structure immediately, even if no leads loaded yet
   // The page will populate as leads come in
 
+  // If showing Lead Hunt Chat, render it instead of the main content
+  if (showLeadHuntChat) {
+    return (
+      <div className={`h-full flex flex-col ${className}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold text-tron-white flex items-center gap-2">
+            <Search className="w-6 h-6 text-tron-cyan" />
+            Lead Hunt
+          </h1>
+          <button
+            onClick={() => {
+              setShowLeadHuntChat(false);
+              setLeadHuntState('');
+            }}
+            className="p-2 hover:bg-tron-cyan/10 rounded-lg transition-colors text-tron-gray hover:text-tron-cyan"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex-1 min-h-0">
+          <LeadHuntChat 
+            onLeadsFound={(workflowId) => {
+              setActiveWorkflowId(workflowId);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`space-y-8 ${className}`}>
       {/* Header */}
@@ -564,6 +600,20 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 >
                   <Upload className="w-4 h-4 text-tron-cyan" />
                   <span>Import JSON</span>
+                </button>
+                <div className="border-t border-tron-cyan/20 my-1"></div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLeadHuntState('');
+                    setShowLeadHuntChat(true);
+                    setShowActionsMenu(false);
+                    setActionsMenuClickedOpen(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                >
+                  <Search className="w-4 h-4 text-tron-cyan" />
+                  <span>Hunt for Leads</span>
                 </button>
                 <button
                   onClick={async (e) => {
@@ -820,31 +870,27 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 transition: 'height 0.3s ease-in-out'
               }}
             >
-              <div className="p-3 space-y-2">
               {allLeads === undefined && (
                 <>
                   {/* Skeleton loaders */}
-                  {[...Array(10)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="relative p-5 border rounded-xl border-tron-cyan/20 bg-tron-bg-card animate-pulse"
-                    >
-                      <div className="flex items-start justify-between pr-8">
-                        <div className="flex-1 min-w-0 space-y-3">
-                          <div className="h-6 bg-tron-cyan/20 rounded w-3/4"></div>
-                          <div className="flex items-center gap-6">
-                            <div className="h-4 bg-tron-cyan/10 rounded w-32"></div>
-                            <div className="h-4 bg-tron-cyan/10 rounded w-24"></div>
-                            <div className="h-4 bg-tron-cyan/10 rounded w-28"></div>
-                          </div>
-                          <div className="flex items-center gap-3">
+                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {[...Array(12)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="tron-card p-4 rounded-lg border border-tron-cyan/20 bg-tron-bg-card animate-pulse"
+                      >
+                        <div className="space-y-3">
+                          <div className="h-5 bg-tron-cyan/20 rounded w-3/4"></div>
+                          <div className="h-4 bg-tron-cyan/10 rounded w-full"></div>
+                          <div className="h-4 bg-tron-cyan/10 rounded w-2/3"></div>
+                          <div className="flex items-center gap-2">
                             <div className="h-5 bg-tron-cyan/10 rounded-full w-20"></div>
                             <div className="h-5 bg-tron-cyan/10 rounded w-24"></div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                   <div className="flex items-center justify-center py-4">
                     <RefreshCw className="w-5 h-5 animate-spin text-tron-cyan mr-2" />
                     <span className="text-tron-gray">Loading all leads...</span>
@@ -861,114 +907,122 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                   <span className="text-tron-gray">No leads match your filters</span>
                 </div>
               )}
-              {allLeads !== undefined && filteredLeads.map((lead) => (
-                <div
-                  key={lead._id}
-                  className={`relative p-5 border rounded-xl cursor-pointer transition-all duration-200 ${ selectedLeadId === lead._id ? 'border-tron-cyan bg-tron-bg-card shadow-md' : 'border-tron-cyan/20 hover:border-tron-cyan/40 hover:bg-tron-bg-card hover:shadow-sm' }`}
-                  onClick={() => setSelectedLeadId(lead._id)}
-                >
-                  {/* Tooltip Menu Button - Top Right */}
-                  <div className="absolute top-4 right-4 z-10">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(openMenuId === lead._id ? null : lead._id);
-                      }}
-                      className="p-1.5 hover:bg-tron-cyan/10 rounded-lg transition-colors text-tron-gray hover:text-tron-cyan"
-                      title="Actions"
+              {allLeads !== undefined && filteredLeads.length > 0 && (
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredLeads.map((lead) => (
+                    <div
+                      key={lead._id}
+                      className={`relative tron-card p-4 rounded-lg border cursor-pointer transition-colors ${
+                        selectedLeadId === lead._id 
+                          ? 'border-tron-cyan bg-tron-bg-card shadow-md' 
+                          : 'border-tron-cyan/20 hover:border-tron-cyan/40'
+                      }`}
+                      onClick={() => setSelectedLeadId(lead._id)}
                     >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                    
-                    {/* Tooltip Menu */}
-                    {openMenuId === lead._id && (
-                      <div 
-                        ref={menuRef}
-                        className="absolute top-full right-0 mt-2 w-48 bg-tron-bg-card border border-tron-cyan/30 rounded-lg shadow-xl z-[60] overflow-hidden"
-                      >
-                        <div className="py-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleActive(lead._id);
-                              setOpenMenuId(null);
-                            }}
-                            className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                      {/* Tooltip Menu Button - Top Right */}
+                      <div className="absolute top-3 right-3 z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === lead._id ? null : lead._id);
+                          }}
+                          className="p-1.5 hover:bg-tron-cyan/10 rounded-lg transition-colors text-tron-gray hover:text-tron-cyan"
+                          title="Actions"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        
+                        {/* Tooltip Menu */}
+                        {openMenuId === lead._id && (
+                          <div 
+                            ref={menuRef}
+                            className="absolute top-full right-0 mt-2 w-48 bg-tron-bg-card border border-tron-cyan/30 rounded-lg shadow-xl z-[60] overflow-hidden"
                           >
-                            {lead.isActive ? <EyeOff className="w-4 h-4 text-tron-cyan" /> : <Eye className="w-4 h-4 text-tron-cyan" />}
-                            <span>{lead.isActive ? 'Deactivate' : 'Activate'}</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMarkAsChecked(lead._id);
-                              setOpenMenuId(null);
-                            }}
-                            className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
-                          >
-                            <CheckCircle className="w-4 h-4 text-tron-cyan" />
-                            <span>Mark as checked</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteLead(lead._id);
-                              setOpenMenuId(null);
-                            }}
-                            className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-orange/20 flex items-center gap-2 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4 text-tron-orange" />
-                            <span className="text-tron-orange">Delete</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-start justify-between pr-8">
-                    <div className="flex-1 min-w-0 space-y-3">
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-semibold text-tron-white truncate text-lg">
-                          {lead.opportunityTitle}
-                        </h3>
-                      </div>
-                      <div className="flex items-center gap-6 text-sm text-tron-gray">
-                        <div className="flex items-center gap-2">
-                          <Building className="w-4 h-4 text-tron-gray" />
-                          <span className="font-medium">{lead.issuingBody.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-tron-gray" />
-                          <span>{lead.location.region}</span>
-                        </div>
-                        {lead.estimatedValueUSD && (
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-tron-gray" />
-                            <span className="font-semibold text-tron-white">{formatCurrency(lead.estimatedValueUSD)}</span>
+                            <div className="py-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleActive(lead._id);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                              >
+                                {lead.isActive ? <EyeOff className="w-4 h-4 text-tron-cyan" /> : <Eye className="w-4 h-4 text-tron-cyan" />}
+                                <span>{lead.isActive ? 'Deactivate' : 'Activate'}</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMarkAsChecked(lead._id);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
+                              >
+                                <CheckCircle className="w-4 h-4 text-tron-cyan" />
+                                <span>Mark as checked</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteLead(lead._id);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-orange/20 flex items-center gap-2 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4 text-tron-orange" />
+                                <span className="text-tron-orange">Delete</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
+
+                      {/* Header */}
+                      <div className="mb-3 pr-8">
+                        <h3 className="text-base font-semibold text-tron-white line-clamp-2 mb-2">
+                          {lead.opportunityTitle}
+                        </h3>
+                        <div className="flex items-center gap-1.5 text-sm text-tron-gray mb-2">
+                          <Building className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="truncate">{lead.issuingBody.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm text-tron-gray">
+                          <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-tron-cyan" />
+                          <span>{lead.location.region}</span>
+                        </div>
+                      </div>
+
+                      {/* Status and Type */}
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
                           {lead.status}
                         </span>
                         <span className="text-xs text-tron-gray bg-tron-bg-elevated px-2 py-1 rounded">
                           {lead.opportunityType}
                         </span>
                       </div>
-                      {/* Start and End Dates */}
+
+                      {/* Value */}
+                      {lead.estimatedValueUSD && (
+                        <div className="flex items-center gap-1.5 text-sm mb-3">
+                          <DollarSign className="w-4 h-4 text-tron-cyan flex-shrink-0" />
+                          <span className="font-semibold text-tron-white">{formatCurrency(lead.estimatedValueUSD)}</span>
+                        </div>
+                      )}
+
+                      {/* Dates */}
                       {(lead.keyDates?.projectedStartDate || lead.keyDates?.bidDeadline) && (
-                        <div className="flex items-center gap-4 text-xs text-tron-gray">
+                        <div className="space-y-1.5 pt-2 border-t border-tron-cyan/10">
                           {lead.keyDates?.projectedStartDate && (
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3.5 h-3.5 text-tron-cyan" />
+                            <div className="flex items-center gap-1.5 text-xs text-tron-gray">
+                              <Calendar className="w-3 h-3 text-tron-cyan flex-shrink-0" />
                               <span className="font-medium">Start:</span>
                               <span className="text-tron-white">{formatDate(lead.keyDates.projectedStartDate)}</span>
                             </div>
                           )}
                           {lead.keyDates?.bidDeadline && (
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3.5 h-3.5 text-tron-orange" />
+                            <div className="flex items-center gap-1.5 text-xs text-tron-gray">
+                              <Calendar className="w-3 h-3 text-tron-orange flex-shrink-0" />
                               <span className="font-medium">Deadline:</span>
                               <span className="text-tron-white">{formatDate(lead.keyDates.bidDeadline)}</span>
                             </div>
@@ -976,10 +1030,9 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                         </div>
                       )}
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-              </div>
+              )}
             </div>
           </TronPanel>
         </div>
@@ -1169,6 +1222,24 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
             alert(`Successfully imported ${result.importedCount} leads!${result.schemaChanges?.length ? ` Schema changes: ${result.schemaChanges.join(', ')}` : ''}`);
           }}
         />
+      )}
+
+      {/* Lead Review Panel - Show if there's an active workflow with pending leads */}
+      {activeWorkflowId && (
+        <div className="fixed bottom-0 right-0 w-96 max-h-[80vh] bg-tron-bg-panel border-t border-l border-tron-cyan/30 rounded-tl-lg shadow-tron-glow overflow-y-auto z-40">
+          <div className="p-4 border-b border-tron-cyan/20 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-tron-white">Review Leads</h3>
+            <button
+              onClick={() => setActiveWorkflowId(null)}
+              className="p-1 hover:bg-tron-cyan/10 rounded-lg transition-colors text-tron-gray hover:text-tron-cyan"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-4">
+            <LeadReviewPanel workflowId={activeWorkflowId} />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -6,69 +6,40 @@ import { Id } from '../../convex/_generated/dataModel';
 import { TronPanel } from './TronPanel';
 import { TronButton } from './TronButton';
 import { SystemPromptSelect } from './SystemPromptSelect';
+import { LeadReviewPanel } from './LeadReviewPanel';
+import { ClickableJsonViewer } from './ClickableJsonViewer';
 import { 
-  MessageSquare, 
+  Search, 
   Send, 
   Loader2, 
-  Download, 
-  AlertTriangle, 
-  ExternalLink, 
-  Globe, 
-  MapPin, 
-  Building2, 
-  Plus, 
   History, 
   Trash2, 
-  ChevronLeft, 
-  ChevronRight,
-  Clock,
-  RefreshCw,
-  Wrench,
-  Upload,
-  CheckCircle,
-  Settings,
   X,
+  Clock,
+  Play,
+  Pause,
+  Square,
+  Settings,
+  Plus,
+  MessageSquare,
+  CheckCircle,
+  AlertTriangle,
   Edit2,
   Star,
   Save,
   Copy,
-  MessageCircle,
-  Search,
+  RefreshCw,
+  Sparkles,
   Filter,
   XCircle,
-  MoreVertical,
-  Sparkles,
   CheckSquare2,
-  Square,
-  Layers
+  Layers,
+  MapPin,
+  MoreVertical,
 } from 'lucide-react';
 
-interface ProcurementLink {
-  state: string;
-  capital: string;
-  official_website: string;
-  procurement_link: string;
-  entity_type?: string;
-  link_type?: string;
-  confidence_score?: number;
-}
-
-interface ChatResponse {
-  search_metadata: {
-    target_regions: string[];
-    count_found: number;
-    timestamp?: string;
-  };
-  procurement_links: ProcurementLink[];
-}
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  response?: ChatResponse;
-  timestamp: number;
-  isError?: boolean;
+interface LeadHuntChatProps {
+  onLeadsFound?: (workflowId: Id<"leadHuntWorkflows">) => void;
 }
 
 interface SystemPrompt {
@@ -82,19 +53,12 @@ interface SystemPrompt {
   updatedAt: number;
 }
 
-interface ProcurementChatProps {
-  onExportToVerifier?: () => void;
-}
-
 // Component to display lead count for a prompt
 function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitle: string; promptTypeId: Id<"chatSystemPromptTypes">; promptTypes?: any[] }) {
-  // Extract state from prompt title - using same logic as backend
   const extractStateFromTitle = (title: string): string | null => {
     if (!title) return null;
     const titleLower = title.toLowerCase();
     
-    // Map of lowercase state names to their proper capitalized form
-    // IMPORTANT: Order matters! Longer/more specific names must come first
     const stateMap: Record<string, string> = {
       "district of columbia": "District of Columbia",
       "new hampshire": "New Hampshire",
@@ -149,7 +113,6 @@ function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitl
       "wyoming": "Wyoming"
     };
     
-    // Check each state in the map (order matters for multi-word states)
     for (const [key, value] of Object.entries(stateMap)) {
       if (titleLower.includes(key)) {
         return value;
@@ -158,7 +121,6 @@ function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitl
     return null;
   };
   
-  // Check if this is a Leads type prompt
   const leadsType = promptTypes?.find(t => t.name === "leads");
   const isLeadsPrompt = leadsType && promptTypeId === leadsType._id;
   
@@ -167,13 +129,11 @@ function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitl
   const stateName = extractStateFromTitle(promptTitle);
   if (!stateName) return null;
   
-  // Query lead count for this state
   const leadCount = useQuery(
     api.leads.getLeadCountByState,
     { stateName }
   );
   
-  // Only show if count > 0
   if (leadCount === undefined || leadCount === 0) return null;
   
   return (
@@ -186,13 +146,10 @@ function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitl
 
 // Component to display procurement link count for a prompt
 function ProcurementLinkCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitle: string; promptTypeId: Id<"chatSystemPromptTypes">; promptTypes?: any[] }) {
-  // Extract state from prompt title - using same logic as backend
   const extractStateFromTitle = (title: string): string | null => {
     if (!title) return null;
     const titleLower = title.toLowerCase();
     
-    // Map of lowercase state names to their proper capitalized form
-    // IMPORTANT: Order matters! Longer/more specific names must come first
     const stateMap: Record<string, string> = {
       "district of columbia": "District of Columbia",
       "new hampshire": "New Hampshire",
@@ -247,7 +204,6 @@ function ProcurementLinkCountBadge({ promptTitle, promptTypeId, promptTypes }: {
       "wyoming": "Wyoming"
     };
     
-    // Check each state in the map (order matters for multi-word states)
     for (const [key, value] of Object.entries(stateMap)) {
       if (titleLower.includes(key)) {
         return value;
@@ -256,17 +212,14 @@ function ProcurementLinkCountBadge({ promptTitle, promptTypeId, promptTypes }: {
     return null;
   };
   
-  // Extract state name from prompt title - show badge for all prompt types if state is found
   const stateName = extractStateFromTitle(promptTitle);
   if (!stateName) return null;
   
-  // Query procurement link count for this state
   const linkCount = useQuery(
     api.procurementUrls.getApprovedProcurementLinkCountByState,
     { stateName }
   );
   
-  // Only show if count > 0
   if (linkCount === undefined || linkCount === 0) return null;
   
   return (
@@ -277,52 +230,49 @@ function ProcurementLinkCountBadge({ promptTitle, promptTypeId, promptTypes }: {
   );
 }
 
-export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {}) {
+// Format timestamp for display
+function formatTimestamp(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Generate title from workflow
+function generateWorkflowTitle(state: string, userInput: string): string {
+  if (userInput && userInput.trim() && userInput !== `Find procurement leads in ${state}`) {
+    // Use first 50 chars of user input
+    const trimmed = userInput.trim().substring(0, 50);
+    return trimmed.length < userInput.trim().length ? `${trimmed}...` : trimmed;
+  }
+  return `Find leads in ${state}`;
+}
+
+export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
   const { isSignedIn } = useAuth();
-  // @ts-ignore - Type instantiation is excessively deep due to Convex type inference, but the query works correctly at runtime
-  const isCobecAdmin = useQuery(api.cobecAdmins.checkIfUserIsCobecAdmin);
   
-  // Free message tracking constants and helpers (defined early so they can be used)
-  const FREE_MESSAGE_LIMIT = 5;
-  const STORAGE_KEY = 'procurement_chat_free_messages_used';
-  const ANONYMOUS_ID_KEY = 'procurement_chat_anonymous_id';
-  
-  const getFreeMessagesUsed = (): number => {
-    if (typeof window === 'undefined') return 0;
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? parseInt(stored, 10) : 0;
-  };
-  
-  const incrementFreeMessagesUsed = (): void => {
-    if (typeof window === 'undefined') return;
-    const current = getFreeMessagesUsed();
-    localStorage.setItem(STORAGE_KEY, (current + 1).toString());
-  };
-  
-  const getOrCreateAnonymousId = (): string => {
-    if (typeof window === 'undefined') return '';
-    let anonymousId = localStorage.getItem(ANONYMOUS_ID_KEY);
-    if (!anonymousId) {
-      anonymousId = `anon_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      localStorage.setItem(ANONYMOUS_ID_KEY, anonymousId);
-    }
-    return anonymousId;
-  };
-  
-  const [prompt, setPrompt] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [userInput, setUserInput] = useState('');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [currentSessionId, setCurrentSessionId] = useState<Id<"procurementChatSessions"> | null>(null);
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<Id<"leadHuntWorkflows"> | null>(null);
   const [showHistory, setShowHistory] = useState(true);
-  const [retryingMessageId, setRetryingMessageId] = useState<string | null>(null);
-  const [selectedSystemPromptId, setSelectedSystemPromptId] = useState<Id<"chatSystemPrompts"> | null | undefined>(undefined); // undefined = use primary, null = none
+  const [selectedSystemPromptId, setSelectedSystemPromptId] = useState<Id<"chatSystemPrompts"> | null | undefined>(undefined);
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [showPromptSettings, setShowPromptSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mainChatAreaRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  
+
   // System Prompt Management State
-  const [showPromptSettings, setShowPromptSettings] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<SystemPrompt | null>(null);
   const [isCreatingPrompt, setIsCreatingPrompt] = useState(false);
   const [promptFormData, setPromptFormData] = useState({
@@ -353,29 +303,34 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     }>;
   } | null>(null);
   const [showUpdateResults, setShowUpdateResults] = useState(false);
-  
+  const [refreshingLinks, setRefreshingLinks] = useState(false);
+  const [updatingPromptId, setUpdatingPromptId] = useState<Id<"chatSystemPrompts"> | null>(null);
+  const [generatingPrompts, setGeneratingPrompts] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{
+    currentState: string | null;
+    completed: number;
+    total: number;
+    completedStates: string[];
+    failedStates: Array<{ state: string; error: string }>;
+    cancelled: boolean;
+  } | null>(null);
+  const cancellationRef = useRef(false);
+  const [selectedPromptIds, setSelectedPromptIds] = useState<Set<Id<"chatSystemPrompts">>>(new Set());
+
   // Convex queries and mutations
-  const anonymousId = !isSignedIn ? getOrCreateAnonymousId() : undefined;
-  const sessions = useQuery(
-    api.procurementChatSessions.list, 
-    { includeArchived: false, anonymousId }
+  const workflows = useQuery(api.leadHuntWorkflows.list, {});
+  const currentWorkflow = useQuery(
+    api.leadHuntWorkflows.getWorkflow,
+    currentWorkflowId ? { workflowId: currentWorkflowId } : "skip"
   );
-  const sessionMessages = useQuery(
-    api.procurementChatMessages.list, 
-    currentSessionId ? { sessionId: currentSessionId, anonymousId } : "skip"
-  );
-  const createSession = useMutation(api.procurementChatSessions.create);
-  const deleteSession = useMutation(api.procurementChatSessions.deleteSession);
-  const addUserMessage = useMutation(api.procurementChatMessages.addUserMessage);
-  const deleteMessagePair = useMutation(api.procurementChatMessages.deleteMessagePair);
-  const clearCorruptedThreadIds = useMutation(api.procurementChatSessions.clearCorruptedThreadIds);
-  const sendChatMessage = useAction(api.simpleChat.sendMessage);
-  const importToVerifier = useMutation(api.procurementUrls.importFromChatResponse);
-  const [isClearing, setIsClearing] = useState(false);
-  const [exportingMessageId, setExportingMessageId] = useState<string | null>(null);
-  const [exportResult, setExportResult] = useState<{ messageId: string; result: { imported: number; skipped: number } } | null>(null);
-  
-  // System Prompt queries and mutations
+  const createWorkflow = useMutation(api.leadHuntWorkflows.createWorkflow);
+  const startWorkflow = useAction(api.leadHuntWorkflows.startWorkflow);
+  const cancelWorkflow = useAction(api.leadHuntWorkflows.cancelWorkflow);
+  const resumeWorkflow = useMutation(api.leadHuntWorkflows.resumeWorkflow);
+  const triggerResumeEvent = useAction(api.leadHuntWorkflows.triggerResumeEvent);
+  const deleteWorkflow = useMutation(api.leadHuntWorkflows.deleteWorkflow);
+
+  // System prompts
   const systemPrompts = useQuery(api.chatSystemPrompts.list, {});
   const promptTypes = useQuery(api.chatSystemPromptTypes.list, {});
   const fullPromptWithLinks = useQuery(api.chatSystemPrompts.getFullPromptWithLinks, {});
@@ -387,56 +342,42 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const updatePrimaryWithApprovedLinks = useMutation(api.chatSystemPrompts.updatePrimaryWithApprovedLinks);
   const updatePromptWithStateLinks = useMutation(api.chatSystemPrompts.updatePromptWithStateLinks);
   const updatePromptWithLeadSourceLinks = useMutation(api.chatSystemPrompts.updatePromptWithLeadSourceLinks);
+  // @ts-ignore - Type instantiation is excessively deep due to Convex type inference, but the query works correctly at runtime
   const updateAllPromptsWithStateData = useMutation(api.chatSystemPrompts.updateAllPromptsWithStateData);
   const removeDuplicateSystemPrompts = useMutation(api.chatSystemPrompts.removeDuplicateSystemPrompts);
-  const createLog = useMutation(api.logs.createLog);
   
   // State System Prompt Generator queries and actions
   const statesWithPrompts = useQuery(api.chatSystemPrompts.getStatesWithPrompts, {});
   const missingStates = useQuery(api.chatSystemPrompts.getMissingStates, {});
   const generateStatePrompt = useAction(api.chatSystemPrompts.generateStatePrompt);
-  const [refreshingLinks, setRefreshingLinks] = useState(false);
-  const [updatingPromptId, setUpdatingPromptId] = useState<Id<"chatSystemPrompts"> | null>(null);
-  const lastAutoInjectedPromptId = useRef<Id<"chatSystemPrompts"> | null>(null);
-  
-  // State System Prompt Generator state
-  const [generatingPrompts, setGeneratingPrompts] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState<{
-    currentState: string | null;
-    completed: number;
-    total: number;
-    completedStates: string[];
-    failedStates: Array<{ state: string; error: string }>;
-    cancelled: boolean;
-  } | null>(null);
-  const cancellationRef = useRef(false);
-  
-  // Multi-select state for batch operations
-  const [selectedPromptIds, setSelectedPromptIds] = useState<Set<Id<"chatSystemPrompts">>>(new Set());
-  
-  // Free message tracking state
-  const [freeMessagesUsed, setFreeMessagesUsed] = useState(getFreeMessagesUsed());
-  const freeMessagesRemaining = FREE_MESSAGE_LIMIT - freeMessagesUsed;
-  const canSendFreeMessage = !isSignedIn && freeMessagesRemaining > 0;
-  
-  // Auto-scroll to bottom when new messages arrive
+
+  // Filter to only "leads" type prompts
+  const leadsTypeId = useMemo(() => {
+    return promptTypes?.find(t => t.name === "leads")?._id;
+  }, [promptTypes]);
+
+  const leadsPrompts = useMemo(() => {
+    if (!systemPrompts || !leadsTypeId) return undefined;
+    return systemPrompts.filter(p => p.type === leadsTypeId);
+  }, [systemPrompts, leadsTypeId]);
+
+  // Auto-scroll to bottom when workflow updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, sessionMessages]);
+  }, [currentWorkflow]);
 
   // Match sidebar height to main chat area height on desktop
   useEffect(() => {
     if (!showHistory || !mainChatAreaRef.current || !sidebarRef.current) return;
     
     const updateSidebarHeight = () => {
-      if (window.innerWidth >= 1024) { // lg breakpoint
+      if (window.innerWidth >= 1024) {
         const mainChatHeight = mainChatAreaRef.current?.offsetHeight;
         if (mainChatHeight && sidebarRef.current) {
           sidebarRef.current.style.height = `${mainChatHeight}px`;
           sidebarRef.current.style.maxHeight = `${mainChatHeight}px`;
         }
       } else {
-        // On mobile, use full viewport height for fixed positioning
         if (sidebarRef.current) {
           sidebarRef.current.style.height = '100vh';
           sidebarRef.current.style.maxHeight = '100vh';
@@ -447,7 +388,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     updateSidebarHeight();
     window.addEventListener('resize', updateSidebarHeight);
     
-    // Use ResizeObserver to watch for changes in main chat area height
     const resizeObserver = new ResizeObserver(updateSidebarHeight);
     if (mainChatAreaRef.current) {
       resizeObserver.observe(mainChatAreaRef.current);
@@ -457,345 +397,28 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       window.removeEventListener('resize', updateSidebarHeight);
       resizeObserver.disconnect();
     };
-  }, [showHistory, messages, sessionMessages]);
-  
-  // Sync free messages count from localStorage
+  }, [showHistory, currentWorkflow]);
+
+  // Auto-load most recent active workflow
   useEffect(() => {
-    if (!isSignedIn) {
-      setFreeMessagesUsed(getFreeMessagesUsed());
+    if (!currentWorkflowId && workflows && workflows.length > 0) {
+      const active = workflows.filter(w => w.status === "running" || w.status === "paused");
+      if (active.length > 0) {
+        const mostRecent = active.sort((a, b) => b.createdAt - a.createdAt)[0];
+        setCurrentWorkflowId(mostRecent._id);
+        setSelectedSystemPromptId(mostRecent.systemPromptId || undefined);
+        setUserInput(mostRecent.userInput);
+      }
     }
-  }, [isSignedIn]);
-  
-  // Sync messages from database when session changes
-  useEffect(() => {
-    if (sessionMessages) {
-      const formattedMessages: ChatMessage[] = sessionMessages.map((msg) => ({
-        id: msg._id,
-        role: msg.role,
-        content: msg.content,
-        response: msg.responseData as ChatResponse | undefined,
-        timestamp: msg.createdAt,
-        isError: msg.isError,
-      }));
-      setMessages(formattedMessages);
-    } else if (!currentSessionId) {
-      setMessages([]);
-    }
-  }, [sessionMessages, currentSessionId]);
+  }, [currentWorkflowId, workflows]);
 
-  // Helper function to check if prompt already has approved links section
-  const hasApprovedLinksSection = (promptText: string): boolean => {
-    return promptText.includes("## ALREADY APPROVED PROCUREMENT LINKS");
-  };
-
-  // Auto-inject links when a Leads prompt is selected (if not already present)
-  useEffect(() => {
-    // Only run if we have a specific prompt selected (not primary/undefined or null)
-    if (!selectedSystemPromptId || !systemPrompts || !promptTypes || updatingPromptId) {
-      return;
-    }
-
-    const selectedPrompt = systemPrompts.find(p => p._id === selectedSystemPromptId);
-    if (!selectedPrompt) {
-      return;
-    }
-
-    // Check if this is a Leads type prompt
-    const leadsType = promptTypes.find(t => t.name === "leads");
-    if (!leadsType || selectedPrompt.type !== leadsType._id) {
-      lastAutoInjectedPromptId.current = null; // Reset when switching to non-Leads prompt
-      return;
-    }
-
-    // Check if links are already present
-    if (hasApprovedLinksSection(selectedPrompt.systemPromptText)) {
-      lastAutoInjectedPromptId.current = selectedPrompt._id; // Mark as processed
-      return; // Links already present, no need to update
-    }
-
-    // Prevent duplicate calls for the same prompt
-    if (lastAutoInjectedPromptId.current === selectedPrompt._id) {
-      return; // Already attempted to inject for this prompt
-    }
-
-    // Auto-inject links for this Leads prompt (use lead source links, not procurement links)
-    lastAutoInjectedPromptId.current = selectedPrompt._id;
-    handleUpdatePromptWithLeadSourceLinks(selectedPrompt._id, true); // true = auto-injection
-  }, [selectedSystemPromptId, systemPrompts, promptTypes, updatingPromptId]);
-
-  const handleNewChat = async () => {
-    if (!isSignedIn) {
-      setError('Please sign in to create a new chat');
-      return;
-    }
-    try {
-      const newSessionId = await createSession({});
-      setCurrentSessionId(newSessionId);
-      setMessages([]);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create new chat');
-    }
-  };
-
-  const handleSelectSession = (sessionId: Id<"procurementChatSessions">) => {
-    setCurrentSessionId(sessionId);
+  const handleNewHunt = () => {
+    setCurrentWorkflowId(null);
+    setUserInput('');
+    setSelectedSystemPromptId(undefined);
     setError(null);
   };
 
-  const handleDeleteSession = async (sessionId: Id<"procurementChatSessions">, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await deleteSession({ id: sessionId });
-      if (currentSessionId === sessionId) {
-        setCurrentSessionId(null);
-        setMessages([]);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete chat');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
-    
-    // Check free message limit for unauthenticated users
-    if (!isSignedIn) {
-      if (freeMessagesUsed >= FREE_MESSAGE_LIMIT) {
-        setError(`You've used all ${FREE_MESSAGE_LIMIT} free messages. Please sign in for unlimited access.`);
-        return;
-      }
-    }
-
-    const userPrompt = prompt.trim();
-    setError(null);
-    
-    // For unauthenticated users, increment message count
-    if (!isSignedIn) {
-      incrementFreeMessagesUsed();
-      const newCount = getFreeMessagesUsed();
-      setFreeMessagesUsed(newCount);
-    }
-    
-    // Create a session if we don't have one
-    let sessionId = currentSessionId;
-    if (!sessionId) {
-      try {
-        if (isSignedIn) {
-          sessionId = await createSession({ title: userPrompt.substring(0, 50) + (userPrompt.length > 50 ? "..." : "") });
-        } else {
-          // For unauthenticated users, use anonymous ID
-          const anonymousId = getOrCreateAnonymousId();
-          sessionId = await createSession({ 
-            title: userPrompt.substring(0, 50) + (userPrompt.length > 50 ? "..." : ""),
-            anonymousId 
-          });
-        }
-        setCurrentSessionId(sessionId);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to create chat session');
-        return;
-      }
-    }
-    
-    // Add user message locally for immediate feedback
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: userPrompt,
-      timestamp: Date.now(),
-    };
-    setMessages(prev => [...prev, userMessage]);
-    setPrompt(''); // Clear input
-    
-    startTransition(async () => {
-      try {
-        if (sessionId) {
-          // Add user message to database
-          if (isSignedIn) {
-            await addUserMessage({ 
-              sessionId: sessionId, 
-              content: userPrompt 
-            });
-          } else {
-            // For unauthenticated users, include anonymous ID
-            const anonymousId = getOrCreateAnonymousId();
-            await addUserMessage({ 
-              sessionId: sessionId, 
-              content: userPrompt,
-              anonymousId
-            });
-          }
-          
-          // Send chat message (this also saves the assistant response)
-          await sendChatMessage({ 
-            prompt: userPrompt,
-            sessionId: sessionId,
-            systemPromptId: selectedSystemPromptId,
-          });
-          
-          // The response will be loaded via the sessionMessages query
-        } else {
-          setError('Failed to create chat session');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to send message');
-        // Add error message locally
-        const errorMessage: ChatMessage = {
-          id: `error-${Date.now()}`,
-          role: 'assistant',
-          content: `Error: ${err instanceof Error ? err.message : 'Failed to send message'}`,
-          timestamp: Date.now(),
-          isError: true,
-        };
-        setMessages(prev => [...prev, errorMessage]);
-      }
-    });
-  };
-
-  const handleDownloadJson = (response: ChatResponse) => {
-    if (!response?.procurement_links) return;
-    
-    // Create downloadable JSON file
-    const jsonData = {
-      us_state_capitals_procurement: response.procurement_links.map(link => ({
-        state: link.state,
-        capital: link.capital,
-        official_website: link.official_website,
-        procurement_link: link.procurement_link,
-      }))
-    };
-    
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `procurement-links-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleExportToVerifier = async (messageId: string, response: ChatResponse) => {
-    if (!response?.procurement_links || response.procurement_links.length === 0) return;
-    
-    setExportingMessageId(messageId);
-    setExportResult(null);
-    
-    try {
-      const result = await importToVerifier({
-        links: response.procurement_links,
-        sessionId: currentSessionId || undefined,
-      });
-      
-      setExportResult({
-        messageId,
-        result: { imported: result.imported, skipped: result.skipped },
-      });
-      
-      // Notify parent component to switch to verifier tab if callback provided
-      if (onExportToVerifier && result.imported > 0) {
-        onExportToVerifier();
-      }
-      
-      // Clear success message after 5 seconds
-      setTimeout(() => {
-        setExportResult(null);
-      }, 5000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to export links to verifier');
-    } finally {
-      setExportingMessageId(null);
-    }
-  };
-
-  const handleRetryMessage = async (messageId: string, content: string) => {
-    if (!currentSessionId || retryingMessageId) return;
-    
-    setRetryingMessageId(messageId);
-    setError(null);
-    
-    try {
-      // First, delete the old message pair if this is a database message (not a local temp message)
-      // Database IDs from Convex don't start with "user-" or "error-" prefixes
-      const isLocalMessage = messageId.startsWith('user-') || messageId.startsWith('error-');
-      
-      if (!isLocalMessage) {
-        // Delete the old message pair from the database
-        // This will remove the user message and its associated assistant response
-        await deleteMessagePair({ 
-          messageId: messageId as Id<"procurementChatMessages">
-        });
-      }
-      
-      // Add the new user message to database
-      await addUserMessage({ 
-        sessionId: currentSessionId, 
-        content: content 
-      });
-      
-      // Send new chat message
-      await sendChatMessage({ 
-        prompt: content,
-        sessionId: currentSessionId,
-        systemPromptId: selectedSystemPromptId,
-      });
-      
-      // The response will be loaded via the sessionMessages query which will
-      // automatically update the UI with the new message pair
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to retry request');
-      // Add error message locally
-      const errorMessage: ChatMessage = {
-        id: `error-${Date.now()}`,
-        role: 'assistant',
-        content: `Error: ${err instanceof Error ? err.message : 'Failed to retry request'}`,
-        timestamp: Date.now(),
-        isError: true,
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setRetryingMessageId(null);
-    }
-  };
-
-  const handleClearCorruptedThreadIds = async () => {
-    setIsClearing(true);
-    try {
-      const result = await clearCorruptedThreadIds({});
-      if (result.cleared > 0) {
-        setError(null);
-        // Show success message briefly
-        setError(`Cleared ${result.cleared} corrupted thread ID(s). Try your request again.`);
-        setTimeout(() => setError(null), 3000);
-      } else {
-        setError('No corrupted thread IDs found.');
-        setTimeout(() => setError(null), 3000);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to clear thread IDs');
-    } finally {
-      setIsClearing(false);
-    }
-  };
-
-  const formatTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return date.toLocaleDateString([], { weekday: 'short' });
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-  };
-
-  // System Prompt Handlers
   const handleOpenPromptSettings = async () => {
     setShowPromptSettings(true);
     // Reset filters when opening
@@ -862,7 +485,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
         type: 'success',
         text: 'Full system prompt (with all approved links) copied to clipboard!'
       });
-      // Auto-hide success message after 3 seconds
       setTimeout(() => setModalMessage(null), 3000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
@@ -877,7 +499,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
         type: 'success',
         text: `System prompt "${promptTitle}" copied to clipboard!`
       });
-      // Auto-hide success message after 3 seconds
       setTimeout(() => setModalMessage(null), 3000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
@@ -898,7 +519,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     setSavingPrompt(true);
     try {
       if (editingPrompt) {
-        // Update existing prompt
         await updateSystemPrompt({
           id: editingPrompt._id,
           title: promptFormData.title,
@@ -908,7 +528,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
           type: promptFormData.type as Id<"chatSystemPromptTypes">,
         });
       } else {
-        // Create new prompt
         await createSystemPrompt({
           title: promptFormData.title,
           description: promptFormData.description || undefined,
@@ -928,7 +547,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const handleDeletePrompt = async (id: Id<"chatSystemPrompts">) => {
     try {
       await deleteSystemPrompt({ id });
-      // Remove from selection if it was selected
       setSelectedPromptIds(prev => {
         const next = new Set(prev);
         next.delete(id);
@@ -968,12 +586,10 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     const deletingCount = idsToDelete.length;
     
     try {
-      // Delete all selected prompts
       for (const id of idsToDelete) {
         await deleteSystemPrompt({ id });
       }
       
-      // Clear selection
       setSelectedPromptIds(new Set());
       
       setModalMessage({
@@ -1001,7 +617,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const handleRemoveDuplicates = async () => {
     try {
       setModalMessage({
-        type: 'info',
+        type: 'success',
         text: 'Removing duplicate system prompts...'
       });
       
@@ -1014,7 +630,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
         });
       } else {
         setModalMessage({
-          type: 'info',
+          type: 'success',
           text: 'No duplicate prompts found.'
         });
       }
@@ -1035,7 +651,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     setUpdateResults(null);
     try {
       const result = await updateAllPromptsWithStateData({});
-      // Store results for detailed display
       setUpdateResults({
         totalProcessed: result.totalProcessed,
         totalSucceeded: result.totalSucceeded,
@@ -1044,14 +659,12 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       });
       
       if (result.success) {
-        // Show success message with summary
         const successCount = result.results.filter(r => r.success).length;
         const failedCount = result.results.filter(r => !r.success).length;
         setModalMessage({
           type: failedCount > 0 ? 'error' : 'success',
           text: `Updated ${successCount} prompts successfully${failedCount > 0 ? `, ${failedCount} failed. Click to view details.` : ''}. ${result.message}`
         });
-        // Auto-show results if there are failures
         if (failedCount > 0) {
           setShowUpdateResults(true);
         }
@@ -1080,7 +693,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       return;
     }
 
-    // Reset cancellation flag
     cancellationRef.current = false;
     
     setGeneratingPrompts(true);
@@ -1094,7 +706,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     });
 
     try {
-      // Get the leads type ID
       const leadsType = promptTypes?.find(t => t.name === "leads");
       if (!leadsType) {
         setModalMessage({
@@ -1109,9 +720,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       const completedStates: string[] = [];
       const failedStates: Array<{ state: string; error: string }> = [];
 
-      // Generate prompts one at a time for real-time progress updates
       for (let i = 0; i < missingStates.length; i++) {
-        // Check for cancellation before each state
         if (cancellationRef.current) {
           setGenerationProgress(prev => prev ? {
             ...prev,
@@ -1123,19 +732,16 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
 
         const state = missingStates[i];
         
-        // Update current state
         setGenerationProgress(prev => prev ? {
           ...prev,
           currentState: state,
         } : null);
 
         try {
-          // Add small delay between requests to avoid rate limits
           if (i > 0) {
             await new Promise(resolve => setTimeout(resolve, 1500));
           }
 
-          // Check for cancellation again after delay
           if (cancellationRef.current) {
             setGenerationProgress(prev => prev ? {
               ...prev,
@@ -1147,166 +753,71 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
 
           const result = await generateStatePrompt({
             stateName: state,
-            typeId: leadsType._id,
+            promptTypeId: leadsType._id,
           });
 
           if (result.success) {
             completedStates.push(state);
+            setGenerationProgress(prev => prev ? {
+              ...prev,
+              completed: prev.completed + 1,
+              completedStates: [...prev.completedStates, state],
+            } : null);
           } else {
-            failedStates.push({
-              state,
-              error: result.message,
-            });
+            failedStates.push({ state, error: result.error || 'Unknown error' });
+            setGenerationProgress(prev => prev ? {
+              ...prev,
+              completed: prev.completed + 1,
+              failedStates: [...prev.failedStates, { state, error: result.error || 'Unknown error' }],
+            } : null);
           }
-
-          // Update progress after each state
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+          failedStates.push({ state, error: errorMsg });
           setGenerationProgress(prev => prev ? {
             ...prev,
-            completed: completedStates.length,
-            completedStates: [...completedStates],
-            failedStates: [...failedStates],
-            currentState: null, // Clear current state after completion
-          } : null);
-        } catch (error) {
-          failedStates.push({
-            state,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-          
-          // Update progress with error
-          setGenerationProgress(prev => prev ? {
-            ...prev,
-            completed: completedStates.length,
-            completedStates: [...completedStates],
-            failedStates: [...failedStates],
-            currentState: null,
+            completed: prev.completed + 1,
+            failedStates: [...prev.failedStates, { state, error: errorMsg }],
           } : null);
         }
       }
 
-      // Final update
-      const finalCancelled = cancellationRef.current;
-      setGenerationProgress(prev => prev ? {
-        ...prev,
-        cancelled: finalCancelled,
-        currentState: null,
-      } : null);
-
-      if (completedStates.length > 0) {
+      setGeneratingPrompts(false);
+      
+      if (completedStates.length > 0 || failedStates.length > 0) {
         setModalMessage({
-          type: 'success',
-          text: `Successfully generated ${completedStates.length} state prompt${completedStates.length > 1 ? 's' : ''}.${failedStates.length > 0 ? ` ${failedStates.length} failed.` : ''}${finalCancelled ? ' (Cancelled)' : ''}`
+          type: failedStates.length > 0 ? 'error' : 'success',
+          text: `Generated ${completedStates.length} prompt${completedStates.length !== 1 ? 's' : ''} successfully${failedStates.length > 0 ? `, ${failedStates.length} failed` : ''}.`
         });
-      } else if (failedStates.length > 0) {
-        setModalMessage({
-          type: 'error',
-          text: `Failed to generate prompts. ${failedStates.map(e => `${e.state}: ${e.error}`).join('; ')}`
-        });
-      } else if (finalCancelled) {
-        setModalMessage({
-          type: 'error',
-          text: 'Generation cancelled.'
-        });
+        setTimeout(() => setModalMessage(null), 8000);
       }
-    } catch (error) {
+    } catch (err) {
       setModalMessage({
         type: 'error',
-        text: error instanceof Error ? error.message : 'Failed to generate state prompts'
+        text: err instanceof Error ? err.message : 'Failed to generate prompts'
       });
+      setTimeout(() => setModalMessage(null), 5000);
     } finally {
       setGeneratingPrompts(false);
-      // Keep progress visible for a few seconds, then clear
-      setTimeout(() => {
+      if (!cancellationRef.current) {
         setGenerationProgress(null);
-      }, 5000);
+      }
     }
-  };
-
-  const handleCancelGeneration = () => {
-    // Set cancellation flag
-    cancellationRef.current = true;
-    
-    if (generationProgress) {
-      setGenerationProgress(prev => prev ? {
-        ...prev,
-        cancelled: true,
-      } : null);
-    }
-    // Don't set generatingPrompts to false here - let the loop check the flag and exit naturally
   };
 
   const handleUpdatePromptWithLeadSourceLinks = async (promptId: Id<"chatSystemPrompts">, isAutoInjection: boolean = false) => {
     setUpdatingPromptId(promptId);
-    if (!isAutoInjection) {
-      setModalMessage(null);
-    }
-    
-    // Get prompt info for analytics
-    const prompt = systemPrompts?.find(p => p._id === promptId);
-    const promptTitle = prompt?.title || 'Unknown';
-    
     try {
-      const result = await updatePromptWithLeadSourceLinks({ promptId });
-      if (result.success) {
-        // Record analytics for successful update
-        try {
-          await createLog({
-            action: isAutoInjection 
-              ? 'system_prompt_auto_inject_lead_source_links' 
-              : 'system_prompt_manual_update_lead_source_links',
-            type: 'action',
-            details: {
-              metadata: {
-                promptId: promptId,
-                promptTitle: promptTitle,
-                stateName: result.stateName || null,
-                linkCount: result.linkCount,
-                isAutoInjection: isAutoInjection,
-                success: true,
-                // Token and cost estimates
-                estimatedRequestTokens: result.estimatedRequestTokens || 0,
-                estimatedResponseTokens: result.estimatedResponseTokens || 0,
-                estimatedTotalTokens: result.estimatedTotalTokens || 0,
-                estimatedRequestCostCents: result.estimatedRequestCostCents || 0,
-                estimatedResponseCostCents: result.estimatedResponseCostCents || 0,
-                estimatedTotalCostCents: result.estimatedTotalCostCents || 0,
-                model: result.model || 'gpt-5-mini',
-                provider: result.provider || 'openai',
-                promptTextSize: result.promptTextSize || 0,
-              },
-            },
-          });
-        } catch (analyticsError) {
-          // Don't fail the operation if analytics fails
-          console.error('Failed to record analytics:', analyticsError);
-        }
-        
-        // Show success message only if manually triggered
-        if (!isAutoInjection) {
-          setModalMessage({
-            type: 'success',
-            text: result.message
-          });
-        }
-        
-        // Refresh prompts to show updated content
-        // The prompts will be refetched automatically by the query
-      } else {
-        if (!isAutoInjection) {
-          setModalMessage({
-            type: 'error',
-            text: result.message || 'Failed to update prompt with lead source links'
-          });
-        }
+      const prompt = systemPrompts?.find(p => p._id === promptId);
+      if (!prompt) {
+        throw new Error('Prompt not found');
       }
-    } catch (error) {
-      console.error('Error updating prompt with lead source links:', error);
-      if (!isAutoInjection) {
-        setModalMessage({
-          type: 'error',
-          text: error instanceof Error ? error.message : 'Failed to update prompt with lead source links'
-        });
-      }
+
+      await updatePromptWithLeadSourceLinks({
+        promptId,
+      });
+    } catch (err) {
+      console.error('Error updating prompt with lead source links:', err);
     } finally {
       setUpdatingPromptId(null);
     }
@@ -1314,170 +825,38 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
 
   const handleUpdatePromptWithStateLinks = async (promptId: Id<"chatSystemPrompts">, isAutoInjection: boolean = false) => {
     setUpdatingPromptId(promptId);
-    if (!isAutoInjection) {
-      setModalMessage(null);
-    }
-    
-    // Get prompt info for analytics
-    const prompt = systemPrompts?.find(p => p._id === promptId);
-    const promptTitle = prompt?.title || 'Unknown';
-    
     try {
-      const result = await updatePromptWithStateLinks({ promptId });
-      if (result.success) {
-        // Record analytics for successful update
-        try {
-          await createLog({
-            action: isAutoInjection 
-              ? 'system_prompt_auto_inject_links' 
-              : 'system_prompt_manual_update_links',
-            type: 'action',
-            details: {
-              metadata: {
-                promptId: promptId,
-                promptTitle: promptTitle,
-                stateName: result.stateName || null,
-                linkCount: result.linkCount,
-                isAutoInjection: isAutoInjection,
-                success: true,
-                // Token and cost estimates
-                estimatedRequestTokens: result.estimatedRequestTokens || 0,
-                estimatedResponseTokens: result.estimatedResponseTokens || 0,
-                estimatedTotalTokens: result.estimatedTotalTokens || 0,
-                estimatedRequestCostCents: result.estimatedRequestCostCents || 0,
-                estimatedResponseCostCents: result.estimatedResponseCostCents || 0,
-                estimatedTotalCostCents: result.estimatedTotalCostCents || 0,
-                model: result.model || 'gpt-5-mini',
-                provider: result.provider || 'openai',
-                promptTextSize: result.promptTextSize || 0,
-              },
-            },
-          });
-        } catch (analyticsError) {
-          // Don't fail the operation if analytics fails
-          console.error('Failed to record analytics:', analyticsError);
-        }
-        
-        // Show success message only if manually triggered
-        if (!isAutoInjection) {
-          setModalMessage({
-            type: 'success',
-            text: result.message
-          });
-          setTimeout(() => setModalMessage(null), 5000);
-        }
-        // Reset the ref after successful update so it can be checked again if needed
-        if (lastAutoInjectedPromptId.current === promptId) {
-          lastAutoInjectedPromptId.current = null;
-        }
-      } else {
-        // Record analytics for failed update
-        try {
-          await createLog({
-            action: isAutoInjection 
-              ? 'system_prompt_auto_inject_links' 
-              : 'system_prompt_manual_update_links',
-            type: 'error',
-            details: {
-              errorMessage: result.message,
-              metadata: {
-                promptId: promptId,
-                promptTitle: promptTitle,
-                stateName: result.stateName || null,
-                linkCount: result.linkCount,
-                isAutoInjection: isAutoInjection,
-                success: false,
-                // Token and cost estimates (may be undefined on error)
-                estimatedRequestTokens: result.estimatedRequestTokens || 0,
-                estimatedResponseTokens: result.estimatedResponseTokens || 0,
-                estimatedTotalTokens: result.estimatedTotalTokens || 0,
-                estimatedRequestCostCents: result.estimatedRequestCostCents || 0,
-                estimatedResponseCostCents: result.estimatedResponseCostCents || 0,
-                estimatedTotalCostCents: result.estimatedTotalCostCents || 0,
-                model: result.model || 'gpt-5-mini',
-                provider: result.provider || 'openai',
-                promptTextSize: result.promptTextSize || 0,
-              },
-            },
-          });
-        } catch (analyticsError) {
-          console.error('Failed to record analytics:', analyticsError);
-        }
-        
-        // Show error message (even for auto-injection, as this indicates a problem)
-        setModalMessage({
-          type: 'error',
-          text: result.message
-        });
-        setTimeout(() => setModalMessage(null), 5000);
-        // Reset ref on error so it can be retried
-        if (lastAutoInjectedPromptId.current === promptId) {
-          lastAutoInjectedPromptId.current = null;
-        }
+      const prompt = systemPrompts?.find(p => p._id === promptId);
+      if (!prompt) {
+        throw new Error('Prompt not found');
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update prompt with state links';
-      
-      // Record analytics for exception
-      try {
-        await createLog({
-          action: isAutoInjection 
-            ? 'system_prompt_auto_inject_links' 
-            : 'system_prompt_manual_update_links',
-          type: 'error',
-          details: {
-            errorMessage: errorMessage,
-            metadata: {
-              promptId: promptId,
-              promptTitle: promptTitle,
-              isAutoInjection: isAutoInjection,
-              success: false,
-              // Token and cost estimates (0 on error)
-              estimatedRequestTokens: 0,
-              estimatedResponseTokens: 0,
-              estimatedTotalTokens: 0,
-              estimatedRequestCostCents: 0,
-              estimatedResponseCostCents: 0,
-              estimatedTotalCostCents: 0,
-              model: 'gpt-5-mini',
-              provider: 'openai',
-              promptTextSize: 0,
-            },
-          },
-        });
-      } catch (analyticsError) {
-        console.error('Failed to record analytics:', analyticsError);
-      }
-      
-      // Show error message (even for auto-injection)
-      setModalMessage({
-        type: 'error',
-        text: errorMessage
+
+      await updatePromptWithStateLinks({
+        promptId,
       });
-      setTimeout(() => setModalMessage(null), 5000);
-      // Reset ref on error so it can be retried
-      if (lastAutoInjectedPromptId.current === promptId) {
-        lastAutoInjectedPromptId.current = null;
-      }
+    } catch (err) {
+      console.error('Error updating prompt with state links:', err);
     } finally {
       setUpdatingPromptId(null);
     }
   };
 
-  // Filter prompts based on search query and type filter
+  const handleCancelGeneration = () => {
+    cancellationRef.current = true;
+    setGeneratingPrompts(false);
+  };
+
   const filteredSystemPrompts = useMemo((): SystemPrompt[] | undefined => {
     if (!systemPrompts) return undefined;
     
     let filtered: SystemPrompt[] = [...systemPrompts];
     
-    // Filter by type
     if (selectedPromptTypeFilter === 'primary') {
       filtered = filtered.filter(p => p.isPrimarySystemPrompt);
     } else if (selectedPromptTypeFilter !== 'all') {
       filtered = filtered.filter(p => p.type === selectedPromptTypeFilter);
     }
     
-    // Filter by search query
     if (promptSearchQuery.trim()) {
       const query = promptSearchQuery.toLowerCase().trim();
       filtered = filtered.filter((prompt: SystemPrompt) => {
@@ -1492,9 +871,143 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     return filtered;
   }, [systemPrompts, promptSearchQuery, selectedPromptTypeFilter, promptTypes]);
 
+  const handleSelectWorkflow = (workflowId: Id<"leadHuntWorkflows">) => {
+    setCurrentWorkflowId(workflowId);
+    const workflow = workflows?.find(w => w._id === workflowId);
+    if (workflow) {
+      setSelectedSystemPromptId(workflow.systemPromptId || undefined);
+      setUserInput(workflow.userInput);
+    }
+  };
+
+  const handleDeleteWorkflow = async (workflowId: Id<"leadHuntWorkflows">, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this hunt?')) return;
+    
+    try {
+      await deleteWorkflow({ workflowId });
+      if (currentWorkflowId === workflowId) {
+        handleNewHunt();
+      }
+    } catch (error) {
+      console.error('Error deleting workflow:', error);
+      alert(`Failed to delete hunt: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleStart = async () => {
+    if (selectedSystemPromptId === null) {
+      alert('Please select a state lead system prompt');
+      return;
+    }
+
+    // Extract state from prompt title if a specific prompt is selected
+    let stateName = 'Primary';
+    if (selectedSystemPromptId) {
+      const selectedPrompt = leadsPrompts?.find(p => p._id === selectedSystemPromptId);
+      if (selectedPrompt) {
+        const titleParts = selectedPrompt.title.split(/[\s-–—]/);
+        stateName = titleParts[0] || selectedPrompt.title || 'Selected State';
+      }
+    } else if (selectedSystemPromptId === undefined) {
+      stateName = 'Primary';
+    }
+
+    setError(null);
+    startTransition(async () => {
+      try {
+        const newWorkflowId = await createWorkflow({
+          state: stateName,
+          userInput: userInput.trim() || `Find procurement leads in ${stateName}`,
+          systemPromptId: selectedSystemPromptId || undefined,
+        });
+
+        setCurrentWorkflowId(newWorkflowId);
+
+        // Start the workflow
+        await startWorkflow({ workflowId: newWorkflowId });
+        
+        // Notify parent if callback provided
+        if (onLeadsFound) {
+          onLeadsFound(newWorkflowId);
+        }
+      } catch (error) {
+        console.error('Error starting workflow:', error);
+        setError(`Failed to start hunt: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
+  };
+
+  const handleCancel = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
+    if (!currentWorkflowId || isCanceling) {
+      return;
+    }
+
+    setIsCanceling(true);
+    
+    try {
+      await cancelWorkflow({ workflowId: currentWorkflowId });
+    } catch (error) {
+      console.error('Error canceling workflow:', error);
+      alert(`Failed to cancel hunt: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsCanceling(false);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!currentWorkflowId) return;
+
+    try {
+      await resumeWorkflow({ workflowId: currentWorkflowId });
+      await triggerResumeEvent({ workflowId: currentWorkflowId });
+    } catch (error) {
+      console.error('Error resuming workflow:', error);
+      alert(`Failed to resume hunt: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'running':
+        return 'text-tron-cyan';
+      case 'paused':
+        return 'text-yellow-400';
+      case 'completed':
+        return 'text-green-400';
+      case 'failed':
+        return 'text-red-400';
+      case 'canceled':
+        return 'text-gray-400';
+      default:
+        return 'text-tron-gray';
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const colors = {
+      pending: 'bg-gray-500',
+      running: 'bg-tron-cyan',
+      paused: 'bg-yellow-500',
+      completed: 'bg-green-500',
+      canceled: 'bg-gray-500',
+      failed: 'bg-red-500',
+    };
+
+    return (
+      <span className={`px-2 py-1 rounded text-xs font-semibold ${colors[status as keyof typeof colors] || 'bg-gray-500'}`}>
+        {status.toUpperCase()}
+      </span>
+    );
+  };
+
+
   return (
     <div className="flex h-full relative">
-      {/* Mobile History Overlay - Only show when sidebar is open on mobile */}
+      {/* Mobile History Overlay */}
       {showHistory && (
         <div
           className="lg:hidden fixed inset-0 bg-black/50 z-[35]"
@@ -1516,9 +1029,8 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-tron-cyan">
                 <History className="w-4 h-4" />
-                <span className="text-sm font-medium">Chat History</span>
+                <span className="text-sm font-medium">Hunt History</span>
               </div>
-              {/* Close button for mobile */}
               <button
                 onClick={() => setShowHistory(false)}
                 className="lg:hidden p-1 text-tron-gray hover:text-tron-white transition-colors"
@@ -1528,60 +1040,47 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
               </button>
             </div>
             <TronButton
-              onClick={handleNewChat}
+              onClick={handleNewHunt}
               variant="outline"
               color="cyan"
               size="sm"
               icon={<Plus className="w-3 h-3" />}
               className="w-full"
             >
-              New Chat
+              New Hunt
             </TronButton>
-            {isSignedIn && isCobecAdmin === true && (
-              <>
-                <TronButton
-                  onClick={handleClearCorruptedThreadIds}
-                  variant="outline"
-                  color="orange"
-                  size="sm"
-                  icon={isClearing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wrench className="w-3 h-3" />}
-                  className="w-full mt-2"
-                  disabled={isClearing}
-                >
-                  {isClearing ? 'Clearing...' : 'Fix Thread Errors'}
-                </TronButton>
-                <TronButton
-                  onClick={handleOpenPromptSettings}
-                  variant="outline"
-                  color="cyan"
-                  size="sm"
-                  icon={<Settings className="w-3 h-3" />}
-                  className="w-full mt-2"
-                >
-                  System Prompts
-                </TronButton>
-              </>
+            {isSignedIn && (
+              <TronButton
+                onClick={handleOpenPromptSettings}
+                variant="outline"
+                color="cyan"
+                size="sm"
+                icon={<Settings className="w-3 h-3" />}
+                className="w-full mt-2"
+              >
+                System Prompts
+              </TronButton>
             )}
           </div>
           
-          {/* Session List */}
+          {/* Workflow List */}
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {sessions === undefined ? (
+            {workflows === undefined ? (
               <div className="flex items-center justify-center py-4 text-tron-gray">
                 <Loader2 className="w-4 h-4 animate-spin" />
               </div>
-            ) : sessions.length === 0 ? (
+            ) : workflows.length === 0 ? (
               <div className="text-center text-tron-gray text-xs py-4">
-                <MessageSquare className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <p>No chat history yet</p>
+                <Search className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                <p>No hunt history yet</p>
               </div>
             ) : (
-              sessions.map((session) => (
+              workflows.map((workflow) => (
                 <div
-                  key={session._id}
-                  onClick={() => handleSelectSession(session._id)}
-                  className={`group p-2 rounded cursor-pointer transition-colors ${
-                    currentSessionId === session._id
+                  key={workflow._id}
+                  onClick={() => handleSelectWorkflow(workflow._id)}
+                  className={`group p-2 rounded-lg cursor-pointer transition-colors ${
+                    currentWorkflowId === workflow._id
                       ? 'bg-tron-cyan/20 border border-tron-cyan/40'
                       : 'hover:bg-tron-bg-deep border border-transparent'
                   }`}
@@ -1589,17 +1088,23 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-tron-white truncate font-medium">
-                        {session.title}
+                        {generateWorkflowTitle(workflow.state, workflow.userInput)}
                       </p>
                       <div className="flex items-center gap-1 text-tron-gray text-[10px] mt-1">
                         <Clock className="w-3 h-3" />
-                        {formatTimestamp(session.lastMessageAt || session.createdAt)}
+                        {formatTimestamp(workflow.updatedAt || workflow.createdAt)}
                       </div>
+                      {workflow.leadsFound > 0 && (
+                        <div className="flex items-center gap-1 text-tron-cyan text-[10px] mt-1">
+                          <CheckCircle className="w-3 h-3" />
+                          {workflow.leadsFound} lead{workflow.leadsFound !== 1 ? 's' : ''}
+                        </div>
+                      )}
                     </div>
                     <button
-                      onClick={(e) => handleDeleteSession(session._id, e)}
+                      onClick={(e) => handleDeleteWorkflow(workflow._id, e)}
                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-neon-error/20 rounded transition-all"
-                      title="Delete chat"
+                      title="Delete hunt"
                     >
                       <Trash2 className="w-3 h-3 text-neon-error" />
                     </button>
@@ -1614,13 +1119,13 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
       {/* Main Chat Area */}
       <div ref={mainChatAreaRef} className="flex-1 flex flex-col min-w-0 relative z-10">
         <TronPanel 
-          title="Procurement Link Assistant" 
-          icon={<MessageSquare className="w-5 h-5" />}
+          title="Lead Hunt Assistant" 
+          icon={<Search className="w-5 h-5" />}
           glowColor="cyan"
           className="flex-1 flex flex-col overflow-hidden"
           headerAction={
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* History Toggle Button - Top Right - Always Visible */}
+              {/* History Toggle Button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1631,8 +1136,8 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                     ? 'text-tron-cyan bg-tron-cyan/20' 
                     : 'text-tron-gray hover:text-tron-white hover:bg-tron-cyan/10'
                 }`}
-                aria-label={showHistory ? "Close chat history" : "Open chat history"}
-                title={showHistory ? "Close chat history" : "Open chat history"}
+                aria-label={showHistory ? "Close hunt history" : "Open hunt history"}
+                title={showHistory ? "Close hunt history" : "Open hunt history"}
               >
                 <History className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -1645,313 +1150,187 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                 <SystemPromptSelect
                   value={selectedSystemPromptId}
                   onChange={setSelectedSystemPromptId}
-                  systemPrompts={systemPrompts}
+                  systemPrompts={leadsPrompts}
                   promptTypes={promptTypes}
-                  disabled={systemPrompts === undefined}
+                  disabled={leadsPrompts === undefined}
                 />
               </div>
             </div>
           }
         >
-          {/* Messages History */}
-          <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[300px] sm:min-h-[400px] max-h-[500px] sm:max-h-[600px] px-2 sm:px-0">
-            {!isSignedIn && messages.length === 0 && (
-              <div className="text-center text-tron-gray py-12">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">Try the AI Chat Assistant</p>
-                <p className="text-sm mb-2">You have <span className="text-tron-cyan font-semibold">{freeMessagesRemaining}</span> free message{freeMessagesRemaining !== 1 ? 's' : ''} remaining</p>
-                <p className="text-xs mb-4 text-tron-gray/70">Sign in for unlimited access</p>
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <div className="flex gap-1">
-                    {Array.from({ length: FREE_MESSAGE_LIMIT }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-2 h-2 rounded-full ${
-                          i < freeMessagesUsed
-                            ? 'bg-tron-cyan'
-                            : 'bg-tron-cyan/20 border border-tron-cyan/30'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs text-tron-gray">
-                    {freeMessagesUsed}/{FREE_MESSAGE_LIMIT} used
-                  </span>
-                </div>
-                <a
-                  href="/"
-                  className="inline-flex items-center px-4 py-2 bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30 rounded-lg hover:bg-tron-cyan/30 transition-colors text-sm"
-                >
-                  Sign In for Full Access
-                </a>
-              </div>
-            )}
-            {isSignedIn && messages.length === 0 && !currentSessionId && (
-              <div className="text-center text-tron-gray py-12">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Start a conversation to find procurement links!</p>
-                <p className="text-sm mt-2">Try: "Get me procurement links for all Texas cities with population over 500k"</p>
+          {/* Messages/Workflow Status */}
+          <div className="flex-1 overflow-y-auto space-y-4 mb-4 px-2 sm:px-0">
+            {!currentWorkflowId && (
+              <div className="text-center text-tron-gray py-8 sm:py-12">
+                <Search className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+                <p className="text-sm sm:text-base">Start a conversation to find procurement leads!</p>
+                <p className="text-xs sm:text-sm mt-2">Try: "Find procurement leads for Florida focusing on IT services"</p>
                 <TronButton
-                  onClick={handleNewChat}
+                  onClick={handleNewHunt}
                   variant="primary"
                   color="cyan"
                   size="sm"
                   icon={<Plus className="w-4 h-4" />}
                   className="mt-4"
                 >
-                  Start New Chat
+                  Start New Hunt
                 </TronButton>
               </div>
             )}
-            
-            {isSignedIn && messages.length === 0 && currentSessionId && (
-              <div className="text-center text-tron-gray py-12">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Ask about procurement links for any region!</p>
-                <p className="text-sm mt-2">Try: "Get me procurement links for all Texas cities with population over 500k"</p>
-              </div>
-            )}
-            
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] rounded-lg p-3 sm:p-4 ${
-                    message.role === 'user'
-                      ? 'bg-tron-cyan/20 border border-tron-cyan/30 text-tron-white'
-                      : message.isError
-                      ? 'bg-neon-error/10 border border-neon-error/30 text-tron-white'
-                      : 'bg-tron-bg-card border border-tron-cyan/10 text-tron-white'
-                  }`}
-                >
-                  {/* Message Content */}
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm whitespace-pre-wrap flex-1">{message.content}</p>
-                    {message.role === 'user' && (
-                      <button
-                        onClick={() => handleRetryMessage(message.id, message.content)}
-                        disabled={retryingMessageId === message.id || isPending}
-                        className="flex-shrink-0 p-1.5 rounded-full hover:bg-tron-cyan/30 
-                                   transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                                   text-tron-cyan hover:text-tron-cyan-bright"
-                        title="Retry this request"
-                      >
-                        {retryingMessageId === message.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4" />
-                        )}
-                      </button>
-                    )}
+
+            {currentWorkflow && (
+              <>
+                {/* User Message */}
+                <div className="flex justify-end">
+                  <div className="max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] rounded-lg p-3 sm:p-4 bg-tron-cyan/20 border border-tron-cyan/30 text-tron-white overflow-hidden">
+                    <p className="text-sm whitespace-pre-wrap">{currentWorkflow.userInput}</p>
                   </div>
-                  
-                  {/* Assistant Response with Links */}
-                  {message.role === 'assistant' && message.response && !message.isError && (
-                    <div className="mt-4 space-y-3 pt-4 border-t border-tron-cyan/10">
-                      {/* Metadata */}
-                      <div className="flex items-center justify-between text-xs text-tron-gray flex-wrap gap-2">
-                        <span>
-                          Found {message.response.search_metadata.count_found} links for: {message.response.search_metadata.target_regions.join(', ')}
+                </div>
+
+                {/* Workflow Status */}
+                <div className="flex justify-start">
+                  <div className="max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] rounded-lg p-3 sm:p-4 bg-tron-bg-card border border-tron-cyan/10 text-tron-white overflow-hidden">
+                    <div className="space-y-3">
+                      {/* Status Badge */}
+                      <div className="flex items-center gap-3">
+                        {getStatusBadge(currentWorkflow.status)}
+                        <span className={`text-sm font-medium ${getStatusColor(currentWorkflow.status)}`}>
+                          {currentWorkflow.currentTask || 'Idle'}
                         </span>
-                        <div className="flex gap-2">
-                          <TronButton
-                            onClick={() => handleDownloadJson(message.response!)}
-                            variant="outline"
-                            color="cyan"
-                            size="sm"
-                            icon={<Download className="w-3 h-3" />}
-                          >
-                            JSON
-                          </TronButton>
-                          <TronButton
-                            onClick={() => handleExportToVerifier(message.id, message.response!)}
-                            variant="primary"
-                            color="cyan"
-                            size="sm"
-                            disabled={exportingMessageId === message.id}
-                            icon={exportingMessageId === message.id 
-                              ? <Loader2 className="w-3 h-3 animate-spin" /> 
-                              : <Upload className="w-3 h-3" />}
-                          >
-                            {exportingMessageId === message.id ? 'Exporting...' : 'To Verifier'}
-                          </TronButton>
-                        </div>
                       </div>
-                      
-                      {/* Export Success Message */}
-                      {exportResult && exportResult.messageId === message.id && (
-                        <div className="p-2 bg-neon-success/20 border border-neon-success/40 rounded-lg">
-                          <div className="flex items-center gap-2 text-xs text-neon-success">
-                            <CheckCircle className="w-3 h-3" />
-                            <span>
-                              Exported to Link Verifier: {exportResult.result.imported} imported
-                              {exportResult.result.skipped > 0 && `, ${exportResult.result.skipped} skipped (duplicates)`}
-                            </span>
+
+                      {/* Progress */}
+                      {currentWorkflow.currentStep && currentWorkflow.totalSteps && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-tron-gray">
+                            <span>Step {currentWorkflow.currentStep} of {currentWorkflow.totalSteps}</span>
+                          </div>
+                          <div className="w-full bg-tron-bg-panel rounded-full h-2">
+                            <div
+                              className="bg-tron-cyan h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${(currentWorkflow.currentStep / currentWorkflow.totalSteps) * 100}%`,
+                              }}
+                            />
                           </div>
                         </div>
                       )}
 
-                      {/* Links Preview */}
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {message.response.procurement_links.map((link, idx) => (
-                          <div key={idx} className="p-3 bg-tron-bg-deep rounded border border-tron-cyan/10 hover:border-tron-cyan/30 transition-colors">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-tron-white flex items-center gap-2 mb-1 text-sm">
-                                  <MapPin className="w-3 h-3 text-tron-cyan flex-shrink-0" />
-                                  <span className="truncate">{link.state} - {link.capital}</span>
-                                </h4>
-                                <p className="text-xs text-tron-gray flex items-center gap-1 mb-2">
-                                  <Building2 className="w-3 h-3" />
-                                  {link.entity_type || 'Government Entity'} • {link.link_type || 'Procurement Link'}
-                                </p>
-                              </div>
-                              {link.confidence_score !== undefined && (
-                                <span className={`text-xs px-2 py-1 rounded flex-shrink-0 ml-2 ${
-                                  link.confidence_score >= 0.8 ? 'bg-neon-success/20 text-neon-success border border-neon-success/30' :
-                                  link.confidence_score >= 0.5 ? 'bg-neon-warning/20 text-neon-warning border border-neon-warning/30' :
-                                  'bg-neon-error/20 text-neon-error border border-neon-error/30'
-                                }`}>
-                                  {Math.round(link.confidence_score * 100)}%
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div className="space-y-1.5">
-                              <a 
-                                href={link.official_website} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-xs text-tron-gray hover:text-tron-cyan transition-colors group"
-                              >
-                                <Globe className="w-3 h-3 flex-shrink-0" />
-                                <span className="truncate group-hover:underline">{link.official_website}</span>
-                                <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                              </a>
-                              <a 
-                                href={link.procurement_link} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-sm text-tron-cyan hover:text-tron-cyan-bright transition-colors group"
-                              >
-                                <span className="truncate group-hover:underline">{link.procurement_link}</span>
-                                <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                              </a>
-                            </div>
+                      {/* Leads Found */}
+                      {currentWorkflow.leadsFound > 0 && (
+                        <div className="text-sm text-tron-gray">
+                          Found {currentWorkflow.leadsFound} lead{currentWorkflow.leadsFound !== 1 ? 's' : ''}
+                        </div>
+                      )}
+
+                      {/* Raw AI Response */}
+                      {currentWorkflow.rawAiResponse && (
+                        <div className="mt-4 pt-4 border-t border-tron-cyan/10">
+                          <h4 className="text-xs font-semibold text-tron-gray mb-2">Raw AI Response</h4>
+                          <div className="bg-tron-bg-deep border border-tron-cyan/10 rounded-lg p-3 max-h-64 overflow-y-auto">
+                            <ClickableJsonViewer content={currentWorkflow.rawAiResponse} />
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            
-            {/* Loading indicator */}
-            {isPending && (
+
+                {/* Lead Review Panel */}
+                {currentWorkflow.status === 'paused' && currentWorkflow.leadsFound > 0 && (
+                  <div className="mt-4">
+                    <LeadReviewPanel workflowId={currentWorkflowId!} workflowLeadsFound={currentWorkflow.leadsFound} />
+                  </div>
+                )}
+              </>
+            )}
+
+            {error && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] lg:max-w-[75%] rounded-lg p-4 bg-tron-bg-card border border-tron-cyan/10">
-                  <div className="flex items-center gap-2 text-tron-gray">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Thinking...</span>
+                <div className="max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] rounded-lg p-3 sm:p-4 bg-neon-error/10 border border-neon-error/30 text-tron-white">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-neon-error" />
+                    <p className="text-sm">{error}</p>
                   </div>
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Chat Input */}
-          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 border-t border-tron-cyan/10 pt-3 sm:pt-4 px-2 sm:px-0">
-            {/* Free message indicator for unauthenticated users */}
-            {!isSignedIn && (
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 p-2 sm:p-3 bg-tron-bg-panel border border-tron-cyan/20 rounded-lg">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <MessageCircle className="w-4 h-4 text-tron-cyan flex-shrink-0" />
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs text-tron-white font-medium truncate">
-                      <span className="hidden sm:inline">Free Messages: </span>{freeMessagesRemaining} remaining
-                    </span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex gap-1">
-                        {Array.from({ length: FREE_MESSAGE_LIMIT }).map((_, i) => (
-                          <div
-                            key={i}
-                            className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                              i < freeMessagesUsed
-                                ? 'bg-tron-cyan'
-                                : 'bg-tron-cyan/20 border border-tron-cyan/30'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-tron-gray">
-                        {freeMessagesUsed}/{FREE_MESSAGE_LIMIT} used
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                {freeMessagesRemaining === 0 && (
-                  <a
-                    href="/"
-                    className="text-xs px-3 py-1.5 bg-tron-cyan/20 text-tron-cyan border border-tron-cyan/30 rounded-lg hover:bg-tron-cyan/30 transition-colors whitespace-nowrap text-center"
+          {/* Input Area */}
+          <div className="border-t border-tron-cyan/20 pt-4">
+            {!currentWorkflowId ? (
+              <div className="space-y-4">
+                <textarea
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  placeholder="Ask about procurement leads: e.g., 'Find procurement leads for Florida focusing on IT services'"
+                  rows={3}
+                  className="w-full px-4 py-2 bg-tron-bg-card border border-tron-cyan/30 rounded-lg text-tron-white placeholder-tron-gray focus:outline-none focus:border-tron-cyan resize-none overflow-hidden"
+                />
+                <TronButton
+                  onClick={handleStart}
+                  disabled={selectedSystemPromptId === null || leadsPrompts === undefined || isPending}
+                  variant="primary"
+                  color="cyan"
+                  size="sm"
+                  icon={isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  className="w-full"
+                >
+                  {isPending ? 'Starting Hunt...' : 'Start Hunt'}
+                </TronButton>
+              </div>
+            ) : currentWorkflow && (
+              <div className="flex items-center gap-3">
+                {currentWorkflow.status === 'paused' && (
+                  <TronButton
+                    onClick={handleResume}
+                    variant="primary"
+                    color="cyan"
+                    size="sm"
+                    icon={<Play className="w-4 h-4" />}
                   >
-                    Sign In
-                  </a>
+                    Resume
+                  </TronButton>
+                )}
+                {(currentWorkflow.status === 'running' || currentWorkflow.status === 'paused') && (
+                  <>
+                    <TronButton
+                      onClick={handleCancel}
+                      disabled={isCanceling}
+                      variant="outline"
+                      color="orange"
+                      size="sm"
+                      icon={isCanceling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Square className="w-4 h-4" />}
+                    >
+                      {isCanceling ? 'Canceling...' : 'Cancel'}
+                    </TronButton>
+                    <TronButton
+                      onClick={handleNewHunt}
+                      variant="outline"
+                      color="cyan"
+                      size="sm"
+                    >
+                      New Hunt
+                    </TronButton>
+                  </>
+                )}
+                {(currentWorkflow.status === 'completed' || currentWorkflow.status === 'failed' || currentWorkflow.status === 'canceled') && (
+                  <TronButton
+                    onClick={handleNewHunt}
+                    variant="primary"
+                    color="cyan"
+                    size="sm"
+                    icon={<Plus className="w-4 h-4" />}
+                  >
+                    New Hunt
+                  </TronButton>
                 )}
               </div>
             )}
-            
-            {error && (
-              <div className="p-2 sm:p-3 bg-neon-error/20 border border-neon-error rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-neon-error mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-neon-error break-words">{error}</p>
-                </div>
-              </div>
-            )}
-            
-            <div>
-              <label className="block text-xs sm:text-sm text-tron-gray mb-2">
-                Ask about procurement links or portals:
-              </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={
-                  isSignedIn 
-                    ? "e.g., 'How do I find procurement links for Texas cities?' or 'What are common patterns for government procurement portals?'"
-                    : freeMessagesRemaining > 0
-                    ? `Try asking about procurement links! (${freeMessagesRemaining} free message${freeMessagesRemaining !== 1 ? 's' : ''} left)`
-                    : "Sign in to use the AI Chat Assistant"
-                }
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base bg-tron-bg-deep border border-tron-cyan/20 rounded-lg 
-                           text-tron-white placeholder-tron-gray focus:outline-none focus:ring-2 
-                           focus:ring-tron-cyan focus:border-tron-cyan resize-none"
-                rows={3}
-                disabled={isPending || (!isSignedIn && freeMessagesRemaining === 0)}
-              />
-            </div>
-            
-            <TronButton
-              type="submit"
-              variant="primary"
-              color="cyan"
-              disabled={isPending || !prompt.trim() || (!isSignedIn && freeMessagesRemaining === 0)}
-              icon={isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              className="w-full sm:w-auto"
-            >
-              <span className="hidden sm:inline">
-                {isPending ? 'Sending...' : freeMessagesRemaining === 0 && !isSignedIn ? 'Sign In to Continue' : 'Send Message'}
-              </span>
-              <span className="sm:hidden">
-                {isPending ? 'Sending...' : freeMessagesRemaining === 0 && !isSignedIn ? 'Sign In' : 'Send'}
-              </span>
-            </TronButton>
-          </form>
+          </div>
         </TronPanel>
       </div>
 
@@ -1972,7 +1351,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                   setModalMessage(null);
                   setPromptSearchQuery('');
                   setSelectedPromptTypeFilter('all');
-                  setSelectedPromptIds(new Set()); // Clear selection when closing modal
+                  setSelectedPromptIds(new Set());
                 }}
                 className="p-2 hover:bg-tron-cyan/10 rounded-lg transition-colors"
               >
@@ -2188,7 +1567,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                   <div className="flex flex-col gap-4 mb-4">
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-tron-gray">
-                        Manage system prompts for the Procurement Chat AI. The primary prompt will be used for all conversations.
+                        Manage system prompts for the Lead Hunt Assistant. The primary prompt will be used for all conversations.
                       </p>
                       <div className="flex items-center gap-2">
                         {selectedPromptIds.size > 0 && (
@@ -2500,7 +1879,6 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                               <div className="absolute top-full right-0 mt-2 w-48 bg-tron-bg-card border border-tron-cyan/30 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60] overflow-hidden pointer-events-auto">
                                 <div className="py-1">
                                   {(() => {
-                                    // Check if this is a Leads type prompt
                                     const leadsType = promptTypes?.find(t => t.name === "leads");
                                     const isLeadsPrompt = leadsType && prompt.type === leadsType._id;
                                     

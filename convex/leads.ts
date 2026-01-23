@@ -139,6 +139,82 @@ export const deleteLead = mutation({
   },
 });
 
+// Internal mutation to create a lead from lead hunt workflow
+export const createLeadFromHunt = internalMutation({
+  args: {
+    opportunityType: v.string(),
+    opportunityTitle: v.string(),
+    contractID: v.optional(v.string()),
+    issuingBody: v.object({
+      name: v.string(),
+      level: v.string(),
+    }),
+    location: v.object({
+      city: v.optional(v.string()),
+      county: v.optional(v.string()),
+      region: v.string(),
+    }),
+    status: v.string(),
+    estimatedValueUSD: v.optional(v.number()),
+    keyDates: v.object({
+      publishedDate: v.optional(v.string()),
+      bidDeadline: v.optional(v.string()),
+      projectedStartDate: v.optional(v.string()),
+    }),
+    source: v.object({
+      documentName: v.string(),
+      url: v.string(),
+    }),
+    contacts: v.array(
+      v.object({
+        name: v.optional(v.string()),
+        title: v.string(),
+        email: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        url: v.optional(v.string()),
+      }),
+    ),
+    summary: v.string(),
+    verificationStatus: v.optional(v.string()),
+    category: v.optional(v.string()),
+    subcategory: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
+    searchableText: v.optional(v.string()),
+    leadHuntWorkflowId: v.id("leadHuntWorkflows"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    return await ctx.db.insert("leads", {
+      opportunityType: args.opportunityType,
+      opportunityTitle: args.opportunityTitle,
+      contractID: args.contractID,
+      issuingBody: args.issuingBody,
+      location: args.location,
+      status: args.status,
+      estimatedValueUSD: args.estimatedValueUSD,
+      keyDates: args.keyDates,
+      source: args.source,
+      contacts: args.contacts,
+      summary: args.summary,
+      verificationStatus: args.verificationStatus,
+      category: args.category,
+      subcategory: args.subcategory,
+      isActive: args.isActive ?? true,
+      searchableText: args.searchableText,
+      leadHuntWorkflowId: args.leadHuntWorkflowId,
+      viabilityStatus: "pending",
+      lastChecked: now,
+      createdAt: now,
+      updatedAt: now,
+      metadata: {
+        importedAt: now,
+        dataType: "lead_hunt",
+      },
+    });
+  },
+});
+
 // Bulk create leads from JSON data
 export const bulkCreateLeads = mutation({
   args: {
@@ -262,14 +338,22 @@ const normalizeUrl = (url: string): string => {
   return url.trim().toLowerCase().replace(/\/$/, ""); // Remove trailing slash
 };
 
-// Helper function to normalize titles for duplicate detection
-const normalizeTitle = (title: string): string => {
-  if (!title) return "";
-  return title.trim().toLowerCase();
+// Helper function to normalize document names for duplicate detection
+const normalizeDocumentName = (docName: string): string => {
+  if (!docName) return "";
+  return docName.trim().toLowerCase();
+};
+
+// Helper function to normalize contract IDs for duplicate detection
+const normalizeContractID = (contractID: string): string => {
+  if (!contractID) return "";
+  return contractID.trim().toLowerCase();
 };
 
 // Find and delete duplicate leads
-// Duplicates are detected by: 1) contractID match, or 2) opportunityTitle + source.url match
+// Duplicates are detected by: contractID + source (documentName + url)
+// This ensures leads with the same contractID but different sources are NOT considered duplicates
+// and leads with the same source but different contractIDs are also NOT considered duplicates
 export const deleteDuplicateLeads = mutation({
   args: {},
   handler: async (ctx) => {
@@ -290,18 +374,30 @@ export const deleteDuplicateLeads = mutation({
       let duplicateKey: string | null = null;
       let reason = "";
 
-      // Check by contractID first (most reliable)
-      if (lead.contractID) {
-        duplicateKey = `contractID:${lead.contractID}`;
-        reason = `contractID: ${lead.contractID}`;
-      } else {
-        // Check by title + URL
-        const normalizedUrl = normalizeUrl(lead.source?.url || "");
-        const normalizedTitle = normalizeTitle(lead.opportunityTitle || "");
-        if (normalizedTitle && normalizedUrl) {
-          duplicateKey = `title+url:${normalizedTitle}|${normalizedUrl}`;
-          reason = `title + URL: ${lead.opportunityTitle}`;
-        }
+      // Normalize source fields
+      const normalizedUrl = normalizeUrl(lead.source?.url || "");
+      const normalizedDocName = normalizeDocumentName(lead.source?.documentName || "");
+
+      // Match by contractID + source (documentName + url)
+      // Both contractID and source must match for a duplicate
+      if (lead.contractID && normalizedDocName && normalizedUrl) {
+        const normalizedContractID = normalizeContractID(lead.contractID);
+        duplicateKey = `contractID+source:${normalizedContractID}|${normalizedDocName}|${normalizedUrl}`;
+        reason = `contractID (${lead.contractID}) + source (${lead.source.documentName})`;
+      } else if (lead.contractID && normalizedUrl) {
+        // Fallback: contractID + URL only (if documentName is missing)
+        const normalizedContractID = normalizeContractID(lead.contractID);
+        duplicateKey = `contractID+url:${normalizedContractID}|${normalizedUrl}`;
+        reason = `contractID (${lead.contractID}) + URL`;
+      } else if (lead.contractID && normalizedDocName) {
+        // Fallback: contractID + documentName only (if URL is missing)
+        const normalizedContractID = normalizeContractID(lead.contractID);
+        duplicateKey = `contractID+doc:${normalizedContractID}|${normalizedDocName}`;
+        reason = `contractID (${lead.contractID}) + documentName (${lead.source.documentName})`;
+      } else if (normalizedDocName && normalizedUrl) {
+        // Fallback: source only (if no contractID) - match by documentName + URL
+        duplicateKey = `source:${normalizedDocName}|${normalizedUrl}`;
+        reason = `source (${lead.source.documentName})`;
       }
 
       if (duplicateKey) {
@@ -322,6 +418,11 @@ export const deleteDuplicateLeads = mutation({
           // First occurrence - keep it
           seen.set(duplicateKey, lead._id);
         }
+      } else {
+        // No matching criteria - skip this lead (can't determine duplicates)
+        console.log(
+          `[deleteDuplicateLeads] Skipping lead ${lead._id} - insufficient data for duplicate detection (missing contractID and/or source fields)`,
+        );
       }
     }
 

@@ -32,6 +32,9 @@ import * as procurementScraperQueries from "./procurementScraperQueries";
 import * as procurementScraperSystemPrompts from "./procurementScraperSystemPrompts";
 import * as procurementScraperBatchJobs from "./procurementScraperBatchJobs";
 import * as htmlParsingActions from "./htmlParsingActions";
+import * as leadHuntWorkflows from "./leadHuntWorkflows";
+import * as leadHuntActions from "./leadHuntActions";
+import * as leadHuntWorkflow from "./leadHuntWorkflow";
 
 // Export all functions as a single API object
 export default {
@@ -67,4 +70,7 @@ export default {
   procurementScraperSystemPrompts,
   procurementScraperBatchJobs,
   htmlParsingActions,
+  leadHuntWorkflows,
+  leadHuntActions,
+  leadHuntWorkflow,
 };

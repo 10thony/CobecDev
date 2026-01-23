@@ -68,7 +68,7 @@ export function TronPanel({
         </div>
       )}
       
-      <div className="p-6">
+      <div className="p-6 flex flex-col min-h-0">
         {children}
       </div>
     </div>

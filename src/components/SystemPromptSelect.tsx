@@ -33,8 +33,32 @@ export function SystemPromptSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredOption, setHoveredOption] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right'>('left');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownMenuRef = useRef<HTMLDivElement>(null);
+
+  // Calculate dropdown position to prevent overflow
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        if (triggerRef.current && dropdownMenuRef.current) {
+          const triggerRect = triggerRef.current.getBoundingClientRect();
+          const dropdownWidth = dropdownMenuRef.current.offsetWidth || 250; // Default min width
+          const spaceOnRight = window.innerWidth - triggerRect.right;
+          const spaceOnLeft = triggerRect.left;
+          
+          // If there's not enough space on the right but enough on the left, position to the right
+          if (spaceOnRight < dropdownWidth && spaceOnLeft >= dropdownWidth) {
+            setDropdownPosition('right');
+          } else {
+            setDropdownPosition('left');
+          }
+        }
+      });
+    }
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -140,7 +164,7 @@ export function SystemPromptSelect({
                    text-tron-white focus:outline-none focus:ring-2 focus:ring-tron-cyan 
                    focus:border-tron-cyan cursor-pointer min-w-[120px] sm:min-w-[150px]
                    disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between gap-2
-                   hover:border-tron-cyan/50 transition-colors"
+                   hover:border-tron-cyan/50 transition-colors overflow-hidden"
       >
         <span className="truncate">{getDisplayText()}</span>
         <ChevronDown 

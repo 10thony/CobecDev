@@ -428,6 +428,15 @@ const applicationTables = {
     })),
     // Additional flexible field for imported data
     adHoc: v.optional(v.any()), // For any additional data from imports
+    // Lead Hunt Workflow fields
+    leadHuntWorkflowId: v.optional(v.id("leadHuntWorkflows")), // Which workflow created this lead
+    viabilityStatus: v.optional(v.union(
+      v.literal("pending"), // Awaiting user review
+      v.literal("viable"), // User marked as viable
+      v.literal("not_viable") // User marked as not viable
+    )),
+    reviewedAt: v.optional(v.number()),
+    reviewedBy: v.optional(v.string()), // Clerk user ID
     createdAt: v.number(), // When lead was created
     updatedAt: v.number(), // When lead was last updated
   }).index("by_opportunity_type", ["opportunityType"])
@@ -444,11 +453,46 @@ const applicationTables = {
     .index("by_embedding_generated", ["embeddingGeneratedAt"])
     .index("by_estimated_value", ["estimatedValueUSD"])
     .index("by_source_url", ["source.url"])
+    .index("by_lead_hunt_workflow", ["leadHuntWorkflowId"])
+    .index("by_viability_status", ["viabilityStatus"])
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
       filterFields: ["category", "location.region", "opportunityType"],
     }),
+
+  // Lead Hunt Workflows - tracks lead hunting workflow instances
+  leadHuntWorkflows: defineTable({
+    userId: v.string(), // Clerk user ID
+    state: v.string(), // Target state for lead hunting
+    userInput: v.string(), // Additional user input/query
+    status: v.union(
+      v.literal("pending"), // Workflow created but not started
+      v.literal("running"), // Workflow is executing
+      v.literal("paused"), // Waiting for user input
+      v.literal("completed"), // Workflow finished successfully
+      v.literal("canceled"), // User canceled the workflow
+      v.literal("failed") // Workflow encountered an error
+    ),
+    currentTask: v.optional(v.string()), // Description of current task
+    currentStep: v.optional(v.number()), // Current step number
+    totalSteps: v.optional(v.number()), // Total expected steps
+    leadsFound: v.number(), // Count of leads found so far
+    leadsPendingReview: v.array(v.id("leads")), // Leads waiting for user review
+    workflowId: v.optional(v.string()), // Convex workflow ID
+    systemPromptId: v.optional(v.id("chatSystemPrompts")), // System prompt used
+    systemPromptText: v.optional(v.string()), // System prompt text for display
+    userPromptText: v.optional(v.string()), // User prompt text for display
+    rawAiResponse: v.optional(v.string()), // Raw AI response for debugging
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    canceledAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_workflow_id", ["workflowId"])
+    .index("by_creation", ["createdAt"]),
 
   // Job Postings - TEMPORARY: Kept for migration purposes only
   // TODO: Remove this table after migrateJobPostingsToLeads migration completes successfully
