@@ -32,8 +32,10 @@ export function SystemPromptSelect({
 }: SystemPromptSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredOption, setHoveredOption] = useState<string | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; transform?: string } | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right'>('left');
+  const [dropdownVerticalPosition, setDropdownVerticalPosition] = useState<'bottom' | 'top'>('bottom');
+  const [dropdownMaxHeight, setDropdownMaxHeight] = useState<number>(300);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
@@ -55,10 +57,26 @@ export function SystemPromptSelect({
           } else {
             setDropdownPosition('left');
           }
+
+          // Check vertical space - estimate dropdown height (max 300px + some buffer)
+          const estimatedDropdownHeight = Math.min(300, (systemPrompts?.length || 0) * 32 + 64); // Rough estimate
+          const spaceBelow = window.innerHeight - triggerRect.bottom - 8; // 8px margin
+          const spaceAbove = triggerRect.top - 8; // 8px margin
+          
+          // If not enough space below but enough above, position above
+          if (spaceBelow < estimatedDropdownHeight && spaceAbove >= estimatedDropdownHeight) {
+            setDropdownVerticalPosition('top');
+            // Set max height based on available space above
+            setDropdownMaxHeight(Math.min(300, Math.max(100, spaceAbove)));
+          } else {
+            setDropdownVerticalPosition('bottom');
+            // Set max height based on available space below
+            setDropdownMaxHeight(Math.min(300, Math.max(100, spaceBelow)));
+          }
         }
       });
     }
-  }, [isOpen]);
+  }, [isOpen, systemPrompts]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -120,13 +138,41 @@ export function SystemPromptSelect({
       const tooltipX = rect.right + 8;
       const tooltipY = rect.top + rect.height / 2;
       
-      // Adjust if tooltip would go off-screen
+      // Adjust if tooltip would go off-screen horizontally
       const maxX = window.innerWidth - 320; // 300px max width + 20px margin
       const adjustedX = tooltipX > maxX ? rect.left - 320 : tooltipX;
       
+      // Adjust if tooltip would go off-screen vertically
+      // Estimate tooltip height (roughly 120px for description + title)
+      const estimatedTooltipHeight = 120;
+      const halfHeight = estimatedTooltipHeight / 2;
+      const margin = 8;
+      
+      // Check if tooltip would go off bottom
+      const wouldGoOffBottom = tooltipY + halfHeight + margin > window.innerHeight;
+      // Check if tooltip would go off top
+      const wouldGoOffTop = tooltipY - halfHeight - margin < 0;
+      
+      let adjustedY = tooltipY;
+      let transform = 'translateY(-50%)';
+      
+      if (wouldGoOffBottom && !wouldGoOffTop) {
+        // Position above center, aligned to bottom
+        adjustedY = window.innerHeight - margin;
+        transform = 'translateY(-100%)';
+      } else if (wouldGoOffTop && !wouldGoOffBottom) {
+        // Position below center, aligned to top
+        adjustedY = margin;
+        transform = 'translateY(0%)';
+      } else if (wouldGoOffBottom && wouldGoOffTop) {
+        // Very constrained space - center as best as possible
+        adjustedY = Math.max(halfHeight + margin, Math.min(window.innerHeight - halfHeight - margin, tooltipY));
+      }
+      
       setTooltipPosition({
         x: Math.max(8, adjustedX), // Ensure at least 8px from left edge
-        y: tooltipY,
+        y: adjustedY,
+        transform,
       });
     }
   };
@@ -142,13 +188,35 @@ export function SystemPromptSelect({
       const tooltipX = rect.right + 8;
       const tooltipY = rect.top + rect.height / 2;
       
-      // Adjust if tooltip would go off-screen
+      // Adjust if tooltip would go off-screen horizontally
       const maxX = window.innerWidth - 320; // 300px max width + 20px margin
       const adjustedX = tooltipX > maxX ? rect.left - 320 : tooltipX;
       
+      // Adjust if tooltip would go off-screen vertically
+      const estimatedTooltipHeight = 120;
+      const halfHeight = estimatedTooltipHeight / 2;
+      const margin = 8;
+      
+      const wouldGoOffBottom = tooltipY + halfHeight + margin > window.innerHeight;
+      const wouldGoOffTop = tooltipY - halfHeight - margin < 0;
+      
+      let adjustedY = tooltipY;
+      let transform = 'translateY(-50%)';
+      
+      if (wouldGoOffBottom && !wouldGoOffTop) {
+        adjustedY = window.innerHeight - margin;
+        transform = 'translateY(-100%)';
+      } else if (wouldGoOffTop && !wouldGoOffBottom) {
+        adjustedY = margin;
+        transform = 'translateY(0%)';
+      } else if (wouldGoOffBottom && wouldGoOffTop) {
+        adjustedY = Math.max(halfHeight + margin, Math.min(window.innerHeight - halfHeight - margin, tooltipY));
+      }
+      
       setTooltipPosition({
-        x: adjustedX,
-        y: tooltipY,
+        x: Math.max(8, adjustedX),
+        y: adjustedY,
+        transform,
       });
     }
   };
@@ -173,9 +241,16 @@ export function SystemPromptSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 z-50 min-w-[200px] sm:min-w-[250px] 
-                       bg-tron-bg-deep border border-tron-cyan/30 rounded-lg shadow-tron-glow 
-                       overflow-hidden max-h-[300px] overflow-y-auto">
+        <div 
+          ref={dropdownMenuRef}
+          className={`absolute ${dropdownVerticalPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'} 
+                     ${dropdownPosition === 'right' ? 'right-0' : 'left-0'} z-50 min-w-[200px] sm:min-w-[250px] 
+                     bg-tron-bg-deep border border-tron-cyan/30 rounded-lg shadow-tron-glow 
+                     overflow-hidden overflow-y-auto`}
+          style={{
+            maxHeight: `${dropdownMaxHeight}px`
+          }}
+        >
           {/* Primary option */}
           <div
             onClick={() => handleSelect('primary')}
@@ -225,9 +300,11 @@ export function SystemPromptSelect({
                     : 'text-tron-white hover:bg-tron-cyan/10'
                 }`}
               >
-                {prompt.title}
-                {prompt.isPrimarySystemPrompt && ' (Primary)'}
-                {promptType && ` - ${promptType.displayName}`}
+                <span className="block truncate">
+                  {prompt.title}
+                  {prompt.isPrimarySystemPrompt && ' (Primary)'}
+                  {promptType && ` - ${promptType.displayName}`}
+                </span>
               </div>
             );
           })}
@@ -242,7 +319,7 @@ export function SystemPromptSelect({
           style={{
             left: `${Math.max(8, tooltipPosition.x)}px`, // Ensure at least 8px from left edge
             top: `${tooltipPosition.y}px`,
-            transform: 'translateY(-50%)',
+            transform: tooltipPosition.transform || 'translateY(-50%)',
           }}
         >
           <div className="font-semibold text-tron-cyan mb-1">

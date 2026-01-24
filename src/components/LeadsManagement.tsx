@@ -202,7 +202,7 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const deleteLead = useMutation(api.leads.deleteLead);
   const toggleLeadActive = useMutation(api.leads.toggleLeadActive);
   const markLeadAsChecked = useMutation(api.leads.markLeadAsChecked);
-  const deleteDuplicateLeads = useMutation(api.leads.deleteDuplicateLeads);
+  const cleanUpLeads = useMutation(api.leads.cleanUpLeads);
 
   // Actions
   const importTexasLeads = useAction(api.leadsActions.importTexasLeadsFromJson);
@@ -620,22 +620,32 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                     e.stopPropagation();
                     setShowActionsMenu(false);
                     setActionsMenuClickedOpen(false);
-                    if (window.confirm('This will find and delete duplicate leads. Continue?')) {
+                    if (window.confirm('This will remove duplicate leads and leads with expired start times or deadlines. Continue?')) {
                       try {
-                        const result = await deleteDuplicateLeads({});
-                        alert(`Deleted ${result.deleted} duplicate leads out of ${result.totalChecked} checked.`);
+                        const result = await cleanUpLeads({});
+                        const parts = [];
+                        if (result.duplicatesFound > 0) {
+                          parts.push(`${result.duplicatesFound} duplicate${result.duplicatesFound > 1 ? 's' : ''}`);
+                        }
+                        if (result.expiredFound > 0) {
+                          parts.push(`${result.expiredFound} expired lead${result.expiredFound > 1 ? 's' : ''}`);
+                        }
+                        const summary = parts.length > 0 
+                          ? `Removed ${parts.join(' and ')}`
+                          : 'No leads needed cleanup';
+                        alert(`${summary} out of ${result.totalChecked} checked. Total deleted: ${result.deleted}`);
                         // Refresh by clearing selected lead
                         setSelectedLeadId(null);
                       } catch (error) {
-                        console.error('Error deleting duplicates:', error);
-                        alert(`Failed to delete duplicates: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                        console.error('Error cleaning up leads:', error);
+                        alert(`Failed to clean up leads: ${error instanceof Error ? error.message : 'Unknown error'}`);
                       }
                     }
                   }}
                   className="w-full px-4 py-2.5 text-left text-sm text-tron-white hover:bg-tron-orange/20 flex items-center gap-2 transition-colors"
                 >
                   <Trash2 className="w-4 h-4 text-tron-orange" />
-                  <span className="text-tron-orange">Delete Duplicates</span>
+                  <span className="text-tron-orange">Clean Up Leads</span>
                 </button>
                 <div className="border-t border-tron-cyan/20 my-1"></div>
                 <button

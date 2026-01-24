@@ -215,7 +215,7 @@ export const createLeadFromHunt = internalMutation({
   },
 });
 
-// Bulk create leads from JSON data
+// Bulk create leads from JSON data with duplicate detection
 export const bulkCreateLeads = mutation({
   args: {
     leads: v.array(v.any()), // Use v.any() to allow dynamic fields
@@ -224,8 +224,66 @@ export const bulkCreateLeads = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     const results = [];
+    const skipped: Array<{ title: string; reason: string }> = [];
+    
+    // Get all existing leads to check for duplicates
+    // We'll build a map of duplicate keys for fast lookup
+    const existingLeads = await ctx.db.query("leads").collect();
+    const duplicateKeys = new Set<string>();
+    
+    // Build set of existing duplicate keys
+    for (const existingLead of existingLeads) {
+      const normalizedUrl = normalizeUrl(existingLead.source?.url || "");
+      const normalizedDocName = normalizeDocumentName(existingLead.source?.documentName || "");
+      const normalizedContractID = normalizeContractID(existingLead.contractID || "");
+      
+      // Use same logic as deleteDuplicateLeads
+      if (existingLead.contractID && normalizedDocName && normalizedUrl) {
+        duplicateKeys.add(`contractID+source:${normalizedContractID}|${normalizedDocName}|${normalizedUrl}`);
+      } else if (existingLead.contractID && normalizedUrl) {
+        duplicateKeys.add(`contractID+url:${normalizedContractID}|${normalizedUrl}`);
+      } else if (existingLead.contractID && normalizedDocName) {
+        duplicateKeys.add(`contractID+doc:${normalizedContractID}|${normalizedDocName}`);
+      } else if (normalizedDocName && normalizedUrl) {
+        duplicateKeys.add(`source:${normalizedDocName}|${normalizedUrl}`);
+      }
+    }
 
     for (const lead of args.leads) {
+      // Normalize fields for duplicate detection
+      const normalizedUrl = normalizeUrl(lead.source?.url || "");
+      const normalizedDocName = normalizeDocumentName(lead.source?.documentName || "");
+      const normalizedContractID = normalizeContractID(lead.contractID || "");
+      
+      // Check for duplicate using same logic as deleteDuplicateLeads
+      let duplicateKey: string | null = null;
+      let duplicateReason = "";
+      let isDuplicate = false;
+      
+      if (lead.contractID && normalizedDocName && normalizedUrl) {
+        duplicateKey = `contractID+source:${normalizedContractID}|${normalizedDocName}|${normalizedUrl}`;
+        duplicateReason = `contractID (${lead.contractID}) + source (${lead.source?.documentName})`;
+      } else if (lead.contractID && normalizedUrl) {
+        duplicateKey = `contractID+url:${normalizedContractID}|${normalizedUrl}`;
+        duplicateReason = `contractID (${lead.contractID}) + URL`;
+      } else if (lead.contractID && normalizedDocName) {
+        duplicateKey = `contractID+doc:${normalizedContractID}|${normalizedDocName}`;
+        duplicateReason = `contractID (${lead.contractID}) + documentName (${lead.source?.documentName})`;
+      } else if (normalizedDocName && normalizedUrl) {
+        duplicateKey = `source:${normalizedDocName}|${normalizedUrl}`;
+        duplicateReason = `source (${lead.source?.documentName})`;
+      }
+      
+      // Check if this is a duplicate
+      if (duplicateKey && duplicateKeys.has(duplicateKey)) {
+        isDuplicate = true;
+        skipped.push({
+          title: lead.opportunityTitle || "Untitled Opportunity",
+          reason: duplicateReason,
+        });
+        continue; // Skip this lead
+      }
+      
       // Ensure required fields are present with defaults
       const processedLead = {
         opportunityType: lead.opportunityType || "Unknown",
@@ -297,9 +355,18 @@ export const bulkCreateLeads = mutation({
 
       const leadId = await ctx.db.insert("leads", processedLead);
       results.push(leadId);
+      
+      // Add the new lead's key to the set to prevent duplicates within the same import batch
+      if (duplicateKey) {
+        duplicateKeys.add(duplicateKey);
+      }
     }
 
-    return results;
+    return {
+      imported: results,
+      skipped: skipped.length,
+      skippedDetails: skipped.slice(0, 50), // Limit to first 50 for response size
+    };
   },
 });
 
@@ -350,11 +417,31 @@ const normalizeContractID = (contractID: string): string => {
   return contractID.trim().toLowerCase();
 };
 
-// Find and delete duplicate leads
+// Helper function to parse a date string and check if it's in the past
+function isDateInPast(dateString: string | undefined): boolean {
+  if (!dateString) return false;
+  
+  try {
+    const parsedDate = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(parsedDate.getTime())) return false;
+    
+    // Compare with current date (set time to midnight for date-only comparison)
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    parsedDate.setHours(0, 0, 0, 0);
+    
+    return parsedDate < now;
+  } catch (error) {
+    console.warn(`[cleanUpLeads] Failed to parse date: ${dateString}`, error);
+    return false;
+  }
+}
+
+// Clean up leads by removing duplicates and expired leads (past start time or deadline)
 // Duplicates are detected by: contractID + source (documentName + url)
-// This ensures leads with the same contractID but different sources are NOT considered duplicates
-// and leads with the same source but different contractIDs are also NOT considered duplicates
-export const deleteDuplicateLeads = mutation({
+// Expired leads are those with bidDeadline or projectedStartDate in the past
+export const cleanUpLeads = mutation({
   args: {},
   handler: async (ctx) => {
     const allLeads = await ctx.db.query("leads").collect();
@@ -364,15 +451,47 @@ export const deleteDuplicateLeads = mutation({
       reason: string;
       duplicateOf: string;
     }> = [];
+    const expired: Array<{
+      id: string;
+      reason: string;
+    }> = [];
     const deletedIds: string[] = [];
 
     console.log(
-      `[deleteDuplicateLeads] Checking ${allLeads.length} leads for duplicates...`,
+      `[cleanUpLeads] Checking ${allLeads.length} leads for duplicates and expired dates...`,
     );
 
     for (const lead of allLeads) {
+      let shouldDelete = false;
+      let deleteReason = "";
+      let isExpired = false;
+      let isDuplicate = false;
+
+      // Check if lead has expired dates (bidDeadline or projectedStartDate in the past)
+      const bidDeadline = lead.keyDates?.bidDeadline;
+      const projectedStartDate = lead.keyDates?.projectedStartDate;
+      
+      if (isDateInPast(bidDeadline)) {
+        isExpired = true;
+        shouldDelete = true;
+        deleteReason = `expired bid deadline (${bidDeadline})`;
+        expired.push({
+          id: lead._id,
+          reason: deleteReason,
+        });
+      } else if (isDateInPast(projectedStartDate)) {
+        isExpired = true;
+        shouldDelete = true;
+        deleteReason = `expired projected start date (${projectedStartDate})`;
+        expired.push({
+          id: lead._id,
+          reason: deleteReason,
+        });
+      }
+
+      // Check for duplicates (check all leads, even expired ones, for accurate duplicate tracking)
       let duplicateKey: string | null = null;
-      let reason = "";
+      let duplicateReason = "";
 
       // Normalize source fields
       const normalizedUrl = normalizeUrl(lead.source?.url || "");
@@ -383,61 +502,73 @@ export const deleteDuplicateLeads = mutation({
       if (lead.contractID && normalizedDocName && normalizedUrl) {
         const normalizedContractID = normalizeContractID(lead.contractID);
         duplicateKey = `contractID+source:${normalizedContractID}|${normalizedDocName}|${normalizedUrl}`;
-        reason = `contractID (${lead.contractID}) + source (${lead.source.documentName})`;
+        duplicateReason = `contractID (${lead.contractID}) + source (${lead.source.documentName})`;
       } else if (lead.contractID && normalizedUrl) {
         // Fallback: contractID + URL only (if documentName is missing)
         const normalizedContractID = normalizeContractID(lead.contractID);
         duplicateKey = `contractID+url:${normalizedContractID}|${normalizedUrl}`;
-        reason = `contractID (${lead.contractID}) + URL`;
+        duplicateReason = `contractID (${lead.contractID}) + URL`;
       } else if (lead.contractID && normalizedDocName) {
         // Fallback: contractID + documentName only (if URL is missing)
         const normalizedContractID = normalizeContractID(lead.contractID);
         duplicateKey = `contractID+doc:${normalizedContractID}|${normalizedDocName}`;
-        reason = `contractID (${lead.contractID}) + documentName (${lead.source.documentName})`;
+        duplicateReason = `contractID (${lead.contractID}) + documentName (${lead.source.documentName})`;
       } else if (normalizedDocName && normalizedUrl) {
         // Fallback: source only (if no contractID) - match by documentName + URL
         duplicateKey = `source:${normalizedDocName}|${normalizedUrl}`;
-        reason = `source (${lead.source.documentName})`;
+        duplicateReason = `source (${lead.source.documentName})`;
       }
 
       if (duplicateKey) {
         const firstLeadId = seen.get(duplicateKey);
         if (firstLeadId) {
-          // This is a duplicate - keep the first one, delete this one
+          // This is a duplicate
+          isDuplicate = true;
+          if (!shouldDelete) {
+            // Only mark for deletion if not already expired
+            shouldDelete = true;
+            deleteReason = duplicateReason;
+          }
           duplicates.push({
             id: lead._id,
-            reason,
+            reason: duplicateReason,
             duplicateOf: firstLeadId,
           });
-          await ctx.db.delete(lead._id);
-          deletedIds.push(lead._id);
-          console.log(
-            `[deleteDuplicateLeads] Deleted duplicate lead ${lead._id} (${reason}) - duplicate of ${firstLeadId}`,
-          );
         } else {
-          // First occurrence - keep it
-          seen.set(duplicateKey, lead._id);
+          // First occurrence - keep it (unless it's expired)
+          if (!isExpired) {
+            seen.set(duplicateKey, lead._id);
+          }
         }
-      } else {
-        // No matching criteria - skip this lead (can't determine duplicates)
+      }
+
+      // Delete the lead if it's a duplicate or expired
+      if (shouldDelete) {
+        await ctx.db.delete(lead._id);
+        deletedIds.push(lead._id);
         console.log(
-          `[deleteDuplicateLeads] Skipping lead ${lead._id} - insufficient data for duplicate detection (missing contractID and/or source fields)`,
+          `[cleanUpLeads] Deleted lead ${lead._id} - ${deleteReason}`,
         );
       }
     }
 
     console.log(
-      `[deleteDuplicateLeads] Deleted ${deletedIds.length} duplicate leads out of ${allLeads.length} total`,
+      `[cleanUpLeads] Deleted ${deletedIds.length} leads (${duplicates.length} duplicates, ${expired.length} expired) out of ${allLeads.length} total`,
     );
 
     return {
       totalChecked: allLeads.length,
       duplicatesFound: duplicates.length,
+      expiredFound: expired.length,
       deleted: deletedIds.length,
       duplicateDetails: duplicates.slice(0, 50), // Limit to first 50 for response size
+      expiredDetails: expired.slice(0, 50), // Limit to first 50 for response size
     };
   },
 });
+
+// Legacy export for backwards compatibility
+export const deleteDuplicateLeads = cleanUpLeads;
 
 // Get all leads
 export const getAllLeads = query({

@@ -1,6 +1,6 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 // Action to import leads from JSON data (generic - handles both old and new formats)
 export const importLeadsFromJson = action({
@@ -85,8 +85,8 @@ export const importLeadsFromJson = action({
     
     return {
       success: true,
-      importedCount: result.length,
-      leadIds: result,
+      importedCount: result.imported.length,
+      leadIds: result.imported,
     };
   },
 });
@@ -415,8 +415,8 @@ export const importTexasLeadsFromJson = action({
     
     return {
       success: true,
-      importedCount: result.length,
-      leadIds: result,
+      importedCount: result.imported.length,
+      leadIds: result.imported,
     };
   },
 });
@@ -445,8 +445,18 @@ export const importJsonWithSchemaEvolution = action({
   handler: async (ctx, args): Promise<{
     success: boolean;
     importedCount: number;
+    skippedCount: number;
     leadIds: any[];
     schemaChanges: string[];
+    duplicates?: {
+      skipped: number;
+      skippedDetails: Array<{ title: string; reason: string }>;
+    };
+    promptUpdates?: {
+      statesProcessed: string[];
+      promptsUpdated: number;
+      errors: string[];
+    };
   }> => {
     const schemaChanges: string[] = [];
     
@@ -585,17 +595,57 @@ export const importJsonWithSchemaEvolution = action({
       return cleanLead;
     });
     
-    // Use the bulk create mutation
+    // Use the bulk create mutation (now with duplicate detection)
     const result = await ctx.runMutation(api.leads.bulkCreateLeads, {
       leads: processedLeads,
       sourceFile: args.sourceFile,
     });
     
+    // Automatically update system prompts for the states represented in the imported leads
+    // Only update prompts for leads that were actually imported (not skipped duplicates)
+    let promptUpdateResult;
+    try {
+      // Only process leads that were actually imported
+      const importedLeadIds = result.imported || [];
+      if (importedLeadIds.length > 0) {
+        // Get the actual imported leads to extract states
+        const importedLeads = await Promise.all(
+          importedLeadIds.map((id: any) => ctx.runQuery(api.leads.getLeadById, { id }))
+        );
+        const validImportedLeads = importedLeads.filter((lead: any) => lead !== null);
+        promptUpdateResult = await updateSystemPromptsForImportedLeads(ctx, validImportedLeads);
+      } else {
+        promptUpdateResult = {
+          statesProcessed: [],
+          promptsUpdated: 0,
+          errors: [],
+        };
+      }
+    } catch (error) {
+      // Log error but don't fail the import
+      console.error("Error updating system prompts after import:", error);
+      promptUpdateResult = {
+        statesProcessed: [],
+        promptsUpdated: 0,
+        errors: [error instanceof Error ? error.message : "Unknown error"],
+      };
+    }
+    
     return {
       success: true,
-      importedCount: result.length,
-      leadIds: result,
+      importedCount: result.imported?.length || 0,
+      skippedCount: result.skipped || 0,
+      leadIds: result.imported || [],
       schemaChanges,
+      duplicates: {
+        skipped: result.skipped || 0,
+        skippedDetails: result.skippedDetails || [],
+      },
+      promptUpdates: {
+        statesProcessed: promptUpdateResult.statesProcessed,
+        promptsUpdated: promptUpdateResult.promptsUpdated,
+        errors: promptUpdateResult.errors,
+      },
     };
   },
 });
@@ -613,4 +663,187 @@ function getMostCommonValue(leads: any[], field: string): string {
     .sort(([,a], [,b]) => b - a)[0];
   
   return mostCommon ? mostCommon[0] : "Unknown";
+}
+
+/**
+ * Extract state name from a region string (e.g., "Texas Triangle / Statewide" -> "Texas")
+ * Uses the same state mapping as extractStateFromTitle in chatSystemPrompts.ts
+ */
+function extractStateFromRegion(region: string): string | null {
+  if (!region || typeof region !== 'string') return null;
+  
+  const regionLower = region.toLowerCase();
+  
+  // Map of lowercase state names to their proper capitalized form
+  // IMPORTANT: Order matters! Longer/more specific names must come first
+  const stateMap: Record<string, string> = {
+    "district of columbia": "District of Columbia",
+    "new hampshire": "New Hampshire",
+    "new jersey": "New Jersey",
+    "new mexico": "New Mexico",
+    "new york": "New York",
+    "north carolina": "North Carolina",
+    "north dakota": "North Dakota",
+    "south carolina": "South Carolina",
+    "south dakota": "South Dakota",
+    "west virginia": "West Virginia",
+    "rhode island": "Rhode Island",
+    "alabama": "Alabama",
+    "alaska": "Alaska",
+    "arizona": "Arizona",
+    "arkansas": "Arkansas",
+    "california": "California",
+    "colorado": "Colorado",
+    "connecticut": "Connecticut",
+    "delaware": "Delaware",
+    "florida": "Florida",
+    "georgia": "Georgia",
+    "hawaii": "Hawaii",
+    "idaho": "Idaho",
+    "illinois": "Illinois",
+    "indiana": "Indiana",
+    "iowa": "Iowa",
+    "kansas": "Kansas",
+    "kentucky": "Kentucky",
+    "louisiana": "Louisiana",
+    "maine": "Maine",
+    "maryland": "Maryland",
+    "massachusetts": "Massachusetts",
+    "michigan": "Michigan",
+    "minnesota": "Minnesota",
+    "mississippi": "Mississippi",
+    "missouri": "Missouri",
+    "montana": "Montana",
+    "nebraska": "Nebraska",
+    "nevada": "Nevada",
+    "ohio": "Ohio",
+    "oklahoma": "Oklahoma",
+    "oregon": "Oregon",
+    "pennsylvania": "Pennsylvania",
+    "tennessee": "Tennessee",
+    "texas": "Texas",
+    "utah": "Utah",
+    "vermont": "Vermont",
+    "virginia": "Virginia",
+    "washington": "Washington",
+    "wisconsin": "Wisconsin",
+    "wyoming": "Wyoming"
+  };
+  
+  // Check states in order (longer names first to avoid false matches)
+  const stateKeys = Object.keys(stateMap).sort((a, b) => b.length - a.length);
+  
+  for (const stateKey of stateKeys) {
+    if (regionLower.includes(stateKey)) {
+      return stateMap[stateKey];
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Extract unique states from imported leads and update their system prompts
+ */
+async function updateSystemPromptsForImportedLeads(
+  ctx: any,
+  processedLeads: any[]
+): Promise<{
+  statesProcessed: string[];
+  promptsUpdated: number;
+  errors: string[];
+}> {
+  const statesProcessed: string[] = [];
+  let promptsUpdated = 0;
+  const errors: string[] = [];
+  
+  // Extract unique states from the imported leads
+  const stateSet = new Set<string>();
+  for (const lead of processedLeads) {
+    const region = lead.location?.region;
+    if (region) {
+      const stateName = extractStateFromRegion(region);
+      if (stateName) {
+        stateSet.add(stateName);
+      }
+    }
+  }
+  
+  const uniqueStates = Array.from(stateSet);
+  
+  if (uniqueStates.length === 0) {
+    return { statesProcessed: [], promptsUpdated: 0, errors: [] };
+  }
+  
+  // Get the "leads" prompt type
+  const leadsType = await ctx.runQuery(api.chatSystemPromptTypes.getByName, {
+    name: "leads",
+  });
+  
+  if (!leadsType) {
+    errors.push("Leads prompt type not found. Cannot update system prompts.");
+    return { statesProcessed: [], promptsUpdated: 0, errors };
+  }
+  
+  // For each state, find or create the prompt and update it
+  for (const stateName of uniqueStates) {
+    try {
+      // Check if prompt exists for this state
+      const existsCheck = await ctx.runQuery(
+        internal.chatSystemPrompts.checkPromptExistsInternal,
+        {
+          stateName,
+          typeId: leadsType._id,
+        }
+      );
+      
+      let promptId: any;
+      
+      if (existsCheck?.exists && existsCheck.promptId) {
+        // Prompt exists, use it
+        promptId = existsCheck.promptId;
+      } else {
+        // Prompt doesn't exist, create it using the generateStatePrompt action
+        // But we'll use a simpler approach: create it with default content
+        // The updatePromptWithLeadSourceLinks will handle the rest
+        const defaultPrompt = await ctx.runQuery(
+          internal.chatSystemPrompts.getDefaultLeadPromptInternal,
+          {}
+        );
+        
+        const defaultPromptText = defaultPrompt?.systemPromptText || 
+          "You are a specialized Lead Generation Agent. Your primary function is to assist users in identifying procurement opportunities and leads for specific geographic regions.";
+        
+        // Create the prompt
+        promptId = await ctx.runMutation(
+          internal.chatSystemPrompts.createStatePromptInternal,
+          {
+            stateName,
+            typeId: leadsType._id,
+            combinedPrompt: defaultPromptText,
+          }
+        );
+      }
+      
+      // Update the prompt with lead source links
+      const updateResult = await ctx.runMutation(
+        api.chatSystemPrompts.updatePromptWithLeadSourceLinks,
+        {
+          promptId,
+        }
+      );
+      
+      if (updateResult.success) {
+        statesProcessed.push(stateName);
+        promptsUpdated++;
+      } else {
+        errors.push(`Failed to update prompt for ${stateName}: ${updateResult.message}`);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      errors.push(`Error processing ${stateName}: ${errorMessage}`);
+    }
+  }
+  
+  return { statesProcessed, promptsUpdated, errors };
 }

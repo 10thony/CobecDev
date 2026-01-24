@@ -165,13 +165,12 @@ function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitl
   if (!isLeadsPrompt) return null;
   
   const stateName = extractStateFromTitle(promptTitle);
-  if (!stateName) return null;
   
-  // Query lead count for this state
-  const leadCount = useQuery(
-    api.leads.getLeadCountByState,
-    { stateName }
-  );
+  // For default prompts (no state name), show total lead count
+  // For state-specific prompts, show state lead count
+  const leadCount = stateName
+    ? useQuery(api.leads.getLeadCountByState, { stateName })
+    : useQuery(api.leads.getLeadsCount, {});
   
   // Only show if count > 0
   if (leadCount === undefined || leadCount === 0) return null;
@@ -256,15 +255,14 @@ function ProcurementLinkCountBadge({ promptTitle, promptTypeId, promptTypes }: {
     return null;
   };
   
-  // Extract state name from prompt title - show badge for all prompt types if state is found
+  // Extract state name from prompt title - show badge for all prompt types
   const stateName = extractStateFromTitle(promptTitle);
-  if (!stateName) return null;
   
-  // Query procurement link count for this state
-  const linkCount = useQuery(
-    api.procurementUrls.getApprovedProcurementLinkCountByState,
-    { stateName }
-  );
+  // For default prompts (no state name), show total approved link count
+  // For state-specific prompts, show state link count
+  const linkCount = stateName
+    ? useQuery(api.procurementUrls.getApprovedProcurementLinkCountByState, { stateName })
+    : useQuery(api.procurementUrls.getTotalApprovedProcurementLinkCount, {});
   
   // Only show if count > 0
   if (linkCount === undefined || linkCount === 0) return null;
@@ -371,6 +369,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
   const clearCorruptedThreadIds = useMutation(api.procurementChatSessions.clearCorruptedThreadIds);
   const sendChatMessage = useAction(api.simpleChat.sendMessage);
   const importToVerifier = useMutation(api.procurementUrls.importFromChatResponse);
+  const getFullPromptWithLinksAction = useAction(api.chatSystemPrompts.getFullPromptWithLinksAction);
   const [isClearing, setIsClearing] = useState(false);
   const [exportingMessageId, setExportingMessageId] = useState<string | null>(null);
   const [exportResult, setExportResult] = useState<{ messageId: string; result: { imported: number; skipped: number } } | null>(null);
@@ -870,9 +869,21 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
     }
   };
 
-  const handleCopyPrompt = async (promptText: string, promptTitle: string) => {
+  const handleCopyPrompt = async (promptId: Id<"chatSystemPrompts">, promptTitle: string) => {
     try {
-      await navigator.clipboard.writeText(promptText);
+      // Get the full prompt with all links included
+      const fullPromptText = await getFullPromptWithLinksAction({ promptId });
+      
+      if (!fullPromptText) {
+        setModalMessage({
+          type: 'error',
+          text: 'Failed to retrieve prompt text. Please try again.'
+        });
+        setTimeout(() => setModalMessage(null), 3000);
+        return;
+      }
+      
+      await navigator.clipboard.writeText(fullPromptText);
       setModalMessage({
         type: 'success',
         text: `System prompt "${promptTitle}" copied to clipboard!`
@@ -2530,7 +2541,7 @@ export function ProcurementChat({ onExportToVerifier }: ProcurementChatProps = {
                                     </button>
                                   )}
                                   <button
-                                    onClick={() => handleCopyPrompt(prompt.systemPromptText, prompt.title)}
+                                    onClick={() => handleCopyPrompt(prompt._id, prompt.title)}
                                     className="w-full px-4 py-2 text-left text-sm text-tron-white hover:bg-tron-cyan/20 flex items-center gap-2 transition-colors"
                                   >
                                     <Copy className="w-4 h-4 text-tron-cyan" />

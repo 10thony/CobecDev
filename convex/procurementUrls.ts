@@ -426,6 +426,21 @@ export const getApprovedProcurementLinkCountByState = query({
 });
 
 /**
+ * Get total count of all approved procurement URLs
+ * Used for displaying procurement link count badges on default system prompt cards
+ */
+export const getTotalApprovedProcurementLinkCount = query({
+  args: {},
+  handler: async (ctx): Promise<number> => {
+    const approvedLinks = await ctx.db
+      .query("procurementUrls")
+      .withIndex("by_status", (q) => q.eq("status", "approved"))
+      .collect();
+    return approvedLinks.length;
+  },
+});
+
+/**
  * Get stats about procurement URLs
  */
 export const getStats = query({

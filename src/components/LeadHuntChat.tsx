@@ -127,12 +127,12 @@ function LeadCountBadge({ promptTitle, promptTypeId, promptTypes }: { promptTitl
   if (!isLeadsPrompt) return null;
   
   const stateName = extractStateFromTitle(promptTitle);
-  if (!stateName) return null;
   
-  const leadCount = useQuery(
-    api.leads.getLeadCountByState,
-    { stateName }
-  );
+  // For default prompts (no state name), show total lead count
+  // For state-specific prompts, show state lead count
+  const leadCount = stateName
+    ? useQuery(api.leads.getLeadCountByState, { stateName })
+    : useQuery(api.leads.getLeadsCount, {});
   
   if (leadCount === undefined || leadCount === 0) return null;
   
@@ -213,12 +213,12 @@ function ProcurementLinkCountBadge({ promptTitle, promptTypeId, promptTypes }: {
   };
   
   const stateName = extractStateFromTitle(promptTitle);
-  if (!stateName) return null;
   
-  const linkCount = useQuery(
-    api.procurementUrls.getApprovedProcurementLinkCountByState,
-    { stateName }
-  );
+  // For default prompts (no state name), show total approved link count
+  // For state-specific prompts, show state link count
+  const linkCount = stateName
+    ? useQuery(api.procurementUrls.getApprovedProcurementLinkCountByState, { stateName })
+    : useQuery(api.procurementUrls.getTotalApprovedProcurementLinkCount, {});
   
   if (linkCount === undefined || linkCount === 0) return null;
   

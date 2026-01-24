@@ -342,6 +342,9 @@ export function JsonUploadComponent({ onClose, onSuccess }: JsonUploadComponentP
                   </h3>
                   <div className="text-sm text-neon-success space-y-1">
                     <p>• Imported {uploadResult.importedCount} leads</p>
+                    {uploadResult.skippedCount > 0 && (
+                      <p className="text-yellow-400">• Skipped {uploadResult.skippedCount} duplicate(s)</p>
+                    )}
                     {uploadResult.schemaChanges && uploadResult.schemaChanges.length > 0 && (
                       <div>
                         <p className="font-medium mt-2 mb-1">Schema Changes:</p>
@@ -349,6 +352,35 @@ export function JsonUploadComponent({ onClose, onSuccess }: JsonUploadComponentP
                           {uploadResult.schemaChanges.map((change: string, index: number) => (
                             <li key={index}>{change}</li>
                           ))}
+                        </ul>
+                      </div>
+                    )}
+                    {uploadResult.duplicates && uploadResult.duplicates.skipped > 0 && uploadResult.duplicates.skippedDetails.length > 0 && (
+                      <div className="mt-2">
+                        <p className="font-medium mb-1 text-yellow-400">Skipped Duplicates (sample):</p>
+                        <ul className="list-disc list-inside ml-2 space-y-1 max-h-32 overflow-y-auto">
+                          {uploadResult.duplicates.skippedDetails.slice(0, 10).map((dup: any, index: number) => (
+                            <li key={index} className="text-xs">
+                              {dup.title} ({dup.reason})
+                            </li>
+                          ))}
+                          {uploadResult.duplicates.skippedDetails.length > 10 && (
+                            <li className="text-xs italic">... and {uploadResult.duplicates.skippedDetails.length - 10} more</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                    {uploadResult.promptUpdates && (
+                      <div className="mt-2">
+                        <p className="font-medium mb-1">System Prompts Updated:</p>
+                        <ul className="list-disc list-inside ml-2 space-y-1">
+                          <li>Updated {uploadResult.promptUpdates.promptsUpdated} prompt(s) for {uploadResult.promptUpdates.statesProcessed.length} state(s)</li>
+                          {uploadResult.promptUpdates.statesProcessed.length > 0 && (
+                            <li>States: {uploadResult.promptUpdates.statesProcessed.join(', ')}</li>
+                          )}
+                          {uploadResult.promptUpdates.errors.length > 0 && (
+                            <li className="text-yellow-400">Warnings: {uploadResult.promptUpdates.errors.join('; ')}</li>
+                          )}
                         </ul>
                       </div>
                     )}

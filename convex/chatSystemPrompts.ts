@@ -191,6 +191,7 @@ export const getByIdInternal = internalQuery({
 /**
  * Get the full system prompt with all approved links included (for copying to clipboard)
  * This always includes the complete list of approved links, not summaries
+ * For default prompts (no state name), includes both procurement links and lead source links
  */
 export const getFullPromptWithLinks = query({
   args: {
@@ -209,28 +210,158 @@ export const getFullPromptWithLinks = query({
         .first();
     }
     
-    let basePrompt = prompt?.systemPromptText || DEFAULT_SYSTEM_PROMPT;
+    if (!prompt) {
+      return DEFAULT_SYSTEM_PROMPT;
+    }
     
-    // Get approved procurement links from the lookup table
+    let basePrompt = prompt.systemPromptText;
+    
+    // Check if this is a default prompt (no state name in title)
+    const stateName = extractStateFromTitle(prompt.title);
+    const isDefaultPrompt = !stateName;
+    
+    // Get approved procurement links
     const lookup = await ctx.db
       .query("approvedProcurementLinksLookUp")
       .first();
     
     const approvedLinks: ApprovedLink[] = lookup?.approvedProcurementLinks || [];
     
-    // If we have approved links, inject them with FULL details
-    if (approvedLinks && approvedLinks.length > 0) {
-      // Remove any existing approved links section
+    // For default prompts, get ALL links (procurement + lead source)
+    // For state-specific prompts, only get procurement links (lead source links are already in the prompt)
+    if (isDefaultPrompt) {
+      // Get ALL approved procurement links (not from lookup, directly from DB for completeness)
+      const allApprovedLinks = await ctx.db
+        .query("procurementUrls")
+        .withIndex("by_status", (q) => q.eq("status", "approved"))
+        .collect();
+      
+      const formattedProcurementLinks: ApprovedLink[] = allApprovedLinks.map((link) => ({
+        state: link.state,
+        capital: link.capital,
+        officialWebsite: "",
+        procurementLink: link.procurementLink,
+        entityType: null,
+        linkType: null,
+        requiresRegistration: link.requiresRegistration ?? null,
+      }));
+      
+      // Get ALL lead source links
+      const allLeadSourceLinks = await getAllLeadSourceLinks(ctx);
+      
+      // Remove any existing sections
       basePrompt = removeExistingApprovedLinksSection(basePrompt);
+      basePrompt = removeExistingLeadSourceLinksSection(basePrompt);
       
-      // Format with full details (always show all links)
-      const linksSection = formatApprovedLinksForPromptFull(approvedLinks);
+      // Format and inject procurement links
+      if (formattedProcurementLinks.length > 0) {
+        const procurementLinksSection = formatApprovedLinksForPromptFull(formattedProcurementLinks);
+        basePrompt = injectApprovedLinksIntoPrompt(basePrompt, procurementLinksSection);
+      }
       
-      // Inject the full links section
-      basePrompt = injectApprovedLinksIntoPrompt(basePrompt, linksSection);
+      // Format and inject lead source links
+      if (allLeadSourceLinks.length > 0) {
+        const leadSourceLinksSection = formatLeadSourceLinksForDefaultPrompt(allLeadSourceLinks);
+        basePrompt = injectLeadSourceLinksIntoPrompt(basePrompt, leadSourceLinksSection);
+      }
+    } else {
+      // For state-specific prompts, only add procurement links if they're not already in the prompt
+      // (The prompt should already have state-specific links from updateAllPromptsWithStateData)
+      // But for copying, we'll use what's already in the prompt text
+      // This ensures we copy exactly what's stored, including any state-specific lead source links
+      return basePrompt;
     }
     
     return basePrompt;
+  },
+});
+
+/**
+ * Internal query version of getFullPromptWithLinks (to avoid circular type references)
+ */
+export const getFullPromptWithLinksInternal = internalQuery({
+  args: {
+    promptId: v.optional(v.id("chatSystemPrompts")),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    // Get the system prompt
+    let prompt;
+    if (args.promptId) {
+      prompt = await ctx.db.get(args.promptId);
+    } else {
+      prompt = await ctx.db
+        .query("chatSystemPrompts")
+        .withIndex("by_primary", (q) => q.eq("isPrimarySystemPrompt", true))
+        .first();
+    }
+    
+    if (!prompt) {
+      return DEFAULT_SYSTEM_PROMPT;
+    }
+    
+    let basePrompt = prompt.systemPromptText;
+    
+    // Check if this is a default prompt (no state name in title)
+    const stateName = extractStateFromTitle(prompt.title);
+    const isDefaultPrompt = !stateName;
+    
+    // For default prompts, get ALL links (procurement + lead source)
+    // For state-specific prompts, return what's already in the prompt
+    if (isDefaultPrompt) {
+      // Get ALL approved procurement links
+      const allApprovedLinks = await ctx.db
+        .query("procurementUrls")
+        .withIndex("by_status", (q) => q.eq("status", "approved"))
+        .collect();
+      
+      const formattedProcurementLinks: ApprovedLink[] = allApprovedLinks.map((link) => ({
+        state: link.state,
+        capital: link.capital,
+        officialWebsite: "",
+        procurementLink: link.procurementLink,
+        entityType: null,
+        linkType: null,
+        requiresRegistration: link.requiresRegistration ?? null,
+      }));
+      
+      // Get ALL lead source links
+      const allLeadSourceLinks = await getAllLeadSourceLinks(ctx);
+      
+      // Remove any existing sections
+      basePrompt = removeExistingApprovedLinksSection(basePrompt);
+      basePrompt = removeExistingLeadSourceLinksSection(basePrompt);
+      
+      // Format and inject procurement links
+      if (formattedProcurementLinks.length > 0) {
+        const procurementLinksSection = formatApprovedLinksForPromptFull(formattedProcurementLinks);
+        basePrompt = injectApprovedLinksIntoPrompt(basePrompt, procurementLinksSection);
+      }
+      
+      // Format and inject lead source links
+      if (allLeadSourceLinks.length > 0) {
+        const leadSourceLinksSection = formatLeadSourceLinksForDefaultPrompt(allLeadSourceLinks);
+        basePrompt = injectLeadSourceLinksIntoPrompt(basePrompt, leadSourceLinksSection);
+      }
+    }
+    
+    return basePrompt;
+  },
+});
+
+/**
+ * Action to get the full system prompt with all links (for copying to clipboard)
+ * This wraps the internal query so it can be called from actions/handlers
+ */
+export const getFullPromptWithLinksAction = action({
+  args: {
+    promptId: v.optional(v.id("chatSystemPrompts")),
+  },
+  returns: v.string(),
+  handler: async (ctx, args): Promise<string> => {
+    return await ctx.runQuery(internal.chatSystemPrompts.getFullPromptWithLinksInternal, {
+      promptId: args.promptId,
+    });
   },
 });
 
@@ -1106,6 +1237,38 @@ async function getLeadSourceLinksForState(
 }
 
 /**
+ * Get ALL source links from leads (not state-specific)
+ * Returns unique source URLs from all leads in the system
+ */
+async function getAllLeadSourceLinks(
+  ctx: any
+): Promise<Array<{ url: string; documentName: string; leadCount: number }>> {
+  // Query all leads and extract source URLs
+  const sourceMap = new Map<string, { url: string; documentName: string; leadCount: number }>();
+  
+  // Query all leads (no filter needed since we want all of them)
+  const allLeads = await ctx.db.query("leads").collect();
+  
+  // Extract only source URLs from all leads
+  for (const lead of allLeads) {
+    if (lead.source?.url) {
+      const url = lead.source.url;
+      if (sourceMap.has(url)) {
+        sourceMap.get(url)!.leadCount++;
+      } else {
+        sourceMap.set(url, {
+          url,
+          documentName: lead.source.documentName || 'Unknown Document',
+          leadCount: 1,
+        });
+      }
+    }
+  }
+  
+  return Array.from(sourceMap.values()).sort((a, b) => b.leadCount - a.leadCount);
+}
+
+/**
  * Format lead source links into a readable section for the system prompt
  */
 function formatLeadSourceLinksForPrompt(
@@ -1130,6 +1293,57 @@ function formatLeadSourceLinksForPrompt(
   formatted += "\n";
   
   formatted += "CRITICAL: Before suggesting new lead sources, check this list. ";
+  formatted += "If a source URL already exists here, acknowledge that we already have data from this source. ";
+  formatted += "Only suggest new sources if they contain different opportunities or updated information.\n";
+  
+  return formatted;
+}
+
+/**
+ * Format lead source links for default prompts (without state name)
+ * Groups links by state/region when possible for better organization
+ */
+function formatLeadSourceLinksForDefaultPrompt(
+  sourceLinks: Array<{ url: string; documentName: string; leadCount: number }>
+): string {
+  if (sourceLinks.length === 0) return "";
+  
+  let formatted = "\n\n## EXISTING LEAD SOURCE DATA LINKS\n";
+  formatted += "The following source URLs have been used to collect lead data across all states. ";
+  formatted += "These links represent existing data sources in our system. ";
+  formatted += "When generating new leads, avoid duplicating data from these sources unless new opportunities are available.\n\n";
+  
+  // Group by document name for better organization
+  const byDocument = new Map<string, Array<{ url: string; documentName: string; leadCount: number }>>();
+  for (const link of sourceLinks) {
+    const docName = link.documentName || 'Unknown Document';
+    if (!byDocument.has(docName)) {
+      byDocument.set(docName, []);
+    }
+    byDocument.get(docName)!.push(link);
+  }
+  
+  // Sort documents by total lead count
+  const sortedDocs = Array.from(byDocument.entries()).sort((a, b) => {
+    const aTotal = a[1].reduce((sum, link) => sum + link.leadCount, 0);
+    const bTotal = b[1].reduce((sum, link) => sum + link.leadCount, 0);
+    return bTotal - aTotal;
+  });
+  
+  for (const [docName, links] of sortedDocs) {
+    const totalLeads = links.reduce((sum, link) => sum + link.leadCount, 0);
+    formatted += `### ${docName} (${totalLeads} total lead${totalLeads > 1 ? 's' : ''})\n`;
+    for (const link of links) {
+      formatted += `- ${link.url}`;
+      if (link.leadCount > 1) {
+        formatted += ` (${link.leadCount} leads from this source)`;
+      }
+      formatted += "\n";
+    }
+    formatted += "\n";
+  }
+  
+  formatted += "CRITICAL: Before suggesting new lead sources, check this comprehensive list. ";
   formatted += "If a source URL already exists here, acknowledge that we already have data from this source. ";
   formatted += "Only suggest new sources if they contain different opportunities or updated information.\n";
   
@@ -1409,20 +1623,81 @@ export const updateAllPromptsWithStateData = mutation({
       const promptTypeName = promptType?.name || "unknown";
       const stateName = extractStateFromTitle(prompt.title);
 
-      // Skip prompts without a state name
+      // Handle default prompts (no state name) - inject ALL links
       if (!stateName) {
-        results.push({
-          promptId: prompt._id,
-          promptTitle: prompt.title,
-          promptType: promptTypeName,
-          stateName: null,
-          success: false,
-          message: `Could not extract state name from prompt title: "${prompt.title}"`,
-          linkCount: 0,
-          errorType: "STATE_EXTRACTION_FAILED",
-          errorDetails: `The prompt title "${prompt.title}" does not contain a recognizable US state name.`,
-        });
-        totalFailed++;
+        try {
+          // Get ALL approved procurement links (not state-specific)
+          const allApprovedLinks = await ctx.db
+            .query("procurementUrls")
+            .withIndex("by_status", (q) => q.eq("status", "approved"))
+            .collect();
+
+          // Transform to lookup format
+          const formattedProcurementLinks: ApprovedLink[] = allApprovedLinks.map((link) => ({
+            state: link.state,
+            capital: link.capital,
+            officialWebsite: "", // Not needed for prompt
+            procurementLink: link.procurementLink,
+            entityType: null,
+            linkType: null,
+            requiresRegistration: link.requiresRegistration ?? null,
+          }));
+
+          // Get ALL lead source links (not state-specific)
+          const allLeadSourceLinks = await getAllLeadSourceLinks(ctx);
+
+          // Format procurement links section (use full format for default prompts)
+          const procurementLinksSection = formatApprovedLinksForPromptFull(formattedProcurementLinks);
+          
+          // Format lead source links section (use default format)
+          const leadSourceLinksSection = formatLeadSourceLinksForDefaultPrompt(allLeadSourceLinks);
+
+          // Get the base prompt and remove any existing sections
+          let basePrompt = removeExistingApprovedLinksSection(prompt.systemPromptText);
+          basePrompt = removeExistingLeadSourceLinksSection(basePrompt);
+
+          // Inject both sections into the prompt
+          let updatedPromptText = basePrompt;
+          if (procurementLinksSection) {
+            updatedPromptText = injectApprovedLinksIntoPrompt(updatedPromptText, procurementLinksSection);
+          }
+          if (leadSourceLinksSection) {
+            updatedPromptText = injectLeadSourceLinksIntoPrompt(updatedPromptText, leadSourceLinksSection);
+          }
+
+          // Update the prompt in the database
+          await ctx.db.patch(prompt._id, {
+            systemPromptText: updatedPromptText,
+            updatedAt: now,
+          });
+
+          const totalLinks = formattedProcurementLinks.length + allLeadSourceLinks.length;
+          results.push({
+            promptId: prompt._id,
+            promptTitle: prompt.title,
+            promptType: promptTypeName,
+            stateName: null,
+            success: true,
+            message: `Updated default prompt with ${formattedProcurementLinks.length} procurement links and ${allLeadSourceLinks.length} lead source links`,
+            linkCount: totalLinks,
+          });
+          totalSucceeded++;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+          const errorStack = error instanceof Error ? error.stack : undefined;
+          results.push({
+            promptId: prompt._id,
+            promptTitle: prompt.title,
+            promptType: promptTypeName,
+            stateName: null,
+            success: false,
+            message: errorMessage,
+            linkCount: 0,
+            errorType: "EXECUTION_ERROR",
+            errorDetails: errorStack || errorMessage,
+          });
+          totalFailed++;
+        }
         continue;
       }
 
