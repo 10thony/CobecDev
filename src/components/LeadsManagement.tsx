@@ -92,10 +92,12 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
     opportunityType: '',
     status: '',
     region: '',
+    generalRegion: '', // For quick filter by general region
     level: '',
     verificationStatus: '',
     isActive: null as boolean | null,
     dateRange: '', // '30days', '90days', '6months', '1year', 'all'
+    orderBy: '', // 'startDateAsc', 'startDateDesc', 'deadlineAsc', 'deadlineDesc'
   });
   const [showFilters, setShowFilters] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -108,6 +110,9 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
   const [showLeadHuntChat, setShowLeadHuntChat] = useState(false);
   const [leadHuntState, setLeadHuntState] = useState<string>('');
   const [activeWorkflowId, setActiveWorkflowId] = useState<Id<"leadHuntWorkflows"> | null>(null);
+  const [showRegionFilters, setShowRegionFilters] = useState(false);
+  const [showLeadTypeFilters, setShowLeadTypeFilters] = useState(false);
+  const [showOrderBy, setShowOrderBy] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const quickFiltersRef = useRef<HTMLDivElement>(null);
@@ -198,6 +203,107 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
     setFilters(prev => ({ ...prev, region: prev.region === region ? '' : region }));
   };
 
+  // Handle general region filter click
+  const handleGeneralRegionClick = (generalRegion: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isDraggingRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    setFilters(prev => ({ ...prev, generalRegion: prev.generalRegion === generalRegion ? '' : generalRegion }));
+  };
+
+  // Handle opportunity type filter click
+  const handleOpportunityTypeClick = (type: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isDraggingRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    setFilters(prev => ({ ...prev, opportunityType: prev.opportunityType === type ? '' : type }));
+  };
+
+  // Map specific regions to general regions
+  const mapToGeneralRegion = (specificRegion: string): string => {
+    if (!specificRegion) return '';
+    const regionLower = specificRegion.toLowerCase();
+    
+    // North
+    if (regionLower.includes('north') || regionLower.includes('northern') || 
+        regionLower.includes('new england') || regionLower.includes('new hampshire') ||
+        regionLower.includes('maine') || regionLower.includes('vermont') ||
+        regionLower.includes('massachusetts') || regionLower.includes('connecticut') ||
+        regionLower.includes('rhode island') || regionLower.includes('alaska')) {
+      return 'North';
+    }
+    
+    // East
+    if (regionLower.includes('east') || regionLower.includes('eastern') ||
+        regionLower.includes('new york') || regionLower.includes('new jersey') ||
+        regionLower.includes('pennsylvania') || regionLower.includes('delaware') ||
+        regionLower.includes('maryland') || regionLower.includes('virginia') ||
+        regionLower.includes('west virginia') || regionLower.includes('dc') ||
+        regionLower.includes('district of columbia') || regionLower.includes('dmv')) {
+      return 'East';
+    }
+    
+    // South
+    if (regionLower.includes('south') || regionLower.includes('southern') ||
+        regionLower.includes('florida') || regionLower.includes('georgia') ||
+        regionLower.includes('south carolina') || regionLower.includes('north carolina') ||
+        regionLower.includes('alabama') || regionLower.includes('mississippi') ||
+        regionLower.includes('louisiana') || regionLower.includes('arkansas') ||
+        regionLower.includes('tennessee') || regionLower.includes('kentucky')) {
+      return 'South';
+    }
+    
+    // West
+    if (regionLower.includes('west') || regionLower.includes('western') ||
+        regionLower.includes('california') || regionLower.includes('oregon') ||
+        regionLower.includes('washington') || regionLower.includes('nevada') ||
+        regionLower.includes('idaho') || regionLower.includes('montana') ||
+        regionLower.includes('wyoming') || regionLower.includes('utah') ||
+        regionLower.includes('colorado') || regionLower.includes('hawaii')) {
+      return 'West';
+    }
+    
+    // Midwest
+    if (regionLower.includes('midwest') || regionLower.includes('mid west') ||
+        regionLower.includes('mid-west') || regionLower.includes('illinois') ||
+        regionLower.includes('indiana') || regionLower.includes('ohio') ||
+        regionLower.includes('michigan') || regionLower.includes('wisconsin') ||
+        regionLower.includes('minnesota') || regionLower.includes('iowa') ||
+        regionLower.includes('missouri') || regionLower.includes('north dakota') ||
+        regionLower.includes('south dakota') || regionLower.includes('nebraska') ||
+        regionLower.includes('kansas')) {
+      return 'Midwest';
+    }
+    
+    // Southwest
+    if (regionLower.includes('southwest') || regionLower.includes('south west') ||
+        regionLower.includes('south-west') || regionLower.includes('arizona') ||
+        regionLower.includes('new mexico') || regionLower.includes('texas') ||
+        regionLower.includes('oklahoma')) {
+      return 'Southwest';
+    }
+    
+    // Mid Central / Central
+    if (regionLower.includes('central') || regionLower.includes('mid central') ||
+        regionLower.includes('mid-central')) {
+      return 'Mid Central';
+    }
+    
+    // Nationwide / Worldwide / OCONUS
+    if (regionLower.includes('nationwide') || regionLower.includes('worldwide') ||
+        regionLower.includes('oconus') || regionLower.includes('all') ||
+        regionLower.includes('national')) {
+      return 'Nationwide';
+    }
+    
+    // Default: return original if no match
+    return specificRegion;
+  };
+
   // Mutations
   const deleteLead = useMutation(api.leads.deleteLead);
   const toggleLeadActive = useMutation(api.leads.toggleLeadActive);
@@ -252,6 +358,10 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
         return false;
       }
       if (filters.region && lead.location?.region !== filters.region) {
+        filterStats.filteredByRegion++;
+        return false;
+      }
+      if (filters.generalRegion && mapToGeneralRegion(lead.location?.region || '') !== filters.generalRegion) {
         filterStats.filteredByRegion++;
         return false;
       }
@@ -343,20 +453,59 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
       }
     }
 
-    return filtered;
+    // Apply sorting
+    let sorted = [...filtered];
+    if (filters.orderBy) {
+      sorted.sort((a, b) => {
+        let dateA: Date | null = null;
+        let dateB: Date | null = null;
+
+        if (filters.orderBy === 'startDateAsc' || filters.orderBy === 'startDateDesc') {
+          dateA = a.keyDates?.projectedStartDate ? new Date(a.keyDates.projectedStartDate) : null;
+          dateB = b.keyDates?.projectedStartDate ? new Date(b.keyDates.projectedStartDate) : null;
+        } else if (filters.orderBy === 'deadlineAsc' || filters.orderBy === 'deadlineDesc') {
+          dateA = a.keyDates?.bidDeadline ? new Date(a.keyDates.bidDeadline) : null;
+          dateB = b.keyDates?.bidDeadline ? new Date(b.keyDates.bidDeadline) : null;
+        }
+
+        // Handle null dates - put them at the end
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+
+        // Check for invalid dates
+        if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+        if (isNaN(dateA.getTime())) return 1;
+        if (isNaN(dateB.getTime())) return -1;
+
+        // Compare dates
+        const comparison = dateA.getTime() - dateB.getTime();
+        
+        // Reverse for descending order
+        if (filters.orderBy === 'startDateDesc' || filters.orderBy === 'deadlineDesc') {
+          return -comparison;
+        }
+        return comparison;
+      });
+    }
+
+    return sorted;
   }, [allLeads, searchTerm, filters]);
 
   // Get unique values for filter dropdowns
   const uniqueValues = useMemo(() => {
-    if (!allLeads) return { opportunityTypes: [], statuses: [], regions: [], levels: [], verificationStatuses: [] };
+    if (!allLeads) return { opportunityTypes: [], statuses: [], regions: [], generalRegions: [], levels: [], verificationStatuses: [] };
 
     const opportunityTypes = [...new Set(allLeads.map(lead => lead.opportunityType))];
     const statuses = [...new Set(allLeads.map(lead => lead.status))];
     const regions = [...new Set(allLeads.map(lead => lead.location.region))];
+    const generalRegions = [...new Set(allLeads.map(lead => mapToGeneralRegion(lead.location.region)).filter(Boolean))]
+      .filter(region => !region.toLowerCase().includes('faa'))
+      .sort();
     const levels = [...new Set(allLeads.map(lead => lead.issuingBody.level))];
     const verificationStatuses = [...new Set(allLeads.map(lead => lead.verificationStatus).filter(Boolean))];
 
-    return { opportunityTypes, statuses, regions, levels, verificationStatuses };
+    return { opportunityTypes, statuses, regions, generalRegions, levels, verificationStatuses };
   }, [allLeads]);
 
   const handleDeleteLead = async (leadId: Id<"leads">) => {
@@ -431,10 +580,12 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
       opportunityType: '',
       status: '',
       region: '',
+      generalRegion: '',
       level: '',
       verificationStatus: '',
       isActive: null,
       dateRange: '',
+      orderBy: '',
     });
     setSearchTerm('');
   };
@@ -702,10 +853,20 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
               </TronButton>
             </div>
 
-            {/* State/Region Quick Filters with Horizontal Scroll */}
+            {/* Quick Filters by General Region */}
             <div className="mt-3 pt-3 border-t border-tron-cyan/20">
-              <div className="mb-1.5">
-                <label className="block text-xs font-medium text-tron-gray mb-1.5">Quick Filters by Region</label>
+              <button
+                onClick={() => setShowRegionFilters(!showRegionFilters)}
+                className="flex items-center justify-between w-full mb-1.5 text-left"
+              >
+                <label className="block text-xs font-medium text-tron-gray cursor-pointer">Quick Filters by Region</label>
+                {showRegionFilters ? (
+                  <ChevronUp className="w-4 h-4 text-tron-gray" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-tron-gray" />
+                )}
+              </button>
+              {showRegionFilters && (
                 <div
                   ref={quickFiltersRef}
                   onMouseDown={handleSwipeStart}
@@ -730,23 +891,23 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                   <button
                     onClick={(e) => {
                       if (!isDraggingRef.current) {
-                        setFilters(prev => ({ ...prev, region: '' }));
+                        setFilters(prev => ({ ...prev, generalRegion: '' }));
                       }
                     }}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap flex-shrink-0 ${
-                      filters.region === ''
+                      filters.generalRegion === ''
                         ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
                         : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
                     }`}
                   >
                     All Regions
                   </button>
-                  {uniqueValues.regions.map(region => (
+                  {uniqueValues.generalRegions.map(region => (
                     <button
                       key={region}
-                      onClick={(e) => handleFilterClick(region, e)}
+                      onClick={(e) => handleGeneralRegionClick(region, e)}
                       className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap flex-shrink-0 ${
-                        filters.region === region
+                        filters.generalRegion === region
                           ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
                           : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
                       }`}
@@ -755,7 +916,119 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                     </button>
                   ))}
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Quick Filters by Lead Type */}
+            <div className="mt-3 pt-3 border-t border-tron-cyan/20">
+              <button
+                onClick={() => setShowLeadTypeFilters(!showLeadTypeFilters)}
+                className="flex items-center justify-between w-full mb-1.5 text-left"
+              >
+                <label className="block text-xs font-medium text-tron-gray cursor-pointer">Quick Filters by Lead Type</label>
+                {showLeadTypeFilters ? (
+                  <ChevronUp className="w-4 h-4 text-tron-gray" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-tron-gray" />
+                )}
+              </button>
+              {showLeadTypeFilters && (
+                <div
+                  className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 select-none"
+                  style={{
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                  }}
+                >
+                  <button
+                    onClick={(e) => {
+                      setFilters(prev => ({ ...prev, opportunityType: '' }));
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap flex-shrink-0 ${
+                      filters.opportunityType === ''
+                        ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                        : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                    }`}
+                  >
+                    All Types
+                  </button>
+                  {uniqueValues.opportunityTypes
+                    .filter(type => !type.toLowerCase().includes('faa'))
+                    .map(type => (
+                    <button
+                      key={type}
+                      onClick={(e) => handleOpportunityTypeClick(type, e)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap flex-shrink-0 ${
+                        filters.opportunityType === type
+                          ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                          : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Order By Section */}
+            <div className="mt-3 pt-3 border-t border-tron-cyan/20">
+              <button
+                onClick={() => setShowOrderBy(!showOrderBy)}
+                className="flex items-center justify-between w-full mb-1.5 text-left"
+              >
+                <label className="block text-xs font-medium text-tron-gray cursor-pointer">Order By</label>
+                {showOrderBy ? (
+                  <ChevronUp className="w-4 h-4 text-tron-gray" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-tron-gray" />
+                )}
+              </button>
+              {showOrderBy && (
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setFilters(prev => ({ ...prev, orderBy: prev.orderBy === 'startDateAsc' ? '' : 'startDateAsc' }))}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap ${
+                      filters.orderBy === 'startDateAsc'
+                        ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                        : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                    }`}
+                  >
+                    Start Date ↑
+                  </button>
+                  <button
+                    onClick={() => setFilters(prev => ({ ...prev, orderBy: prev.orderBy === 'startDateDesc' ? '' : 'startDateDesc' }))}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap ${
+                      filters.orderBy === 'startDateDesc'
+                        ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                        : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                    }`}
+                  >
+                    Start Date ↓
+                  </button>
+                  <button
+                    onClick={() => setFilters(prev => ({ ...prev, orderBy: prev.orderBy === 'deadlineAsc' ? '' : 'deadlineAsc' }))}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap ${
+                      filters.orderBy === 'deadlineAsc'
+                        ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                        : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                    }`}
+                  >
+                    Deadline ↑
+                  </button>
+                  <button
+                    onClick={() => setFilters(prev => ({ ...prev, orderBy: prev.orderBy === 'deadlineDesc' ? '' : 'deadlineDesc' }))}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap ${
+                      filters.orderBy === 'deadlineDesc'
+                        ? 'bg-tron-cyan/20 text-tron-cyan border-tron-cyan/40 shadow-sm shadow-tron-cyan/20'
+                        : 'bg-tron-bg-deep text-tron-gray border-tron-cyan/20 hover:border-tron-cyan/30 hover:text-tron-white'
+                    }`}
+                  >
+                    Deadline ↓
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Filter Options */}
