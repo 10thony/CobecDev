@@ -820,6 +820,99 @@ function formatApprovedLinksForState(links: ApprovedLink[], targetState: string)
 }
 
 /**
+ * Check if the critical section contains the non-viable leads sentence
+ * Checks for the base sentence pattern (date may vary)
+ */
+function hasNonViableLeadsSentence(promptText: string): boolean {
+  const basePattern = "DO NOT RETURN ANY NON VIABLE LEADS. LEADS ARE NOT VIABLE IF THE DEADLINE IS IN THE PAST";
+  return promptText.includes(basePattern);
+}
+
+/**
+ * Inject the non-viable leads sentence into the critical section
+ * If a critical section exists, adds the sentence to it
+ * If no critical section exists, creates one
+ * Includes the current date to keep the prompt up to date
+ */
+function injectNonViableLeadsSentence(promptText: string): string {
+  const currentDate = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+  const requiredSentence = `DO NOT RETURN ANY NON VIABLE LEADS. LEADS ARE NOT VIABLE IF THE DEADLINE IS IN THE PAST. Current date: ${currentDate}`;
+  
+  // Check if already present (check for the base sentence without date, as date may change)
+  if (hasNonViableLeadsSentence(promptText)) {
+    // Even if present, update the date if it's outdated
+    // Remove old version and inject new one with current date
+    const oldPattern = /DO NOT RETURN ANY NON VIABLE LEADS\. LEADS ARE NOT VIABLE IF THE DEADLINE IS IN THE PAST[^\n]*/;
+    if (oldPattern.test(promptText)) {
+      return promptText.replace(oldPattern, requiredSentence);
+    }
+    return promptText;
+  }
+  
+  // Find any existing CRITICAL section
+  const criticalPatterns = [
+    /(##\s*CRITICAL[^\n]*\n[^#]*)/i,
+    /(CRITICAL[^\n]*\n[^#]*)/i,
+  ];
+  
+  let criticalSectionIndex = -1;
+  let criticalSectionEnd = -1;
+  
+  for (const pattern of criticalPatterns) {
+    const match = promptText.match(pattern);
+    if (match && match.index !== undefined) {
+      criticalSectionIndex = match.index;
+      criticalSectionEnd = match.index + match[0].length;
+      break;
+    }
+  }
+  
+  // If a critical section exists, append the sentence to it
+  if (criticalSectionIndex !== -1) {
+    // Find the end of the critical section (before next ## or end of text)
+    const afterCritical = promptText.slice(criticalSectionEnd);
+    const nextSection = afterCritical.indexOf("\n\n## ");
+    const rememberIndex = afterCritical.indexOf("\n\nRemember:");
+    
+    let insertPoint = criticalSectionEnd;
+    if (nextSection !== -1 && rememberIndex !== -1) {
+      insertPoint = criticalSectionEnd + Math.min(nextSection, rememberIndex);
+    } else if (rememberIndex !== -1) {
+      insertPoint = criticalSectionEnd + rememberIndex;
+    } else if (nextSection !== -1) {
+      insertPoint = criticalSectionEnd + nextSection;
+    } else {
+      // No next section found, insert before "Remember:" if it exists
+      const rememberIndexGlobal = promptText.indexOf("Remember:");
+      if (rememberIndexGlobal !== -1 && rememberIndexGlobal > criticalSectionEnd) {
+        insertPoint = rememberIndexGlobal;
+      } else {
+        insertPoint = promptText.length;
+      }
+    }
+    
+    // Insert the sentence with proper formatting
+    const beforeInsert = promptText.slice(0, insertPoint).trimEnd();
+    const afterInsert = promptText.slice(insertPoint).trimStart();
+    
+    // Add the sentence with proper spacing
+    const sentenceToAdd = `\n\n${requiredSentence}\n`;
+    return beforeInsert + sentenceToAdd + afterInsert;
+  }
+  
+  // If no critical section exists, create one before "Remember:" or at the end
+  const rememberIndex = promptText.lastIndexOf("Remember:");
+  if (rememberIndex !== -1) {
+    const beforeRemember = promptText.slice(0, rememberIndex).trimEnd();
+    const afterRemember = promptText.slice(rememberIndex);
+    return beforeRemember + `\n\n## CRITICAL RULES\n${requiredSentence}\n\n` + afterRemember;
+  }
+  
+  // If no "Remember:" found, append at the end
+  return promptText.trimEnd() + `\n\n## CRITICAL RULES\n${requiredSentence}\n`;
+}
+
+/**
  * Remove existing approved links section from prompt text
  */
 function removeExistingApprovedLinksSection(promptText: string): string {
@@ -989,9 +1082,12 @@ export const updatePrimaryWithApprovedLinks = mutation({
     let basePrompt = removeExistingApprovedLinksSection(primaryPrompt.systemPromptText);
     
     // If we have approved links, inject them into the prompt
-    const updatedPromptText = linksSection 
+    let updatedPromptText = linksSection 
       ? injectApprovedLinksIntoPrompt(basePrompt, linksSection)
       : basePrompt;
+    
+    // Update critical section with non-viable leads sentence
+    updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
     
     // Update the primary prompt in the database
     await ctx.db.patch(primaryPrompt._id, {
@@ -1102,9 +1198,12 @@ export const updatePromptWithStateLinks = mutation({
     let basePrompt = removeExistingApprovedLinksSection(prompt.systemPromptText);
     
     // If we have approved links, inject them into the prompt
-    const updatedPromptText = linksSection 
+    let updatedPromptText = linksSection 
       ? injectApprovedLinksIntoPrompt(basePrompt, linksSection)
       : basePrompt;
+    
+    // Update critical section with non-viable leads sentence
+    updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
     
     // Calculate token estimates and costs for analytics
     // Use gpt-5-mini pricing as default (the model used in procurement chat)
@@ -1515,9 +1614,12 @@ export const updatePromptWithLeadSourceLinks = mutation({
     let basePrompt = removeExistingLeadSourceLinksSection(prompt.systemPromptText);
     
     // If we have source links, inject them into the prompt
-    const updatedPromptText = linksSection 
+    let updatedPromptText = linksSection 
       ? injectLeadSourceLinksIntoPrompt(basePrompt, linksSection)
       : basePrompt;
+    
+    // Update critical section with non-viable leads sentence
+    updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
     
     // Calculate token estimates and costs for analytics
     const model = "gpt-5-mini";
@@ -1665,6 +1767,9 @@ export const updateAllPromptsWithStateData = mutation({
             updatedPromptText = injectLeadSourceLinksIntoPrompt(updatedPromptText, leadSourceLinksSection);
           }
 
+          // Update critical section with non-viable leads sentence
+          updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
+
           // Update the prompt in the database
           await ctx.db.patch(prompt._id, {
             systemPromptText: updatedPromptText,
@@ -1723,9 +1828,12 @@ export const updateAllPromptsWithStateData = mutation({
 
           const linksSection = formatApprovedLinksForPrompt(formattedLinks);
           let basePrompt = removeExistingApprovedLinksSection(prompt.systemPromptText);
-          const updatedPromptText = linksSection
+          let updatedPromptText = linksSection
             ? injectApprovedLinksIntoPrompt(basePrompt, linksSection)
             : basePrompt;
+
+          // Update critical section with non-viable leads sentence
+          updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
 
           await ctx.db.patch(prompt._id, {
             systemPromptText: updatedPromptText,
@@ -1747,9 +1855,12 @@ export const updateAllPromptsWithStateData = mutation({
           const sourceLinks = await getLeadSourceLinksForState(ctx, stateName);
           const linksSection = formatLeadSourceLinksForPrompt(sourceLinks, stateName);
           let basePrompt = removeExistingLeadSourceLinksSection(prompt.systemPromptText);
-          const updatedPromptText = linksSection
+          let updatedPromptText = linksSection
             ? injectLeadSourceLinksIntoPrompt(basePrompt, linksSection)
             : basePrompt;
+
+          // Update critical section with non-viable leads sentence
+          updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
 
           await ctx.db.patch(prompt._id, {
             systemPromptText: updatedPromptText,
