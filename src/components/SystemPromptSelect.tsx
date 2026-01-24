@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Id } from '../../convex/_generated/dataModel';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Search, X } from 'lucide-react';
 
 interface SystemPrompt {
   _id: Id<"chatSystemPrompts">;
@@ -36,9 +36,11 @@ export function SystemPromptSelect({
   const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right'>('left');
   const [dropdownVerticalPosition, setDropdownVerticalPosition] = useState<'bottom' | 'top'>('bottom');
   const [dropdownMaxHeight, setDropdownMaxHeight] = useState<number>(300);
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Calculate dropdown position to prevent overflow
   useEffect(() => {
@@ -85,12 +87,23 @@ export function SystemPromptSelect({
         setIsOpen(false);
         setHoveredOption(null);
         setTooltipPosition(null);
+        setSearchQuery(''); // Clear search when closing
       }
     };
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      // Small delay to ensure the dropdown is rendered
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
     }
   }, [isOpen]);
 
@@ -128,7 +141,30 @@ export function SystemPromptSelect({
     setIsOpen(false);
     setHoveredOption(null);
     setTooltipPosition(null);
+    setSearchQuery(''); // Clear search when selecting
   };
+
+  // Filter system prompts based on search query
+  const filteredPrompts = systemPrompts?.filter((prompt) => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const promptType = promptTypes?.find(t => t._id === prompt.type);
+    const searchableText = [
+      prompt.title,
+      prompt.description,
+      promptType?.displayName,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    
+    return searchableText.includes(query);
+  });
+
+  // Check if "Primary" or "None" should be shown based on search
+  const shouldShowPrimary = !searchQuery.trim() || 'primary default'.includes(searchQuery.toLowerCase());
+  const shouldShowNone = !searchQuery.trim() || 'none'.includes(searchQuery.toLowerCase());
 
   const handleOptionMouseEnter = (e: React.MouseEvent<HTMLDivElement>, optionValue: string) => {
     const description = getDescription(optionValue);
@@ -246,68 +282,120 @@ export function SystemPromptSelect({
           className={`absolute ${dropdownVerticalPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'} 
                      ${dropdownPosition === 'right' ? 'right-0' : 'left-0'} z-50 min-w-[200px] sm:min-w-[250px] 
                      bg-tron-bg-deep border border-tron-cyan/30 rounded-lg shadow-tron-glow 
-                     overflow-hidden overflow-y-auto`}
+                     overflow-hidden flex flex-col`}
           style={{
             maxHeight: `${dropdownMaxHeight}px`
           }}
         >
-          {/* Primary option */}
-          <div
-            onClick={() => handleSelect('primary')}
-            onMouseEnter={(e) => handleOptionMouseEnter(e, 'primary')}
-            onMouseLeave={handleOptionMouseLeave}
-            onMouseMove={handleOptionMouseMove}
-            className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
-              value === undefined
-                ? 'bg-tron-cyan/20 text-tron-cyan'
-                : 'text-tron-white hover:bg-tron-cyan/10'
-            }`}
-          >
-            Primary (Default)
+          {/* Search bar */}
+          <div className="p-2 border-b border-tron-cyan/20 sticky top-0 bg-tron-bg-deep z-10">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-tron-cyan/50" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search prompts..."
+                className="w-full pl-7 pr-7 py-1.5 text-xs bg-tron-bg-panel border border-tron-cyan/20 
+                         rounded text-tron-white placeholder-tron-gray focus:outline-none 
+                         focus:ring-1 focus:ring-tron-cyan focus:border-tron-cyan"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  // Prevent closing dropdown on Escape if there's text to clear
+                  if (e.key === 'Escape' && searchQuery) {
+                    e.stopPropagation();
+                    setSearchQuery('');
+                  }
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSearchQuery('');
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-tron-cyan/50 
+                           hover:text-tron-cyan transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* None option */}
-          <div
-            onClick={() => handleSelect('none')}
-            onMouseEnter={(e) => handleOptionMouseEnter(e, 'none')}
-            onMouseLeave={handleOptionMouseLeave}
-            onMouseMove={handleOptionMouseMove}
-            className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
-              value === null
-                ? 'bg-tron-cyan/20 text-tron-cyan'
-                : 'text-tron-white hover:bg-tron-cyan/10'
-            }`}
-          >
-            None
-          </div>
-
-          {/* System prompts */}
-          {systemPrompts && systemPrompts.map((prompt) => {
-            const promptType = promptTypes?.find(t => t._id === prompt.type);
-            const optionValue = prompt._id;
-            const isSelected = value === optionValue;
-            
-            return (
+          {/* Options list with scroll */}
+          <div className="overflow-y-auto flex-1">
+            {/* Primary option */}
+            {shouldShowPrimary && (
               <div
-                key={prompt._id}
-                onClick={() => handleSelect(optionValue)}
-                onMouseEnter={(e) => handleOptionMouseEnter(e, optionValue)}
+                onClick={() => handleSelect('primary')}
+                onMouseEnter={(e) => handleOptionMouseEnter(e, 'primary')}
                 onMouseLeave={handleOptionMouseLeave}
                 onMouseMove={handleOptionMouseMove}
                 className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
-                  isSelected
+                  value === undefined
                     ? 'bg-tron-cyan/20 text-tron-cyan'
                     : 'text-tron-white hover:bg-tron-cyan/10'
                 }`}
               >
-                <span className="block truncate">
-                  {prompt.title}
-                  {prompt.isPrimarySystemPrompt && ' (Primary)'}
-                  {promptType && ` - ${promptType.displayName}`}
-                </span>
+                Primary (Default)
               </div>
-            );
-          })}
+            )}
+
+            {/* None option */}
+            {shouldShowNone && (
+              <div
+                onClick={() => handleSelect('none')}
+                onMouseEnter={(e) => handleOptionMouseEnter(e, 'none')}
+                onMouseLeave={handleOptionMouseLeave}
+                onMouseMove={handleOptionMouseMove}
+                className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
+                  value === null
+                    ? 'bg-tron-cyan/20 text-tron-cyan'
+                    : 'text-tron-white hover:bg-tron-cyan/10'
+                }`}
+              >
+                None
+              </div>
+            )}
+
+            {/* System prompts */}
+            {filteredPrompts && filteredPrompts.length > 0 ? (
+              filteredPrompts.map((prompt) => {
+                const promptType = promptTypes?.find(t => t._id === prompt.type);
+                const optionValue = prompt._id;
+                const isSelected = value === optionValue;
+                
+                return (
+                  <div
+                    key={prompt._id}
+                    onClick={() => handleSelect(optionValue)}
+                    onMouseEnter={(e) => handleOptionMouseEnter(e, optionValue)}
+                    onMouseLeave={handleOptionMouseLeave}
+                    onMouseMove={handleOptionMouseMove}
+                    className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'bg-tron-cyan/20 text-tron-cyan'
+                        : 'text-tron-white hover:bg-tron-cyan/10'
+                    }`}
+                  >
+                    <span className="block truncate">
+                      {prompt.title}
+                      {prompt.isPrimarySystemPrompt && ' (Primary)'}
+                      {promptType && ` - ${promptType.displayName}`}
+                    </span>
+                  </div>
+                );
+              })
+            ) : searchQuery.trim() ? (
+              <div className="px-3 py-4 text-xs text-tron-gray text-center">
+                No prompts found matching "{searchQuery}"
+              </div>
+            ) : null}
+          </div>
         </div>
       )}
 
