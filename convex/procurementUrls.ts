@@ -136,7 +136,7 @@ async function requireProcurementAdmin(
 export const list = query({
   args: {
     status: v.optional(
-      v.union(v.literal("pending"), v.literal("approved"), v.literal("denied")),
+      v.union(v.literal("pending"), v.literal("approved"), v.literal("denied"), v.literal("invalid")),
     ),
   },
   returns: v.array(
@@ -151,6 +151,7 @@ export const list = query({
         v.literal("pending"),
         v.literal("approved"),
         v.literal("denied"),
+        v.literal("invalid"),
       ),
       verifiedBy: v.optional(v.string()),
       verifiedAt: v.optional(v.number()),
@@ -199,6 +200,7 @@ export const getPending = query({
         v.literal("pending"),
         v.literal("approved"),
         v.literal("denied"),
+        v.literal("invalid"),
       ),
       verifiedBy: v.optional(v.string()),
       verifiedAt: v.optional(v.number()),
@@ -247,6 +249,7 @@ export const getPendingForAgent = internalQuery({
         v.literal("pending"),
         v.literal("approved"),
         v.literal("denied"),
+        v.literal("invalid"),
       ),
       verifiedBy: v.optional(v.string()),
       verifiedAt: v.optional(v.number()),
@@ -333,6 +336,7 @@ export const getApproved = query({
         v.literal("pending"),
         v.literal("approved"),
         v.literal("denied"),
+        v.literal("invalid"),
       ),
       verifiedBy: v.optional(v.string()),
       verifiedAt: v.optional(v.number()),
@@ -378,6 +382,7 @@ export const getApprovedByState = query({
         v.literal("pending"),
         v.literal("approved"),
         v.literal("denied"),
+        v.literal("invalid"),
       ),
       verifiedBy: v.optional(v.string()),
       verifiedAt: v.optional(v.number()),
@@ -450,6 +455,7 @@ export const getStats = query({
     pending: v.number(),
     approved: v.number(),
     denied: v.number(),
+    invalid: v.number(),
   }),
   handler: async (ctx) => {
     const all = await ctx.db.query("procurementUrls").collect();
@@ -458,6 +464,7 @@ export const getStats = query({
       pending: all.filter((url) => url.status === "pending").length,
       approved: all.filter((url) => url.status === "approved").length,
       denied: all.filter((url) => url.status === "denied").length,
+      invalid: all.filter((url) => url.status === "invalid").length,
     };
   },
 });
@@ -471,7 +478,7 @@ export const searchByStateCity = query({
     state: v.string(),
     city: v.optional(v.string()),
     status: v.optional(
-      v.union(v.literal("pending"), v.literal("approved"), v.literal("denied")),
+      v.union(v.literal("pending"), v.literal("approved"), v.literal("denied"), v.literal("invalid")),
     ),
   },
   returns: v.array(
@@ -486,6 +493,7 @@ export const searchByStateCity = query({
         v.literal("pending"),
         v.literal("approved"),
         v.literal("denied"),
+        v.literal("invalid"),
       ),
       verifiedBy: v.optional(v.string()),
       verifiedAt: v.optional(v.number()),
@@ -828,7 +836,7 @@ export const adminOverride = mutation({
     officialWebsite: v.optional(v.string()),
     procurementLink: v.optional(v.string()),
     status: v.optional(
-      v.union(v.literal("pending"), v.literal("approved"), v.literal("denied")),
+      v.union(v.literal("pending"), v.literal("approved"), v.literal("denied"), v.literal("invalid")),
     ),
     verifiedBy: v.optional(v.union(v.string(), v.null())),
     verifiedAt: v.optional(v.union(v.number(), v.null())),
@@ -889,7 +897,7 @@ export const adminOverride = mutation({
 });
 
 /**
- * Manually add a procurement URL with automatic approval.
+ * Manually add a procurement URL with specified status.
  * Used when users manually enter links they have verified themselves.
  */
 export const addManual = mutation({
@@ -899,11 +907,20 @@ export const addManual = mutation({
     officialWebsite: v.string(),
     procurementLink: v.string(),
     requiresRegistration: v.optional(v.boolean()),
+    status: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("denied"),
+        v.literal("invalid"),
+      ),
+    ),
   },
   returns: v.id("procurementUrls"),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     const now = Date.now();
+    const status = args.status || "approved"; // Default to approved for backward compatibility
 
     // Check if this state+city combination already exists
     // This allows multiple cities per state (not just capitals)
@@ -920,7 +937,7 @@ export const addManual = mutation({
         capital: args.capital,
         officialWebsite: args.officialWebsite,
         procurementLink: args.procurementLink,
-        status: "approved",
+        status: status,
         verifiedBy: identity?.subject ?? undefined,
         verifiedAt: now,
         // Clear AI decision when manually adding/updating (overrides AI denial)
@@ -933,20 +950,22 @@ export const addManual = mutation({
 
       await ctx.db.patch(existing._id, updateData);
 
-      // Refresh the approved procurement links lookup table
-      const approvedBy = identity?.subject || "System";
-      await refreshLookupHelper(ctx, approvedBy);
+      // Refresh the approved procurement links lookup table only if status is approved
+      if (status === "approved") {
+        const approvedBy = identity?.subject || "System";
+        await refreshLookupHelper(ctx, approvedBy);
+      }
 
       return existing._id;
     }
 
-    // Create a new approved link
+    // Create a new link with specified status
     const insertData: any = {
       state: args.state,
       capital: args.capital,
       officialWebsite: args.officialWebsite,
       procurementLink: args.procurementLink,
-      status: "approved",
+      status: status,
       verifiedBy: identity?.subject ?? undefined,
       verifiedAt: now,
       importedAt: now,
@@ -959,9 +978,11 @@ export const addManual = mutation({
 
     const id = await ctx.db.insert("procurementUrls", insertData);
 
-    // Refresh the approved procurement links lookup table
-    const approvedBy = identity?.subject || "System";
-    await refreshLookupHelper(ctx, approvedBy);
+    // Refresh the approved procurement links lookup table only if status is approved
+    if (status === "approved") {
+      const approvedBy = identity?.subject || "System";
+      await refreshLookupHelper(ctx, approvedBy);
+    }
 
     return id;
   },
@@ -1154,10 +1175,11 @@ export const dedupeByProcurementLink = mutation({
 
     const normalizeUrl = (url: string) =>
       url.trim().toLowerCase().replace(/\/$/, "");
-    const statusRank = (status: "pending" | "approved" | "denied") => {
-      if (status === "approved") return 2;
-      if (status === "pending") return 1;
-      return 0;
+    const statusRank = (status: "pending" | "approved" | "denied" | "invalid") => {
+      if (status === "approved") return 3;
+      if (status === "pending") return 2;
+      if (status === "denied") return 1;
+      return 0; // invalid
     };
 
     const allUrls = await ctx.db.query("procurementUrls").collect();

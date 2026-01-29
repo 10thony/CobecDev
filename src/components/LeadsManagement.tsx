@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { LeadHuntChat } from './LeadHuntChat';
 import { LeadReviewPanel } from './LeadReviewPanel';
+import { LeadLinkVerificationStatus } from './LeadLinkVerificationStatus';
 
 interface Lead {
   _id: Id<"leads">;
@@ -816,6 +817,9 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
         </div>
       </div>
 
+      {/* Lead Link Verification Status */}
+      <LeadLinkVerificationStatus />
+
       <div className={`grid grid-cols-1 gap-8 ${selectedLead ? 'lg:grid-cols-3' : 'lg:grid-cols-1'}`}>
         {/* Leads List */}
         <div className={`space-y-4 ${selectedLead ? 'lg:col-span-2' : 'lg:col-span-1'}`}>
@@ -1331,8 +1335,10 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 opacity: selectedLead ? 1 : 0
               }}
             >
-              <TronPanel title="Lead Details" className="max-h-[calc(100vh-3rem)]">
-                <div className="flex items-center justify-between mb-6">
+              <TronPanel 
+                title="Lead Details" 
+                className="max-h-[calc(100vh-3rem)]"
+                headerAction={
                   <div className="flex gap-2">
                     <TronButton
                       onClick={() => setIsEditing(true)}
@@ -1353,8 +1359,8 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                       <X className="w-5 h-5" />
                     </TronButton>
                   </div>
-                </div>
-
+                }
+              >
                 <div className="space-y-6 overflow-y-auto overflow-x-hidden" style={{ 
                   maxHeight: 'calc(100vh - 280px)',
                   height: 'calc(100vh - 280px)',

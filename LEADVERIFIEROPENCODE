@@ -1,0 +1,258 @@
+# Lead Link Verifier (Convex Workflow) — OpenCode Plan
+
+## Problem
+Many records in the `leads` table have a `source.url` that is either:
+- Generic (homepage / procurement landing page / vendor login) and not the specific bid posting
+- Incorrect (points to the wrong issuing body or a third-party marketing page)
+- Duplicate across multiple leads
+
+Goal: build a locally-runnable workflow runner that connects to this project’s Convex deployment, pulls leads in configurable “intelligent batches”, and fixes/attaches the *specific* “open bid / solicitation / RFP” URL for each lead when possible.
+
+---
+
+## What’s already in this repo (use it)
+This repo already contains substantial infrastructure we should reuse rather than reinvent:
+
+- Convex workflows already enabled via `@convex-dev/workflow` (`convex/workflowManager.ts`, `convex/leadHuntWorkflow.ts`).
+- A URL-verification agent that works in Convex Cloud using HTTP fetch + GPT (`convex/agent/procurementVerifier.ts`).
+- A much more capable procurement scraping agent with fallback strategies (HTTP fetch → proxy → browser service) (`convex/procurementScraperAgent.ts`, `convex/procurementScrapingServices.ts`).
+- A “browser agent service” integration that can run a headless browser out-of-process for JS-heavy portals (`convex/browserAgentActions.ts`).
+- Leads table already has `verificationStatus` and an index `by_verification_status` (`convex/schema.ts`).
+- Existing lead ingestion already tries to avoid generic/duplicate URLs (but only heuristically during lead-hunt creation) (`convex/leadHuntActions.ts`).
+
+Key implication: lead verification should be a *separate workflow* that can be re-run repeatedly with adjustable batch sizing and improved heuristics over time.
+
+---
+
+## Online recon notes (what procurement sites look like)
+I “wandered” across a handful of common procurement portals to see what we’re up against:
+
+- **OpenGov Procurement** (`procurement.opengov.com`)
+  - The base path often presents a login gate.
+  - Public bid pages exist, but directory/listing endpoints can 403.
+  - Practical approach: discover the *portal-specific* URL (city/agency slug) first, then derive project/opportunity URLs.
+
+- **PlanetBids** (example `pbsystem.planetbids.com/...`)
+  - It’s an Ember SPA; HTML is mostly JS bundles.
+  - Pure HTTP fetching won’t reveal the bid grid contents reliably.
+  - Requires browser rendering (Browserless / Browser Agent Service).
+
+- **Public Purchase** (`publicpurchase.com/gems/...`)
+  - Server-rendered marketing + region/agency selection.
+  - Bid detail navigation is JS-driven and often behind agency selection; opportunistic crawling is possible but messy.
+
+- **BidNet Direct** (`bidnetdirect.com`)
+  - Serves meaningful HTML; open bids are accessible at `/solicitations/open-bids`.
+  - Individual bid detail pages tend to be accessible without full browser rendering.
+
+- **DemandStar** (`demandstar.com/app/...`)
+  - The marketing site is fully accessible; app pages exist.
+  - Some detail pages may require auth/JS.
+
+Conclusion: we should expect a split world:
+- **HTTP-only works well** for many .gov pages and some portals
+- **Browser-rendering is mandatory** for SPA portals (PlanetBids is the canonical example)
+
+---
+
+## Definition: “good link”
+For this workflow, a “good link” should be the most specific public URL available that:
+- Resolves (HTTP 200 after redirects)
+- Represents a single opportunity (not a portal homepage)
+- Contains at least one of:
+  - the lead’s `contractID` / reference number
+  - the lead’s `opportunityTitle` (or close match)
+  - an explicit “solicitation/bid/RFP/ITB/RFQ” detail page with a unique ID
+
+If a portal requires login or the bid detail is non-public, the workflow should still:
+- store the best *public* listing page
+- annotate `verificationStatus` with “requires login” / “JS required” / “not found”
+
+---
+
+## Strategy overview
+We want a hybrid approach:
+
+### 1) Deterministic heuristics (cheap)
+For each lead, classify the existing `source.url`:
+- looks like homepage / generic procurement landing page?
+- looks like a vendor login?
+- looks like a third-party aggregator?
+- looks like a specific bid detail already?
+
+If it already looks specific, do a quick fetch + keyword check. If it’s valid, mark verified and stop.
+
+### 2) Portal-driven traversal (medium cost)
+If the URL is generic but we can identify the portal/provider:
+- OpenGov, PlanetBids, Bonfire, BidNet, DemandStar, PublicPurchase, IonWave/Euna, etc.
+
+Then use provider-specific “entry points” and extraction tactics:
+- prefer “open solicitations” listing endpoints
+- extract candidate anchors containing contract/reference numbers
+- when HTML is JS-only, hand off to Browser Agent Service
+
+### 3) Research-driven discovery (expensive, highest success)
+If traversal fails:
+- build search queries using lead metadata:
+  - `${issuingBody.name} ${contractID}`
+  - `${issuingBody.name} ${opportunityTitle}`
+  - `site:${domain} ${contractID}`
+- use a search API (Serper/Brave/Bing) to get candidate URLs
+- validate candidates via fetch and scoring
+
+Important: there is *no* real web search tool in Convex today. The existing `webSearchProcurement` tool in `convex/procurementAgent.ts` is currently only a placeholder. Implementing real research requires wiring an external search API.
+
+---
+
+## Proposed data model additions
+We should avoid stuffing huge crawl traces into the `leads` document. Two options:
+
+### Option A (recommended): new table `leadLinkVerifications`
+Store per-attempt diagnostics without bloating `leads`:
+- `leadId`
+- `previousUrl`
+- `candidateUrls[]` (bounded)
+- `selectedUrl` (if any)
+- `status`: `verified` | `needs_review` | `not_found` | `requires_login` | `js_required`
+- `confidence` (0–1)
+- `reasoning` (short)
+- `provider` / `portalType` (best-effort classification)
+- `checkedAt`, `durationMs`, `attempt`
+
+Then keep `leads` light:
+- patch `source.url` when confident
+- set `verificationStatus` + `lastChecked`
+
+### Option B: embed a small object on `leads`
+Only if you want zero new tables:
+- `linkVerification: { status, checkedAt, confidence, reasoning }`
+
+---
+
+## Convex workflow design
+Create a new workflow, parallel to `convex/leadHuntWorkflow.ts`:
+
+### `convex/leadLinkVerifierWorkflow.ts`
+- name: `verifyLeadLinks`
+- args:
+  - `batchSize` (default 25)
+  - `maxBatches` (default 10) — prevents 600s action timeouts
+  - `mode`: `dryRun` | `patchLeads`
+  - `filter`: optional (state/region, verificationStatus)
+- loop:
+  1. `step.runQuery` to fetch a batch of candidate leads
+  2. for each lead, `step.runAction` to compute the best URL
+  3. `step.runMutation` to patch lead + insert `leadLinkVerifications`
+  4. stop when no more leads or max batches reached
+
+### Batch selection ("intelligent batches")
+We need predictable pagination and easy tuning.
+
+Recommended primary filter:
+- `verificationStatus` in a “needs attention” bucket (e.g. `needs_link_fix`)
+- use the existing `by_verification_status` index for efficient pagination
+
+Bootstrap step:
+- a one-time (or periodic) mutation that sets `verificationStatus="needs_link_fix"` when:
+  - `source.url` matches a known generic/login pattern
+  - OR the URL is shared by too many leads
+
+---
+
+## Lead URL resolution algorithm (action)
+Implement as a Convex action so it can use fetch + AI tooling:
+
+### `convex/leadLinkVerifierActions.ts` (new)
+Core action: `verifyOneLead`
+- Input: `{ leadId }`
+- Output: `{ status, selectedUrl?, confidence, reasoning, evidence }`
+
+Suggested flow:
+1. Fetch the current `source.url` (if present)
+   - If it’s a PDF or a detail-like path, attempt to confirm it’s a bid page.
+2. If generic or wrong:
+   - Determine issuer domain (from `source.url`, `issuingBody.name`, and/or procurement URL DB).
+   - Use procurement URL DB as a “portal hint”:
+     - `procurementUrls` / `approvedProcurementLinksLookUp` can often yield the correct portal base.
+3. Crawl:
+   - Use `createProcurementScraperAgent(...).tools.fetchWebpageContent` style behavior (HTTP + fallback).
+   - Extract candidate links from HTML (anchors) that match:
+     - contractID
+     - title similarity
+     - known bid keywords
+4. If still nothing:
+   - (Optional but important) call a real search API to get candidate URLs.
+5. Score candidates:
+   - hard filters: 200 OK, not login page, not homepage
+   - content checks: contains contractID/title/keywords
+   - provider heuristics: known portal detail-page patterns
+6. Decide:
+   - confidence >= threshold → patch lead
+   - else store candidates + mark `needs_review`
+
+Handling JS-heavy portals:
+- If metadata indicates `requiresJavaScript`, queue a Browser Agent scrape via `convex/browserAgentActions.ts`.
+
+---
+
+## Local runner script
+Create a local script that *starts/continues* the workflow.
+
+### `scripts/verifyLeadLinks.ts` (new)
+Pattern is already established in `scripts/verify_leads_in_cloud.py`:
+- load `.env.local`
+- set `CONVEX_URL` from `VITE_CONVEX_URL`
+- call `bun x convex run ...` repeatedly
+
+CLI flags:
+- `--batchSize 10`
+- `--maxBatches 10`
+- `--dryRun`
+- `--region TX`
+
+Example usage:
+- `bun scripts/verifyLeadLinks.ts --batchSize 25 --maxBatches 20`
+
+This script should:
+- print progress summary per batch
+- stop cleanly with “next cursor” info if we implement cursor-based pagination
+
+---
+
+## External services & env vars (likely needed)
+To get high success rates, especially for SPA portals:
+
+- **OpenAI**: already used throughout repo (`OPENAI_API_KEY`).
+- **Proxy/browser scraping**: repo already has fallback plumbing (`procurementScrapingServices.ts`) and browser agent integration.
+  - likely env vars: `BROWSER_AGENT_URL`, `BROWSER_AGENT_API_KEY`
+  - optional: ScrapingBee / Browserless keys if the repo supports them
+- **Web search API** (new): Serper, Brave Search, Bing Web Search, etc.
+  - new env var(s): `SEARCH_API_KEY`, `SEARCH_API_PROVIDER`
+
+---
+
+## Risks / gotchas
+- Rate-limiting / bot detection on portals.
+- Login gates (OpenGov, DemandStar, etc.) — we should mark these as “requires_login” rather than failing hard.
+- Multiple “open bid” pages per lead (amendments, addenda) — we need a deterministic tie-breaker.
+- Avoid repeatedly hammering the same domains: implement per-domain throttling and caching.
+
+---
+
+## Implementation steps (what I would do next)
+1. Add `leadLinkVerifications` table (or minimal embedded fields).
+2. Add a bootstrap mutation to mark leads needing link fixes.
+3. Implement `leadLinkVerifierActions.verifyOneLead` using:
+   - existing fetch/scrape utilities
+   - basic candidate extraction + scoring
+4. Implement `leadLinkVerifierWorkflow.verifyLeadLinks` to run batches and patch leads.
+5. Implement `scripts/verifyLeadLinks.ts` local runner with adjustable batch sizes.
+6. Dry-run on a small subset; review a sample of updated leads.
+7. Iterate: add provider-specific handlers and (optionally) integrate real web search.
+
+---
+
+## Questions to unblock final design
+1. Do you want this to **auto-patch `leads.source.url`** when confidence is high, or only write into a separate verification table and let a human approve?
+2. Do you have (or want to add) a **web search API key** for true “research” (Serper/Brave/Bing)? Without it we can only crawl from known sources.
+3. Do you expect to run this against **Convex Cloud** only, or sometimes against a **local Convex docker** deployment?

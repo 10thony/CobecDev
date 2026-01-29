@@ -37,6 +37,7 @@ import {
   Clock,
   GripVertical,
   Search,
+  Clipboard,
 } from "lucide-react";
 import { TronPanel } from "./TronPanel";
 import { TronButton } from "./TronButton";
@@ -165,7 +166,7 @@ interface ProcurementLinkVerifierProps {
   className?: string;
 }
 
-type StatusFilter = "all" | "pending" | "approved" | "denied";
+type StatusFilter = "all" | "pending" | "approved" | "denied" | "invalid";
 
 // Component to display scraped data for a procurement URL
 function ScrapedDataSection({ urlId }: { urlId: Id<"procurementUrls"> }) {
@@ -323,6 +324,8 @@ export function ProcurementLinkVerifier({
   const stateFilterHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [importMode, setImportMode] = useState<"file" | "paste">("file");
+  const [jsonText, setJsonText] = useState("");
 
   // State for editing corrected links
   const [editingId, setEditingId] = useState<Id<"procurementUrls"> | null>(
@@ -465,6 +468,7 @@ export function ProcurementLinkVerifier({
     officialWebsite: "",
     procurementLink: "",
     requiresRegistration: false,
+    status: "approved" as "pending" | "approved" | "denied" | "invalid",
   });
   const [manualFormError, setManualFormError] = useState<string | null>(null);
   const [manualFormSuccess, setManualFormSuccess] = useState(false);
@@ -480,7 +484,7 @@ export function ProcurementLinkVerifier({
     capital: "",
     officialWebsite: "",
     procurementLink: "",
-    status: "pending" as "pending" | "approved" | "denied",
+    status: "pending" as "pending" | "approved" | "denied" | "invalid",
     verifiedBy: "",
     verifiedAt: "",
     denialReason: "",
@@ -533,7 +537,7 @@ export function ProcurementLinkVerifier({
       capital: url.capital ?? "",
       officialWebsite: url.officialWebsite ?? "",
       procurementLink: url.procurementLink ?? "",
-      status: (url.status ?? "pending") as "pending" | "approved" | "denied",
+      status: (url.status ?? "pending") as "pending" | "approved" | "denied" | "invalid",
       verifiedBy: url.verifiedBy ?? "",
       verifiedAt: url.verifiedAt ? String(url.verifiedAt) : "",
       denialReason: url.denialReason ?? "",
@@ -834,6 +838,53 @@ export function ProcurementLinkVerifier({
     };
   }, []);
 
+  const processJsonData = async (jsonData: any, sourceName: string) => {
+    // Handle different JSON structures
+    let linksArray: ProcurementLink[] = [];
+
+    if (Array.isArray(jsonData)) {
+      linksArray = jsonData;
+    } else if (
+      jsonData.us_state_capitals_procurement &&
+      Array.isArray(jsonData.us_state_capitals_procurement)
+    ) {
+      linksArray = jsonData.us_state_capitals_procurement;
+    } else if (jsonData.links && Array.isArray(jsonData.links)) {
+      linksArray = jsonData.links;
+    } else {
+      throw new Error(
+        'Invalid JSON format. Expected an array or an object with "us_state_capitals_procurement" or "links" array.',
+      );
+    }
+
+    if (linksArray.length === 0) {
+      throw new Error("No procurement links found in the JSON data");
+    }
+
+    // Validate each link has required fields
+    for (const link of linksArray) {
+      if (
+        !link.state ||
+        !link.capital ||
+        !link.official_website ||
+        !link.procurement_link
+      ) {
+        throw new Error(
+          `Invalid link format. Each link must have: state, capital, official_website, procurement_link`,
+        );
+      }
+    }
+
+    // Import the links
+    const result = await importFromJson({
+      links: linksArray,
+      sourceFile: sourceName,
+    });
+
+    setImportResult(result);
+    setStatusFilter("pending"); // Show pending after import
+  };
+
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) {
       setError("No files selected");
@@ -868,52 +919,38 @@ export function ProcurementLinkVerifier({
         throw new Error("Invalid JSON format. Please check your file syntax.");
       }
 
-      // Handle different JSON structures
-      let linksArray: ProcurementLink[] = [];
-
-      if (Array.isArray(jsonData)) {
-        linksArray = jsonData;
-      } else if (
-        jsonData.us_state_capitals_procurement &&
-        Array.isArray(jsonData.us_state_capitals_procurement)
-      ) {
-        linksArray = jsonData.us_state_capitals_procurement;
-      } else if (jsonData.links && Array.isArray(jsonData.links)) {
-        linksArray = jsonData.links;
-      } else {
-        throw new Error(
-          'Invalid JSON format. Expected an array or an object with "us_state_capitals_procurement" or "links" array.',
-        );
-      }
-
-      if (linksArray.length === 0) {
-        throw new Error("No procurement links found in the uploaded file");
-      }
-
-      // Validate each link has required fields
-      for (const link of linksArray) {
-        if (
-          !link.state ||
-          !link.capital ||
-          !link.official_website ||
-          !link.procurement_link
-        ) {
-          throw new Error(
-            `Invalid link format. Each link must have: state, capital, official_website, procurement_link`,
-          );
-        }
-      }
-
-      // Import the links
-      const result = await importFromJson({
-        links: linksArray,
-        sourceFile: file.name,
-      });
-
-      setImportResult(result);
-      setStatusFilter("pending"); // Show pending after import
+      await processJsonData(jsonData, file.name);
     } catch (err) {
       console.error("Error processing uploaded file:", err);
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePasteJson = async () => {
+    if (!jsonText.trim()) {
+      setError("Please paste JSON text");
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+    setImportResult(null);
+
+    try {
+      // Parse JSON
+      let jsonData;
+      try {
+        jsonData = JSON.parse(jsonText);
+      } catch {
+        throw new Error("Invalid JSON format. Please check your JSON syntax.");
+      }
+
+      await processJsonData(jsonData, "pasted-json");
+      setJsonText(""); // Clear the textarea after successful import
+    } catch (err) {
+      console.error("Error processing pasted JSON:", err);
       setError(err instanceof Error ? err.message : "Unknown error occurred");
     } finally {
       setIsProcessing(false);
@@ -1246,6 +1283,7 @@ export function ProcurementLinkVerifier({
         officialWebsite: manualFormData.officialWebsite,
         procurementLink: manualFormData.procurementLink,
         requiresRegistration: manualFormData.requiresRegistration || undefined,
+        status: manualFormData.status,
       });
 
       setManualFormSuccess(true);
@@ -1255,8 +1293,9 @@ export function ProcurementLinkVerifier({
         officialWebsite: "",
         procurementLink: "",
         requiresRegistration: false,
+        status: "approved",
       });
-      setStatusFilter("approved"); // Show approved links after adding
+      setStatusFilter(manualFormData.status); // Show links with the selected status after adding
 
       // Auto-hide success message after 3 seconds
       setTimeout(() => setManualFormSuccess(false), 3000);
@@ -1297,7 +1336,7 @@ export function ProcurementLinkVerifier({
     return date.toLocaleDateString();
   };
 
-  const getStatusBadge = (status: "pending" | "approved" | "denied") => {
+  const getStatusBadge = (status: "pending" | "approved" | "denied" | "invalid") => {
     switch (status) {
       case "approved":
         return (
@@ -1311,6 +1350,13 @@ export function ProcurementLinkVerifier({
           <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-neon-error/20 text-neon-error border border-neon-error/30">
             <XCircle className="w-3 h-3" />
             Denied
+          </span>
+        );
+      case "invalid":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-500/20 text-red-500 border border-red-500/30">
+            <XCircle className="w-3 h-3" />
+            Invalid
           </span>
         );
       default:
@@ -1455,7 +1501,7 @@ export function ProcurementLinkVerifier({
             >
               {!collapsedSections.stats && (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5 gap-4 mb-6">
                     <TronStatCard
                       title="Total Links"
                       value={stats.total}
@@ -1488,6 +1534,14 @@ export function ProcurementLinkVerifier({
                       onClick={() => setStatusFilter("denied")}
                       isActive={statusFilter === "denied"}
                     />
+                    <TronStatCard
+                      title="Invalid"
+                      value={stats.invalid}
+                      icon={<XCircle className="w-6 h-6" />}
+                      color="orange"
+                      onClick={() => setStatusFilter("invalid")}
+                      isActive={statusFilter === "invalid"}
+                    />
                   </div>
 
                   {/* Filter Actions and AI Review Status */}
@@ -1504,6 +1558,7 @@ export function ProcurementLinkVerifier({
                             "pending",
                             "approved",
                             "denied",
+                            "invalid",
                           ] as StatusFilter[]
                         ).map((filter) => (
                           <button
@@ -1673,43 +1728,152 @@ export function ProcurementLinkVerifier({
                     </div>
                   )}
 
+                  {!importResult && !error && (
+                    <div className="mb-4 bg-tron-bg-card p-4 rounded-lg border border-tron-cyan/20">
+                      <div className="flex items-start gap-3">
+                        <Info className="w-5 h-5 text-tron-cyan mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-medium text-tron-white mb-2">
+                            JSON Import Instructions
+                          </h3>
+                          <ul className="text-sm text-tron-gray space-y-1">
+                            <li>
+                              • Upload a JSON file or paste JSON text containing
+                              an array of procurement link objects
+                            </li>
+                            <li>
+                              • Each link must have:{" "}
+                              <code className="text-tron-cyan">
+                                state, capital, official_website,
+                                procurement_link
+                              </code>
+                            </li>
+                            <li>
+                              • File format can be:{" "}
+                              <code className="text-tron-cyan">
+                                [{"{link1}"}, {"{link2}"}]
+                              </code>{" "}
+                              or{" "}
+                              <code className="text-tron-cyan">
+                                {"{links: [...]}"}
+                              </code>{" "}
+                              or{" "}
+                              <code className="text-tron-cyan">
+                                {"{us_state_capitals_procurement: [...]}"}
+                              </code>
+                            </li>
+                            <li>• Maximum file size: 4MB</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mode Toggle */}
+                  <div className="flex gap-2 border-b border-tron-cyan/20 mb-4">
+                    <button
+                      onClick={() => {
+                        setImportMode("file");
+                        setError(null);
+                      }}
+                      className={`px-4 py-2 font-medium transition-colors ${
+                        importMode === "file"
+                          ? "text-tron-cyan border-b-2 border-tron-cyan"
+                          : "text-tron-gray hover:text-tron-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Upload File
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setImportMode("paste");
+                        setError(null);
+                      }}
+                      className={`px-4 py-2 font-medium transition-colors ${
+                        importMode === "paste"
+                          ? "text-tron-cyan border-b-2 border-tron-cyan"
+                          : "text-tron-gray hover:text-tron-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Clipboard className="w-4 h-4" />
+                        Paste JSON
+                      </div>
+                    </button>
+                  </div>
+
                   {isProcessing ? (
                     <div className="text-center py-8">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tron-cyan mx-auto mb-4" />
                       <p className="text-tron-gray">
-                        Processing uploaded file...
+                        {importMode === "file"
+                          ? "Processing uploaded file..."
+                          : "Processing pasted JSON..."}
                       </p>
                     </div>
                   ) : (
-                    <div
-                      className={`w-full border-2 border-dashed rounded-lg p-8 transition-colors cursor-pointer ${
-                        dragOver
-                          ? "border-tron-cyan bg-tron-bg-card"
-                          : "border-tron-cyan/20 hover:border-tron-cyan"
-                      }`}
-                      onDrop={handleFileDrop}
-                      onDragOver={handleFileDragOver}
-                      onDragLeave={handleFileDragLeave}
-                      onClick={openFileDialog}
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".json"
-                        onChange={handleFileInputChange}
-                        className="hidden"
-                      />
-                      <div className="text-center">
-                        <FileJson className="w-12 h-12 text-tron-gray mx-auto mb-4" />
-                        <p className="text-lg font-medium text-tron-white mb-2">
-                          Drop your JSON file here or click to browse
-                        </p>
-                        <p className="text-sm text-tron-gray">
-                          Expected format: Array with state, capital,
-                          official_website, procurement_link fields
-                        </p>
-                      </div>
-                    </div>
+                    <>
+                      {importMode === "file" ? (
+                        <div
+                          className={`w-full border-2 border-dashed rounded-lg p-8 transition-colors cursor-pointer ${
+                            dragOver
+                              ? "border-tron-cyan bg-tron-bg-card"
+                              : "border-tron-cyan/20 hover:border-tron-cyan"
+                          }`}
+                          onDrop={handleFileDrop}
+                          onDragOver={handleFileDragOver}
+                          onDragLeave={handleFileDragLeave}
+                          onClick={openFileDialog}
+                        >
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".json"
+                            onChange={handleFileInputChange}
+                            className="hidden"
+                          />
+                          <div className="text-center">
+                            <FileJson className="w-12 h-12 text-tron-gray mx-auto mb-4" />
+                            <p className="text-lg font-medium text-tron-white mb-2">
+                              Drop your JSON file here or click to browse
+                            </p>
+                            <p className="text-sm text-tron-gray">
+                              Expected format: Array with state, capital,
+                              official_website, procurement_link fields
+                            </p>
+                            <p className="text-xs text-tron-gray mt-2">
+                              Maximum file size: 4MB
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="w-full">
+                            <label className="block text-sm font-medium text-tron-white mb-2">
+                              Paste JSON Text
+                            </label>
+                            <textarea
+                              value={jsonText}
+                              onChange={(e) => setJsonText(e.target.value)}
+                              placeholder='Paste your JSON here, e.g., [{"state": "Texas", "capital": "Austin", "official_website": "https://...", "procurement_link": "https://..."}, ...] or {"links": [...]}'
+                              className="w-full h-64 px-4 py-3 bg-tron-bg-card border border-tron-cyan/20 rounded-lg text-tron-white placeholder-tron-gray focus:outline-none focus:border-tron-cyan focus:ring-1 focus:ring-tron-cyan font-mono text-sm resize-y"
+                            />
+                          </div>
+                          <TronButton
+                            onClick={handlePasteJson}
+                            variant="primary"
+                            color="cyan"
+                            className="w-full"
+                            disabled={!jsonText.trim() || isProcessing}
+                          >
+                            Import Pasted JSON
+                          </TronButton>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -1752,7 +1916,7 @@ export function ProcurementLinkVerifier({
                 <>
                   <p className="text-sm text-tron-gray mb-4">
                     Manually add procurement links that you've verified
-                    yourself. These links are automatically approved.
+                    yourself. Choose the status when adding the link.
                   </p>
 
                   {showManualForm && (
@@ -1770,7 +1934,7 @@ export function ProcurementLinkVerifier({
                         <div className="bg-neon-success/20 p-3 rounded-lg border border-neon-success flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-neon-success mt-0.5 flex-shrink-0" />
                           <p className="text-sm text-neon-success">
-                            Link added and approved successfully!
+                            Link added successfully!
                           </p>
                         </div>
                       )}
@@ -1877,27 +2041,65 @@ export function ProcurementLinkVerifier({
                         </p>
                       </div>
 
-                      {/* Registration Requirement */}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="requiresRegistration"
-                          checked={manualFormData.requiresRegistration}
-                          onChange={(e) =>
-                            setManualFormData((prev) => ({
-                              ...prev,
-                              requiresRegistration: e.target.checked,
-                            }))
-                          }
-                          disabled={isSubmittingManual}
-                          className="w-4 h-4 rounded border-tron-cyan/30 bg-tron-bg-card text-tron-cyan focus:ring-2 focus:ring-tron-cyan focus:ring-offset-0 disabled:opacity-50"
-                        />
-                        <label
-                          htmlFor="requiresRegistration"
-                          className="text-sm text-tron-gray cursor-pointer"
-                        >
-                          Requires registration to view bids
-                        </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Status Selection */}
+                        <div>
+                          <label className="block text-sm font-medium text-tron-cyan mb-1">
+                            Status *
+                          </label>
+                          <select
+                            value={manualFormData.status}
+                            onChange={(e) =>
+                              setManualFormData((prev) => ({
+                                ...prev,
+                                status: e.target.value as
+                                  | "pending"
+                                  | "approved"
+                                  | "denied"
+                                  | "invalid",
+                              }))
+                            }
+                            disabled={isSubmittingManual}
+                            className="w-full px-3 py-2 bg-tron-bg-card border border-tron-cyan/20 rounded-lg text-tron-white focus:outline-none focus:ring-2 focus:ring-tron-cyan focus:border-tron-cyan disabled:opacity-50"
+                            required
+                          >
+                            <option value="pending" className="bg-tron-bg-card">
+                              Pending
+                            </option>
+                            <option value="approved" className="bg-tron-bg-card">
+                              Approved
+                            </option>
+                            <option value="denied" className="bg-tron-bg-card">
+                              Denied
+                            </option>
+                            <option value="invalid" className="bg-tron-bg-card">
+                              Invalid
+                            </option>
+                          </select>
+                        </div>
+
+                        {/* Registration Requirement */}
+                        <div className="flex items-center gap-2 pt-6">
+                          <input
+                            type="checkbox"
+                            id="requiresRegistration"
+                            checked={manualFormData.requiresRegistration}
+                            onChange={(e) =>
+                              setManualFormData((prev) => ({
+                                ...prev,
+                                requiresRegistration: e.target.checked,
+                              }))
+                            }
+                            disabled={isSubmittingManual}
+                            className="w-4 h-4 rounded border-tron-cyan/30 bg-tron-bg-card text-tron-cyan focus:ring-2 focus:ring-tron-cyan focus:ring-offset-0 disabled:opacity-50"
+                          />
+                          <label
+                            htmlFor="requiresRegistration"
+                            className="text-sm text-tron-gray cursor-pointer"
+                          >
+                            Requires registration to view bids
+                          </label>
+                        </div>
                       </div>
 
                       {/* Submit Button */}
@@ -1913,6 +2115,7 @@ export function ProcurementLinkVerifier({
                               officialWebsite: "",
                               procurementLink: "",
                               requiresRegistration: false,
+                              status: "approved",
                             });
                           }}
                           variant="outline"
@@ -1938,7 +2141,7 @@ export function ProcurementLinkVerifier({
                               Adding...
                             </>
                           ) : (
-                            "Add & Approve Link"
+                            "Add Link"
                           )}
                         </TronButton>
                       </div>

@@ -1,0 +1,251 @@
+---
+description: Comprehensive project context and conventions for Cobecium - the main application guide for AI agents
+alwaysApply: true
+---
+
+# Cobecium Project Guide
+
+## Project Overview
+
+Cobecium is a full-stack procurement and HR management platform built with React and Convex. It helps users discover government procurement opportunities, manage leads, handle HR tasks (KFC nominations), and perform semantic search across resumes and job postings.
+
+## Tech Stack
+
+### Frontend
+- **React 19** with TypeScript
+- **Vite** for build tooling
+- **Tailwind CSS** with custom Tron-inspired theme
+- **React Router DOM** v7 for routing
+- **Clerk** for authentication
+- **Lucide React** for icons
+- **Framer Motion** for animations
+- **Sonner** for toast notifications
+
+### Backend
+- **Convex** - serverless backend with real-time subscriptions
+- **Convex Workflows** (`@convex-dev/workflow`) for long-running processes
+- **Convex Agent** (`@convex-dev/agent`) for AI agent patterns
+
+### AI & ML
+- **OpenAI** (gpt-5-mini, etc.)
+- **Anthropic** (Claude)
+- **Google Generative AI** (Gemini for embeddings)
+- Vector embeddings (1536 dimensions for OpenAI, 2048 for Gemini MRL)
+
+### Package Manager
+- **Bun** - preferred for all operations
+
+## Directory Structure
+
+```
+cobecdev/
+├── convex/           # Backend functions, schema, actions
+│   ├── _generated/   # Auto-generated Convex types
+│   ├── agent/        # AI agent configurations
+│   ├── lib/          # Shared utilities
+│   └── migrations/   # Database migrations
+├── src/
+│   ├── components/   # Reusable React components
+│   ├── pages/        # Page-level components
+│   ├── hooks/        # Custom React hooks
+│   ├── lib/          # Frontend utilities
+│   └── services/     # Service layer (MCP, scrapers)
+├── scripts/          # Build and migration scripts
+├── docs/             # Documentation
+└── browser-agent-service/  # Separate browser automation service
+```
+
+## Convex Patterns
+
+### Function Types
+```typescript
+// Query - read-only, cached, reactive
+export const getLeads = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => { ... }
+});
+
+// Mutation - writes to database, transactional
+export const createLead = mutation({
+  args: { ... },
+  handler: async (ctx, args) => { ... }
+});
+
+// Action - can call external APIs, not transactional
+export const processWithAI = action({
+  args: { ... },
+  handler: async (ctx, args) => { ... }
+});
+
+// Internal functions - only callable from other Convex functions
+export const internalProcess = internalMutation({ ... });
+```
+
+### Timestamp Convention
+Always use `Date.now()` for timestamps:
+```typescript
+const now = Date.now();
+return await ctx.db.insert("tableName", {
+  ...data,
+  createdAt: now,
+  updatedAt: now,
+});
+```
+
+### Index Usage
+Use indexes for efficient queries:
+```typescript
+// Query with index
+const leads = await ctx.db
+  .query("leads")
+  .withIndex("by_status", (q) => q.eq("status", "active"))
+  .collect();
+```
+
+## Key Database Tables
+
+| Table | Purpose |
+|-------|---------|
+| `leads` | Procurement opportunities and job postings |
+| `resumes` | Parsed resume data with embeddings |
+| `procurementUrls` | Procurement link verification queue |
+| `kfcpoints` | Employee recognition points |
+| `nominations` | KFC nomination tracking |
+| `chats` / `messages` | AI chat history |
+| `chatSystemPrompts` | Configurable AI system prompts |
+| `govLinks` | Government resource links by state |
+
+## Frontend Patterns
+
+### Component Structure
+```tsx
+// Use functional components with hooks
+function MyComponent({ prop1, prop2 }: Props) {
+  const data = useQuery(api.module.queryName, { arg });
+  const mutation = useMutation(api.module.mutationName);
+  
+  // ... component logic
+  
+  return (
+    <div className="tron-panel p-4">
+      {/* Content */}
+    </div>
+  );
+}
+```
+
+### Styling with Tron Theme
+Use the custom Tron-inspired color palette:
+```tsx
+// Background colors
+className="bg-tron-bg-deep"     // Darkest: #0f0f15
+className="bg-tron-bg-panel"    // Panel: #1a1a24
+className="bg-tron-bg-card"     // Card: #252530
+
+// Accent colors (use sparingly)
+className="text-tron-cyan"      // Primary accent: #00d4ff
+className="border-tron-cyan/30" // Subtle border
+
+// Glass effects
+className="glass-panel"         // Frosted glass effect
+className="tron-panel"          // Standard panel styling
+
+// Glow effects
+className="shadow-tron-glow"    // Cyan glow shadow
+```
+
+### Status Colors
+```tsx
+// Use neon status colors
+className="text-neon-success"   // #00ff88
+className="text-neon-warning"   // #ffaa00
+className="text-neon-error"     // #ff4444
+```
+
+## Verification Process
+
+**IMPORTANT**: Always verify Convex schema and function changes with:
+```bash
+bunx convex dev --once
+```
+
+This validates:
+- Schema changes compile correctly
+- Function types are valid
+- No breaking changes to the API
+
+## Common Tasks
+
+### Adding a New Convex Function
+1. Create/edit file in `convex/` directory
+2. Define function with proper types using `v` validators
+3. Run `bunx convex dev --once` to verify
+4. Import from `convex/_generated/api` in frontend
+
+### Adding a New Page
+1. Create page component in `src/pages/`
+2. Add route in `src/App.tsx`
+3. If visibility-controlled, wrap with `<VisibilityWrapper>`
+4. Add to sidebar navigation if needed
+
+### Adding Vector Search
+1. Add `embedding` field (array of float64)
+2. Add `embeddingModel` and `embeddingGeneratedAt` fields
+3. Create vector index in schema:
+```typescript
+.vectorIndex("by_embedding", {
+  vectorField: "embedding",
+  dimensions: 1536,
+  filterFields: ["category", "status"],
+})
+```
+
+## Error Handling
+
+### Convex Actions
+```typescript
+try {
+  const result = await externalAPICall();
+  return result;
+} catch (error) {
+  console.error("Operation failed:", error);
+  throw new Error(`Failed to process: ${error.message}`);
+}
+```
+
+### Frontend
+```tsx
+const { toast } = useSonner();
+
+try {
+  await mutation({ args });
+  toast.success("Operation completed");
+} catch (error) {
+  toast.error("Operation failed");
+  console.error(error);
+}
+```
+
+## Environment Variables
+
+Convex environment variables are set via dashboard or CLI:
+- `OPENAI_API_KEY` - OpenAI API access
+- `ANTHROPIC_API_KEY` - Claude API access
+- `GOOGLE_GENERATIVE_AI_API_KEY` - Gemini API access
+
+## Testing
+
+Run tests with:
+```bash
+bun test
+```
+
+Test files follow pattern: `*.test.ts` or `*.test.tsx`
+
+## Important Notes
+
+1. **Never commit secrets** - Use environment variables
+2. **Schema changes require migration** - Plan carefully for production data
+3. **Use TypeScript strictly** - Avoid `any` types when possible
+4. **Prefer Convex queries over actions** - Actions don't benefit from caching
+5. **Index frequently queried fields** - Check schema for existing indexes first

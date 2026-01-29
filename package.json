@@ -53,7 +53,10 @@
     "check:convex": "bun scripts/check-convex.js",
     "convex:admin-key": "bun scripts/get-convex-admin-key.js",
     "import:resumes": "bun run scripts/importResumes.ts",
-    "reset:ai-denied": "bun scripts/reset-ai-denied-links.js"
+    "reset:ai-denied": "bun scripts/reset-ai-denied-links.js",
+    "verify-lead-links": "bun run scripts/verify-lead-links.ts",
+    "verify-lead-links:test": "bun run scripts/verify-lead-links.ts --test",
+    "verify-lead-links:help": "bun run scripts/verify-lead-links.ts --help"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.88",

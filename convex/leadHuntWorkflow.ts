@@ -53,8 +53,31 @@ export const huntLeads = workflow.define({
       };
     }
 
-    // Step 3: Construct the full prompt
-    const systemPrompt: string = leadPrompt.systemPromptText;
+    // Step 3: Construct the full prompt with URL uniqueness requirements
+    const baseSystemPrompt = leadPrompt.systemPromptText;
+    
+    // Enhance system prompt with critical URL requirements
+    const urlUniquenessInstructions = `
+
+CRITICAL URL REQUIREMENTS FOR LEADS:
+1. Each lead MUST have a UNIQUE source.url that points to the SPECIFIC opportunity page, NOT a generic procurement portal
+2. DO NOT reuse the same URL for multiple leads - each opportunity must have its own distinct URL
+3. URLs should be specific to the opportunity:
+   - GOOD: "https://city.gov/procurement/rfp-2026-001" or "https://city.gov/bids/it-infrastructure-upgrade"
+   - BAD: "https://city.gov/procurement" (too generic, will be duplicate for all leads)
+4. If you cannot find a specific URL for an opportunity, construct one based on:
+   - The contractID or reference number
+   - The opportunity title (as a URL-friendly slug)
+   - The issuing body's procurement portal structure
+5. Each lead's source.url must be different from all other leads in the response
+6. The source.url should ideally point to the actual RFP/RFQ/bid posting page, not just the main procurement portal
+
+VALIDATION: Before returning your response, verify that:
+- No two leads have the same source.url
+- Each source.url is specific to that opportunity
+- URLs are well-formed and follow the pattern of the issuing body's website`;
+
+    const systemPrompt: string = baseSystemPrompt + urlUniquenessInstructions;
     const userPrompt = `Find procurement leads in ${args.state}. ${args.userInput}`;
 
     // Store system prompt for display

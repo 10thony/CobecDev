@@ -778,6 +778,23 @@ const applicationTables = {
     .index("by_name", ["name"])
     .index("by_order", ["order"]),
 
+  // System Prompt Sections - configurable templates for injectable prompt sections
+  systemPromptSections: defineTable({
+    sectionKey: v.string(), // Unique identifier: "critical", "invalidLinks", "approvedLinks"
+    sectionName: v.string(), // Display name: "Critical Rules", "Invalid Links", "Approved Links"
+    headerTemplate: v.string(), // Markdown header template (e.g., "## CRITICAL RULES")
+    introTemplate: v.string(), // Introduction text template (supports placeholders like {stateName}, {currentDate})
+    footerTemplate: v.optional(v.string()), // Footer text template (optional)
+    description: v.optional(v.string()), // Description of what this section does
+    isActive: v.boolean(), // Whether this section template is active
+    order: v.number(), // Display order in admin panel
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_section_key", ["sectionKey"])
+    .index("by_active", ["isActive"])
+    .index("by_order", ["order"]),
+
   // Procurement Chat System Prompts - DEPRECATED: Use chatSystemPrompts instead
   // Kept for migration purposes
   procurementChatSystemPrompts: defineTable({
@@ -811,7 +828,7 @@ const applicationTables = {
     capital: v.string(), // Capital city name
     officialWebsite: v.string(), // Official city website URL
     procurementLink: v.string(), // Procurement/bidding page URL
-    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("denied")), // Verification status
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("denied"), v.literal("invalid")), // Verification status
     verifiedBy: v.optional(v.string()), // Clerk user ID of who verified
     verifiedAt: v.optional(v.number()), // Timestamp when verified
     denialReason: v.optional(v.string()), // Optional reason for denial
@@ -1286,6 +1303,93 @@ const applicationTables = {
     .index("by_status", ["status"])
     .index("by_creation", ["startedAt"])
     .index("by_user", ["createdBy"]),
+
+  // Lead Link Verification Jobs - tracks verification workflow state
+  leadLinkVerificationJobs: defineTable({
+    status: v.union(
+      v.literal("pending"),
+      v.literal("running"),
+      v.literal("paused"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+    // Processing configuration
+    batchSize: v.number(), // Number of leads per batch
+    processingOrder: v.union(v.literal("newest_first"), v.literal("oldest_first")),
+    // Progress tracking
+    totalLeads: v.number(), // Total leads to process
+    processedCount: v.number(), // Leads processed so far
+    updatedCount: v.number(), // Leads with updated URLs
+    skippedCount: v.number(), // Leads skipped (already good URLs)
+    failedCount: v.number(), // Leads that failed verification
+    // Cursor for pagination
+    lastProcessedLeadId: v.optional(v.id("leads")),
+    lastProcessedCreatedAt: v.optional(v.number()),
+    // Current state
+    currentBatch: v.optional(v.number()), // Current batch number
+    currentTask: v.optional(v.string()), // Description of current task
+    // Timing
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    lastActivityAt: v.number(),
+    // Error tracking
+    errors: v.optional(v.array(v.object({
+      leadId: v.id("leads"),
+      error: v.string(),
+      timestamp: v.number(),
+    }))),
+    lastError: v.optional(v.string()),
+    // Metadata
+    startedBy: v.optional(v.string()), // Clerk user ID or "system"
+    workflowId: v.optional(v.string()), // Convex workflow ID
+  })
+    .index("by_status", ["status"])
+    .index("by_started_at", ["startedAt"])
+    .index("by_last_activity", ["lastActivityAt"]),
+
+  // Lead Link Verification Results - stores individual verification results
+  leadLinkVerificationResults: defineTable({
+    jobId: v.id("leadLinkVerificationJobs"),
+    leadId: v.id("leads"),
+    // Original URL
+    originalUrl: v.string(),
+    // Verification result
+    result: v.union(
+      v.literal("skipped"), // URL was already good
+      v.literal("updated"), // Found and updated URL
+      v.literal("no_change"), // Verified but no better URL found
+      v.literal("failed") // Verification failed
+    ),
+    // New URL (if found)
+    newUrl: v.optional(v.string()),
+    // Quality assessment
+    originalUrlQuality: v.optional(v.object({
+      isAccessible: v.boolean(),
+      containsOpportunityId: v.boolean(),
+      contentMatchesLead: v.boolean(),
+      isSpecificUrl: v.boolean(),
+      score: v.number(), // 0-1 confidence score
+    })),
+    newUrlQuality: v.optional(v.object({
+      isAccessible: v.boolean(),
+      containsOpportunityId: v.boolean(),
+      contentMatchesLead: v.boolean(),
+      isSpecificUrl: v.boolean(),
+      score: v.number(),
+    })),
+    // AI reasoning
+    aiReasoning: v.optional(v.string()),
+    // Timing
+    verifiedAt: v.number(),
+    durationMs: v.optional(v.number()),
+    // Errors
+    error: v.optional(v.string()),
+  })
+    .index("by_job", ["jobId"])
+    .index("by_lead", ["leadId"])
+    .index("by_result", ["result"])
+    .index("by_verified_at", ["verifiedAt"]),
 };
 
 export default defineSchema({

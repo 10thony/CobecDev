@@ -35,7 +35,7 @@ export function AdminPanelPage() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'resume-analytics' | 'hr-dashboard' | 'prompt-types' | 'public-navigation'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'resume-analytics' | 'hr-dashboard' | 'prompt-types' | 'prompt-sections' | 'public-navigation'>('users');
 
   // Check if current user is admin
   const userRole = useQuery(api.userRoles.getCurrentUserRole);
@@ -70,6 +70,23 @@ export function AdminPanelPage() {
   const updatePromptType = useMutation(api.chatSystemPromptTypes.update);
   const deletePromptType = useMutation(api.chatSystemPromptTypes.remove);
   const initializePromptTypes = useMutation(api.chatSystemPromptTypes.initializeDefaults);
+  
+  // System Prompt Sections
+  const promptSections = useQuery(api.systemPromptSections.list);
+  const upsertPromptSection = useMutation(api.systemPromptSections.upsert);
+  const deletePromptSection = useMutation(api.systemPromptSections.remove);
+  const initializePromptSections = useMutation(api.systemPromptSections.initializeDefaults);
+  const [editingSection, setEditingSection] = useState<any>(null);
+  const [sectionFormData, setSectionFormData] = useState({
+    sectionKey: '',
+    sectionName: '',
+    headerTemplate: '',
+    introTemplate: '',
+    footerTemplate: '',
+    description: '',
+    isActive: true,
+    order: 0,
+  });
   
   // System Prompt Analytics
   const [analyticsFilter, setAnalyticsFilter] = useState<'all' | 'system_prompt_auto_inject_links' | 'system_prompt_manual_update_links'>('all');
@@ -366,7 +383,20 @@ export function AdminPanelPage() {
             >
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4" />
-                Prompt Management
+                Prompt Types
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('prompt-sections')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'prompt-sections'
+                  ? 'text-tron-cyan border-b-2 border-tron-cyan'
+                  : 'text-tron-gray hover:text-tron-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Prompt Sections
               </div>
             </button>
             <button
@@ -1134,6 +1164,296 @@ export function AdminPanelPage() {
                 })()}
               </div>
             </div>
+          </div>
+        ) : activeTab === 'prompt-sections' ? (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-tron-white mb-2 flex items-center space-x-2">
+                    <Settings className="h-5 w-5 text-tron-cyan" />
+                    <span>System Prompt Sections</span>
+                  </h2>
+                  <p className="text-sm text-tron-gray">
+                    Manage templates for system prompt sections that get injected (Critical Rules, Invalid Links, Approved Links).
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await initializePromptSections();
+                        toast.success("Default sections initialized");
+                      } catch (error: any) {
+                        toast.error(`Failed to initialize: ${error.message}`);
+                      }
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-tron-cyan/20 text-tron-white rounded-md hover:bg-tron-cyan/30 transition-colors"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    <span>Initialize Defaults</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingSection('new' as any);
+                      setSectionFormData({
+                        sectionKey: '',
+                        sectionName: '',
+                        headerTemplate: '',
+                        introTemplate: '',
+                        footerTemplate: '',
+                        description: '',
+                        isActive: true,
+                        order: (promptSections?.length || 0),
+                      });
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80 transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>New Section</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Create/Edit Form */}
+            {editingSection !== null && (() => {
+              const isEditing = editingSection && editingSection !== 'new' && typeof editingSection === 'object' && '_id' in editingSection;
+              return (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6">
+                <h3 className="text-lg font-semibold text-tron-white mb-4">
+                  {isEditing ? 'Edit Section' : 'Create New Section'}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Section Key *</label>
+                    <input
+                      type="text"
+                      value={sectionFormData.sectionKey}
+                      onChange={(e) => setSectionFormData(prev => ({ ...prev, sectionKey: e.target.value }))}
+                      placeholder="e.g., critical, invalidLinks, approvedLinks"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                      disabled={isEditing}
+                    />
+                    <p className="text-xs text-tron-gray mt-1">Unique identifier for this section</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Section Name *</label>
+                    <input
+                      type="text"
+                      value={sectionFormData.sectionName}
+                      onChange={(e) => setSectionFormData(prev => ({ ...prev, sectionName: e.target.value }))}
+                      placeholder="e.g., Critical Rules, Invalid Links"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Header Template *</label>
+                    <input
+                      type="text"
+                      value={sectionFormData.headerTemplate}
+                      onChange={(e) => setSectionFormData(prev => ({ ...prev, headerTemplate: e.target.value }))}
+                      placeholder="e.g., ## CRITICAL RULES"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                    <p className="text-xs text-tron-gray mt-1">Markdown header (e.g., ## Section Name)</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Introduction Template *</label>
+                    <textarea
+                      value={sectionFormData.introTemplate}
+                      onChange={(e) => setSectionFormData(prev => ({ ...prev, introTemplate: e.target.value }))}
+                      placeholder="Introduction text. Use {currentDate} or {stateName} as placeholders."
+                      rows={4}
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                    <p className="text-xs text-tron-gray mt-1">Supports placeholders: {`{currentDate}`, `{stateName}`}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Footer Template (Optional)</label>
+                    <textarea
+                      value={sectionFormData.footerTemplate}
+                      onChange={(e) => setSectionFormData(prev => ({ ...prev, footerTemplate: e.target.value }))}
+                      placeholder="Footer text that appears after the section content"
+                      rows={3}
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Description</label>
+                    <input
+                      type="text"
+                      value={sectionFormData.description}
+                      onChange={(e) => setSectionFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Optional description"
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={sectionFormData.isActive}
+                      onChange={(e) => setSectionFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                      className="w-4 h-4 rounded border-tron-cyan/30 bg-tron-bg-deep text-tron-cyan"
+                    />
+                    <label className="text-sm text-tron-white">Active (use this template)</label>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-tron-gray mb-2">Order</label>
+                    <input
+                      type="number"
+                      value={sectionFormData.order}
+                      onChange={(e) => setSectionFormData(prev => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-4 py-2 bg-tron-bg-deep border border-tron-cyan/20 rounded-lg text-tron-white"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await upsertPromptSection({
+                            id: isEditing ? (editingSection as any)?._id : undefined,
+                            ...sectionFormData,
+                          });
+                          toast.success(isEditing ? "Section updated" : "Section created");
+                          setEditingSection(null);
+                          setSectionFormData({
+                            sectionKey: '',
+                            sectionName: '',
+                            headerTemplate: '',
+                            introTemplate: '',
+                            footerTemplate: '',
+                            description: '',
+                            isActive: true,
+                            order: 0,
+                          });
+                        } catch (error: any) {
+                          toast.error(`Failed: ${error.message}`);
+                        }
+                      }}
+                      className="px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80"
+                    >
+                      {isEditing ? 'Update' : 'Create'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingSection(null);
+                        setSectionFormData({
+                          sectionKey: '',
+                          sectionName: '',
+                          headerTemplate: '',
+                          introTemplate: '',
+                          footerTemplate: '',
+                          description: '',
+                          isActive: true,
+                          order: 0,
+                        });
+                      }}
+                      className="px-4 py-2 bg-tron-bg-card text-tron-white rounded-md hover:bg-tron-bg-elevated"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+              );
+            })()}
+
+            {/* Sections List */}
+            {promptSections === undefined ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-tron-cyan" />
+                <span className="ml-3 text-tron-gray">Loading sections...</span>
+              </div>
+            ) : promptSections.length === 0 ? (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 p-6 text-center">
+                <AlertCircle className="h-8 w-8 text-tron-gray mx-auto mb-2" />
+                <p className="text-tron-gray mb-4">No sections configured yet.</p>
+                <button
+                  onClick={async () => {
+                    try {
+                      await initializePromptSections();
+                      toast.success("Default sections initialized");
+                    } catch (error: any) {
+                      toast.error(`Failed to initialize: ${error.message}`);
+                    }
+                  }}
+                  className="px-4 py-2 bg-tron-cyan text-tron-white rounded-md hover:bg-tron-cyan/80"
+                >
+                  Initialize Default Sections
+                </button>
+              </div>
+            ) : (
+              <div className="bg-tron-bg-panel rounded-lg border border-tron-cyan/20 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-tron-bg-elevated">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Key</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Header</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Active</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Order</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-tron-gray uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-tron-cyan/10">
+                    {promptSections.map((section) => (
+                      <tr key={section._id} className="hover:bg-tron-bg-elevated">
+                        <td className="px-6 py-4 text-sm text-tron-white font-mono">{section.sectionKey}</td>
+                        <td className="px-6 py-4 text-sm text-tron-white">{section.sectionName}</td>
+                        <td className="px-6 py-4 text-sm text-tron-gray max-w-xs truncate">{section.headerTemplate}</td>
+                        <td className="px-6 py-4 text-sm">
+                          {section.isActive ? (
+                            <CheckCircle className="h-5 w-5 text-tron-cyan" />
+                          ) : (
+                            <XCircle className="h-5 w-5 text-tron-gray" />
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-tron-gray">{section.order}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingSection(section);
+                                setSectionFormData({
+                                  sectionKey: section.sectionKey,
+                                  sectionName: section.sectionName,
+                                  headerTemplate: section.headerTemplate,
+                                  introTemplate: section.introTemplate,
+                                  footerTemplate: section.footerTemplate || '',
+                                  description: section.description || '',
+                                  isActive: section.isActive,
+                                  order: section.order,
+                                });
+                              }}
+                              className="text-tron-cyan hover:text-tron-cyan-bright"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (confirm('Are you sure you want to delete this section?')) {
+                                  try {
+                                    await deletePromptSection({ id: section._id });
+                                    toast.success("Section deleted");
+                                  } catch (error: any) {
+                                    toast.error(`Failed: ${error.message}`);
+                                  }
+                                }
+                              }}
+                              className="text-neon-error hover:text-neon-error-bright"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         ) : activeTab === 'hr-dashboard' ? (
           <div className="space-y-6">

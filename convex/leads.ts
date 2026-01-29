@@ -441,6 +441,7 @@ function isDateInPast(dateString: string | undefined): boolean {
 // Clean up leads by removing duplicates and expired leads (past start time or deadline)
 // Duplicates are detected by: contractID + source (documentName + url)
 // Expired leads are those with bidDeadline or projectedStartDate in the past
+// Invalid leads are those with source URLs matching invalid procurement links or hardcoded invalid domains
 export const cleanUpLeads = mutation({
   args: {},
   handler: async (ctx) => {
@@ -455,10 +456,33 @@ export const cleanUpLeads = mutation({
       id: string;
       reason: string;
     }> = [];
+    const invalid: Array<{
+      id: string;
+      reason: string;
+    }> = [];
     const deletedIds: string[] = [];
 
+    // Get all invalid procurement links
+    const invalidProcurementLinks = await ctx.db
+      .query("procurementUrls")
+      .withIndex("by_status", (q) => q.eq("status", "invalid"))
+      .collect();
+    
+    // Create a set of invalid URLs for fast lookup (normalized)
+    const invalidUrls = new Set<string>();
+    for (const link of invalidProcurementLinks) {
+      const normalized = normalizeUrl(link.procurementLink);
+      if (normalized) {
+        invalidUrls.add(normalized);
+      }
+    }
+
+    // Hardcoded invalid domains
+    const invalidDomains = ["ssl.doas.ga.gov"];
+
     console.log(
-      `[cleanUpLeads] Checking ${allLeads.length} leads for duplicates and expired dates...`,
+      `[cleanUpLeads] Checking ${allLeads.length} leads for duplicates, expired dates, and invalid URLs...`,
+      `Found ${invalidProcurementLinks.length} invalid procurement links`,
     );
 
     for (const lead of allLeads) {
@@ -466,78 +490,114 @@ export const cleanUpLeads = mutation({
       let deleteReason = "";
       let isExpired = false;
       let isDuplicate = false;
+      let isInvalid = false;
 
-      // Check if lead has expired dates (bidDeadline or projectedStartDate in the past)
-      const bidDeadline = lead.keyDates?.bidDeadline;
-      const projectedStartDate = lead.keyDates?.projectedStartDate;
-      
-      if (isDateInPast(bidDeadline)) {
-        isExpired = true;
-        shouldDelete = true;
-        deleteReason = `expired bid deadline (${bidDeadline})`;
-        expired.push({
-          id: lead._id,
-          reason: deleteReason,
-        });
-      } else if (isDateInPast(projectedStartDate)) {
-        isExpired = true;
-        shouldDelete = true;
-        deleteReason = `expired projected start date (${projectedStartDate})`;
-        expired.push({
-          id: lead._id,
-          reason: deleteReason,
-        });
-      }
-
-      // Check for duplicates (check all leads, even expired ones, for accurate duplicate tracking)
-      let duplicateKey: string | null = null;
-      let duplicateReason = "";
-
-      // Normalize source fields
-      const normalizedUrl = normalizeUrl(lead.source?.url || "");
-      const normalizedDocName = normalizeDocumentName(lead.source?.documentName || "");
-
-      // Match by contractID + source (documentName + url)
-      // Both contractID and source must match for a duplicate
-      if (lead.contractID && normalizedDocName && normalizedUrl) {
-        const normalizedContractID = normalizeContractID(lead.contractID);
-        duplicateKey = `contractID+source:${normalizedContractID}|${normalizedDocName}|${normalizedUrl}`;
-        duplicateReason = `contractID (${lead.contractID}) + source (${lead.source.documentName})`;
-      } else if (lead.contractID && normalizedUrl) {
-        // Fallback: contractID + URL only (if documentName is missing)
-        const normalizedContractID = normalizeContractID(lead.contractID);
-        duplicateKey = `contractID+url:${normalizedContractID}|${normalizedUrl}`;
-        duplicateReason = `contractID (${lead.contractID}) + URL`;
-      } else if (lead.contractID && normalizedDocName) {
-        // Fallback: contractID + documentName only (if URL is missing)
-        const normalizedContractID = normalizeContractID(lead.contractID);
-        duplicateKey = `contractID+doc:${normalizedContractID}|${normalizedDocName}`;
-        duplicateReason = `contractID (${lead.contractID}) + documentName (${lead.source.documentName})`;
-      } else if (normalizedDocName && normalizedUrl) {
-        // Fallback: source only (if no contractID) - match by documentName + URL
-        duplicateKey = `source:${normalizedDocName}|${normalizedUrl}`;
-        duplicateReason = `source (${lead.source.documentName})`;
-      }
-
-      if (duplicateKey) {
-        const firstLeadId = seen.get(duplicateKey);
-        if (firstLeadId) {
-          // This is a duplicate
-          isDuplicate = true;
-          if (!shouldDelete) {
-            // Only mark for deletion if not already expired
-            shouldDelete = true;
-            deleteReason = duplicateReason;
-          }
-          duplicates.push({
+      // Check if lead has an invalid source URL
+      const sourceUrl = lead.source?.url || "";
+      if (sourceUrl) {
+        const normalizedSourceUrl = normalizeUrl(sourceUrl);
+        
+        // Check against invalid procurement links
+        if (normalizedSourceUrl && invalidUrls.has(normalizedSourceUrl)) {
+          isInvalid = true;
+          shouldDelete = true;
+          deleteReason = `invalid procurement link (${sourceUrl})`;
+          invalid.push({
             id: lead._id,
-            reason: duplicateReason,
-            duplicateOf: firstLeadId,
+            reason: deleteReason,
           });
         } else {
-          // First occurrence - keep it (unless it's expired)
-          if (!isExpired) {
-            seen.set(duplicateKey, lead._id);
+          // Check against hardcoded invalid domains
+          const urlLower = sourceUrl.toLowerCase();
+          for (const domain of invalidDomains) {
+            if (urlLower.includes(domain)) {
+              isInvalid = true;
+              shouldDelete = true;
+              deleteReason = `invalid domain (${domain})`;
+              invalid.push({
+                id: lead._id,
+                reason: deleteReason,
+              });
+              break;
+            }
+          }
+        }
+      }
+
+      // Check if lead has expired dates (bidDeadline or projectedStartDate in the past)
+      // Only check if not already marked for deletion due to invalid URL
+      if (!shouldDelete) {
+        const bidDeadline = lead.keyDates?.bidDeadline;
+        const projectedStartDate = lead.keyDates?.projectedStartDate;
+        
+        if (isDateInPast(bidDeadline)) {
+          isExpired = true;
+          shouldDelete = true;
+          deleteReason = `expired bid deadline (${bidDeadline})`;
+          expired.push({
+            id: lead._id,
+            reason: deleteReason,
+          });
+        } else if (isDateInPast(projectedStartDate)) {
+          isExpired = true;
+          shouldDelete = true;
+          deleteReason = `expired projected start date (${projectedStartDate})`;
+          expired.push({
+            id: lead._id,
+            reason: deleteReason,
+          });
+        }
+      }
+
+      // Check for duplicates (check all leads, even expired/invalid ones, for accurate duplicate tracking)
+      // Only check if not already marked for deletion
+      if (!shouldDelete) {
+        let duplicateKey: string | null = null;
+        let duplicateReason = "";
+
+        // Normalize source fields
+        const normalizedUrl = normalizeUrl(lead.source?.url || "");
+        const normalizedDocName = normalizeDocumentName(lead.source?.documentName || "");
+
+        // Match by contractID + source (documentName + url)
+        // Both contractID and source must match for a duplicate
+        if (lead.contractID && normalizedDocName && normalizedUrl) {
+          const normalizedContractID = normalizeContractID(lead.contractID);
+          duplicateKey = `contractID+source:${normalizedContractID}|${normalizedDocName}|${normalizedUrl}`;
+          duplicateReason = `contractID (${lead.contractID}) + source (${lead.source.documentName})`;
+        } else if (lead.contractID && normalizedUrl) {
+          // Fallback: contractID + URL only (if documentName is missing)
+          const normalizedContractID = normalizeContractID(lead.contractID);
+          duplicateKey = `contractID+url:${normalizedContractID}|${normalizedUrl}`;
+          duplicateReason = `contractID (${lead.contractID}) + URL`;
+        } else if (lead.contractID && normalizedDocName) {
+          // Fallback: contractID + documentName only (if URL is missing)
+          const normalizedContractID = normalizeContractID(lead.contractID);
+          duplicateKey = `contractID+doc:${normalizedContractID}|${normalizedDocName}`;
+          duplicateReason = `contractID (${lead.contractID}) + documentName (${lead.source.documentName})`;
+        } else if (normalizedDocName && normalizedUrl) {
+          // Fallback: source only (if no contractID) - match by documentName + URL
+          duplicateKey = `source:${normalizedDocName}|${normalizedUrl}`;
+          duplicateReason = `source (${lead.source.documentName})`;
+        }
+
+        if (duplicateKey) {
+          const firstLeadId = seen.get(duplicateKey);
+          if (firstLeadId) {
+            // This is a duplicate
+            isDuplicate = true;
+            shouldDelete = true;
+            deleteReason = duplicateReason;
+            duplicates.push({
+              id: lead._id,
+              reason: duplicateReason,
+              duplicateOf: firstLeadId,
+            });
+          } else {
+            // First occurrence - keep it (unless it's expired or invalid)
+            if (!isExpired && !isInvalid) {
+              seen.set(duplicateKey, lead._id);
+            }
           }
         }
       }
@@ -553,16 +613,18 @@ export const cleanUpLeads = mutation({
     }
 
     console.log(
-      `[cleanUpLeads] Deleted ${deletedIds.length} leads (${duplicates.length} duplicates, ${expired.length} expired) out of ${allLeads.length} total`,
+      `[cleanUpLeads] Deleted ${deletedIds.length} leads (${duplicates.length} duplicates, ${expired.length} expired, ${invalid.length} invalid) out of ${allLeads.length} total`,
     );
 
     return {
       totalChecked: allLeads.length,
       duplicatesFound: duplicates.length,
       expiredFound: expired.length,
+      invalidFound: invalid.length,
       deleted: deletedIds.length,
       duplicateDetails: duplicates.slice(0, 50), // Limit to first 50 for response size
       expiredDetails: expired.slice(0, 50), // Limit to first 50 for response size
+      invalidDetails: invalid.slice(0, 50), // Limit to first 50 for response size
     };
   },
 });

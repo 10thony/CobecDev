@@ -2,6 +2,7 @@ import { query, mutation, internalQuery, action, internalAction, internalMutatio
 import { v } from "convex/values";
 import { internal, api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { getByKeyInternal, getAllActiveInternal } from "./systemPromptSections";
 
 // Pricing constants (in cents per 1K tokens) - updated with latest OpenAI pricing
 interface ModelPricing {
@@ -255,7 +256,7 @@ export const getFullPromptWithLinks = query({
       
       // Format and inject procurement links
       if (formattedProcurementLinks.length > 0) {
-        const procurementLinksSection = formatApprovedLinksForPromptFull(formattedProcurementLinks);
+        const procurementLinksSection = await formatApprovedLinksForPromptFull(ctx, formattedProcurementLinks);
         basePrompt = injectApprovedLinksIntoPrompt(basePrompt, procurementLinksSection);
       }
       
@@ -334,7 +335,7 @@ export const getFullPromptWithLinksInternal = internalQuery({
       
       // Format and inject procurement links
       if (formattedProcurementLinks.length > 0) {
-        const procurementLinksSection = formatApprovedLinksForPromptFull(formattedProcurementLinks);
+        const procurementLinksSection = await formatApprovedLinksForPromptFull(ctx, formattedProcurementLinks);
         basePrompt = injectApprovedLinksIntoPrompt(basePrompt, procurementLinksSection);
       }
       
@@ -675,8 +676,21 @@ function extractStateFromTitle(title: string): string | null {
  * Format approved links into a readable section for the system prompt
  * Shows summary if more than 20 links (for runtime injection)
  */
-function formatApprovedLinksForPrompt(links: ApprovedLink[]): string {
+async function formatApprovedLinksForPrompt(ctx: any, links: ApprovedLink[]): Promise<string> {
   if (links.length === 0) return "";
+  
+  // Get approved links section template from DB
+  const approvedLinksSection = await ctx.runQuery(internal.systemPromptSections.getByKeyInternal, { sectionKey: "approvedLinks" });
+  
+  let headerTemplate = "## ALREADY APPROVED PROCUREMENT LINKS";
+  let introTemplate = "The following procurement links have already been collected and approved in our system. DO NOT suggest these links again. If a user requests a link for one of these locations, inform them that we already have it in our system.";
+  let footerTemplate = "CRITICAL: Before suggesting any procurement link, check this list. If the link already exists here, do NOT include it in your response. Instead, acknowledge that the link is already in our system.";
+  
+  if (approvedLinksSection && approvedLinksSection.isActive) {
+    headerTemplate = approvedLinksSection.headerTemplate;
+    introTemplate = approvedLinksSection.introTemplate;
+    footerTemplate = approvedLinksSection.footerTemplate || footerTemplate;
+  }
   
   // If we have many links, show summary only
   if (links.length > 20) {
@@ -686,7 +700,7 @@ function formatApprovedLinksForPrompt(links: ApprovedLink[]): string {
       byState[link.state] = (byState[link.state] || 0) + 1;
     }
     
-    let formatted = "\n\n## ALREADY APPROVED PROCUREMENT LINKS\n";
+    let formatted = `\n\n${headerTemplate}\n`;
     formatted += `We have ${links.length} approved procurement links across ${Object.keys(byState).length} states. `;
     formatted += "DO NOT suggest links that are already in our system.\n\n";
     formatted += "**States with approved links:**\n";
@@ -698,8 +712,7 @@ function formatApprovedLinksForPrompt(links: ApprovedLink[]): string {
       formatted += `- ${state}: ${count} link${count > 1 ? 's' : ''}\n`;
     }
     
-    formatted += "\nCRITICAL: Before suggesting any procurement link, check if we already have it. ";
-    formatted += "If the link already exists in our system, acknowledge that it's already collected.\n";
+    formatted += `\n${footerTemplate}\n`;
     
     return formatted;
   }
@@ -714,10 +727,7 @@ function formatApprovedLinksForPrompt(links: ApprovedLink[]): string {
     byState[link.state].push(link);
   }
   
-  let formatted = "\n\n## ALREADY APPROVED PROCUREMENT LINKS\n";
-  formatted += "The following procurement links have already been collected and approved in our system. ";
-  formatted += "DO NOT suggest these links again. If a user requests a link for one of these locations, ";
-  formatted += "inform them that we already have it in our system.\n\n";
+  let formatted = `\n\n${headerTemplate}\n${introTemplate}\n\n`;
   
   // Sort states alphabetically
   const sortedStates = Object.keys(byState).sort();
@@ -734,9 +744,7 @@ function formatApprovedLinksForPrompt(links: ApprovedLink[]): string {
     formatted += "\n";
   }
   
-  formatted += "CRITICAL: Before suggesting any procurement link, check this list. ";
-  formatted += "If the link already exists here, do NOT include it in your response. ";
-  formatted += "Instead, acknowledge that the link is already in our system.\n";
+  formatted += `${footerTemplate}\n`;
   
   return formatted;
 }
@@ -745,8 +753,21 @@ function formatApprovedLinksForPrompt(links: ApprovedLink[]): string {
  * Format approved links with FULL details (always shows all links, never summaries)
  * Used for copying the complete system prompt to clipboard
  */
-function formatApprovedLinksForPromptFull(links: ApprovedLink[]): string {
+async function formatApprovedLinksForPromptFull(ctx: any, links: ApprovedLink[]): Promise<string> {
   if (links.length === 0) return "";
+  
+  // Get approved links section template from DB
+  const approvedLinksSection = await ctx.runQuery(internal.systemPromptSections.getByKeyInternal, { sectionKey: "approvedLinks" });
+  
+  let headerTemplate = "## ALREADY APPROVED PROCUREMENT LINKS";
+  let introTemplate = "The following procurement links have already been collected and approved in our system. DO NOT suggest these links again. If a user requests a link for one of these locations, inform them that we already have it in our system.";
+  let footerTemplate = "CRITICAL: Before suggesting any procurement link, check this list. If the link already exists here, do NOT include it in your response. Instead, acknowledge that the link is already in our system.";
+  
+  if (approvedLinksSection && approvedLinksSection.isActive) {
+    headerTemplate = approvedLinksSection.headerTemplate;
+    introTemplate = approvedLinksSection.introTemplate;
+    footerTemplate = approvedLinksSection.footerTemplate || footerTemplate;
+  }
   
   // Always show full details, regardless of count
   // Group by state for better organization
@@ -758,10 +779,7 @@ function formatApprovedLinksForPromptFull(links: ApprovedLink[]): string {
     byState[link.state].push(link);
   }
   
-  let formatted = "\n\n## ALREADY APPROVED PROCUREMENT LINKS\n";
-  formatted += "The following procurement links have already been collected and approved in our system. ";
-  formatted += "DO NOT suggest these links again. If a user requests a link for one of these locations, ";
-  formatted += "inform them that we already have it in our system.\n\n";
+  let formatted = `\n\n${headerTemplate}\n${introTemplate}\n\n`;
   
   // Sort states alphabetically
   const sortedStates = Object.keys(byState).sort();
@@ -778,9 +796,7 @@ function formatApprovedLinksForPromptFull(links: ApprovedLink[]): string {
     formatted += "\n";
   }
   
-  formatted += "CRITICAL: Before suggesting any procurement link, check this list. ";
-  formatted += "If the link already exists here, do NOT include it in your response. ";
-  formatted += "Instead, acknowledge that the link is already in our system.\n";
+  formatted += `${footerTemplate}\n`;
   
   return formatted;
 }
@@ -788,8 +804,9 @@ function formatApprovedLinksForPromptFull(links: ApprovedLink[]): string {
 /**
  * Format approved links for a specific state (state-specific version)
  * Always shows full details for the specified state's links
+ * Uses templates from database
  */
-function formatApprovedLinksForState(links: ApprovedLink[], targetState: string): string {
+async function formatApprovedLinksForState(ctx: any, links: ApprovedLink[], targetState: string): Promise<string> {
   if (links.length === 0) return "";
   
   // Filter links for the target state
@@ -797,10 +814,26 @@ function formatApprovedLinksForState(links: ApprovedLink[], targetState: string)
   
   if (stateLinks.length === 0) return "";
   
-  let formatted = "\n\n## ALREADY APPROVED PROCUREMENT LINKS\n";
-  formatted += `The following procurement links for ${targetState} have already been collected and approved in our system. `;
-  formatted += "DO NOT suggest these links again. If a user requests a link for one of these locations, ";
-  formatted += "inform them that we already have it in our system.\n\n";
+  // Get approved links section template from DB
+  const approvedLinksSection = await ctx.runQuery(internal.systemPromptSections.getByKeyInternal, { sectionKey: "approvedLinks" });
+  
+  let headerTemplate = "## ALREADY APPROVED PROCUREMENT LINKS";
+  let introTemplate = "The following procurement links have already been collected and approved in our system. DO NOT suggest these links again. If a user requests a link for one of these locations, inform them that we already have it in our system.";
+  let footerTemplate = "CRITICAL: Before suggesting any procurement link, check this list. If the link already exists here, do NOT include it in your response. Instead, acknowledge that the link is already in our system.";
+  
+  if (approvedLinksSection && approvedLinksSection.isActive) {
+    headerTemplate = approvedLinksSection.headerTemplate;
+    introTemplate = approvedLinksSection.introTemplate;
+    footerTemplate = approvedLinksSection.footerTemplate || footerTemplate;
+  }
+  
+  // Customize intro for state-specific
+  const stateSpecificIntro = introTemplate.replace(
+    "The following procurement links",
+    `The following procurement links for ${targetState}`
+  );
+  
+  let formatted = `\n\n${headerTemplate}\n${stateSpecificIntro}\n\n`;
   
   formatted += `### ${targetState}\n`;
   for (const link of stateLinks) {
@@ -812,11 +845,171 @@ function formatApprovedLinksForState(links: ApprovedLink[], targetState: string)
   }
   formatted += "\n";
   
-  formatted += "CRITICAL: Before suggesting any procurement link, check this list. ";
-  formatted += "If the link already exists here, do NOT include it in your response. ";
-  formatted += "Instead, acknowledge that the link is already in our system.\n";
+  formatted += `${footerTemplate}\n`;
   
   return formatted;
+}
+
+/**
+ * Helper function to replace placeholders in template strings
+ */
+function replaceTemplatePlaceholders(template: string, placeholders: Record<string, string>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(placeholders)) {
+    result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+  }
+  return result;
+}
+
+/**
+ * Format a generic section (sections that don't need special data like links)
+ */
+async function formatGenericSection(
+  ctx: any,
+  section: any,
+  placeholders: { currentDate?: string; stateName?: string } = {}
+): Promise<string> {
+  if (!section || !section.isActive) {
+    return "";
+  }
+
+  const currentDate = placeholders.currentDate || new Date().toISOString().split('T')[0];
+  const stateNamePlaceholder = placeholders.stateName || "";
+  
+  // Replace placeholders in intro template
+  const introText = replaceTemplatePlaceholders(section.introTemplate, {
+    currentDate,
+    stateName: stateNamePlaceholder,
+  });
+
+  let formatted = `\n\n${section.headerTemplate}\n${introText}\n`;
+
+  // Add footer if present
+  if (section.footerTemplate) {
+    const footerText = replaceTemplatePlaceholders(section.footerTemplate, {
+      currentDate,
+      stateName: stateNamePlaceholder,
+    });
+    formatted += `\n${footerText}\n`;
+  }
+
+  return formatted;
+}
+
+/**
+ * Remove an existing section from prompt text by its header template
+ */
+function removeExistingSectionByHeader(promptText: string, headerTemplate: string): string {
+  // Escape special regex characters in the header
+  const escapedHeader = headerTemplate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  
+  // Find the section - look for the header followed by content until next ## or end
+  const headerPattern = new RegExp(`\\n\\n${escapedHeader}[^]*?(?=\\n\\n## |\\n\\nRemember:|$)`, 'i');
+  const match = promptText.match(headerPattern);
+  
+  if (match && match.index !== undefined) {
+    return promptText.slice(0, match.index) + promptText.slice(match.index + match[0].length);
+  }
+  
+  return promptText; // Section not found, return as-is
+}
+
+/**
+ * Inject all active generic sections into a prompt (excluding special sections that need data)
+ * Special sections: approvedLinks, invalidLinks, leadSourceLinks, critical (handled separately)
+ */
+async function injectAllActiveGenericSections(
+  ctx: any,
+  promptText: string,
+  stateName?: string
+): Promise<string> {
+  // Get all active sections
+  const allSections = await ctx.runQuery(internal.systemPromptSections.getAllActiveInternal);
+  
+  // Sections that need special handling (have data or special logic)
+  const specialSectionKeys = new Set(["approvedLinks", "invalidLinks", "leadSourceLinks", "critical"]);
+  
+  // Filter to only generic sections (not special ones)
+  const genericSections = allSections.filter(
+    (section: any) => !specialSectionKeys.has(section.sectionKey)
+  );
+  
+  if (genericSections.length === 0) {
+    return promptText;
+  }
+
+  // Prepare placeholders
+  const currentDate = new Date().toISOString().split('T')[0];
+  const stateNamePlaceholder = stateName ? ` for ${stateName}` : "";
+
+  // Remove existing generic sections first
+  let basePrompt = promptText;
+  for (const section of genericSections) {
+    basePrompt = removeExistingSectionByHeader(basePrompt, section.headerTemplate);
+  }
+
+  // Find insertion point - after critical section if it exists, otherwise before "Remember:" or at end
+  let insertPoint = -1;
+  
+  // Try to find critical section
+  const criticalPatterns = [
+    /(##\s*CRITICAL[^\n]*\n[^#]*)/i,
+    /(CRITICAL[^\n]*\n[^#]*)/i,
+  ];
+  
+  let criticalSectionEnd = -1;
+  for (const pattern of criticalPatterns) {
+    const match = basePrompt.match(pattern);
+    if (match && match.index !== undefined) {
+      criticalSectionEnd = match.index + match[0].length;
+      break;
+    }
+  }
+  
+  if (criticalSectionEnd !== -1) {
+    // Insert after critical section
+    const afterCritical = basePrompt.slice(criticalSectionEnd);
+    const nextSection = afterCritical.indexOf("\n\n## ");
+    const rememberIndex = afterCritical.indexOf("\n\nRemember:");
+    
+    if (nextSection !== -1 && rememberIndex !== -1) {
+      insertPoint = criticalSectionEnd + Math.min(nextSection, rememberIndex);
+    } else if (rememberIndex !== -1) {
+      insertPoint = criticalSectionEnd + rememberIndex;
+    } else if (nextSection !== -1) {
+      insertPoint = criticalSectionEnd + nextSection;
+    } else {
+      insertPoint = criticalSectionEnd;
+    }
+  } else {
+    // No critical section, try to find "Remember:" section
+    const rememberIndex = basePrompt.lastIndexOf("Remember:");
+    if (rememberIndex !== -1) {
+      insertPoint = rememberIndex;
+    } else {
+      // Insert at the end
+      insertPoint = basePrompt.length;
+    }
+  }
+
+  // Format and inject all generic sections
+  let sectionsText = "";
+  for (const section of genericSections) {
+    const formatted = await formatGenericSection(ctx, section, {
+      currentDate,
+      stateName: stateNamePlaceholder,
+    });
+    sectionsText += formatted;
+  }
+
+  // Insert the sections
+  if (insertPoint === basePrompt.length) {
+    return basePrompt.trimEnd() + sectionsText;
+  } else {
+    const beforeInsert = basePrompt.slice(0, insertPoint).trimEnd();
+    const afterInsert = basePrompt.slice(insertPoint).trimStart();
+    return beforeInsert + sectionsText + "\n" + afterInsert;
+  }
 }
 
 /**
@@ -829,14 +1022,25 @@ function hasNonViableLeadsSentence(promptText: string): boolean {
 }
 
 /**
- * Inject the non-viable leads sentence into the critical section
- * If a critical section exists, adds the sentence to it
+ * Inject the non-viable leads sentence into the system prompt using stored template
  * If no critical section exists, creates one
  * Includes the current date to keep the prompt up to date
  */
-function injectNonViableLeadsSentence(promptText: string): string {
+async function injectNonViableLeadsSentence(ctx: any, promptText: string): Promise<string> {
   const currentDate = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
-  const requiredSentence = `DO NOT RETURN ANY NON VIABLE LEADS. LEADS ARE NOT VIABLE IF THE DEADLINE IS IN THE PAST. Current date: ${currentDate}`;
+  
+  // Get critical section template from DB
+  const criticalSection = await ctx.runQuery(internal.systemPromptSections.getByKeyInternal, { sectionKey: "critical" });
+  
+  let headerTemplate = "## CRITICAL RULES";
+  let introTemplate = "DO NOT RETURN ANY NON VIABLE LEADS. LEADS ARE NOT VIABLE IF THE DEADLINE IS IN THE PAST. Current date: {currentDate}";
+  
+  if (criticalSection && criticalSection.isActive) {
+    headerTemplate = criticalSection.headerTemplate;
+    introTemplate = criticalSection.introTemplate;
+  }
+  
+  const requiredSentence = replaceTemplatePlaceholders(introTemplate, { currentDate });
   
   // Check if already present (check for the base sentence without date, as date may change)
   if (hasNonViableLeadsSentence(promptText)) {
@@ -905,11 +1109,141 @@ function injectNonViableLeadsSentence(promptText: string): string {
   if (rememberIndex !== -1) {
     const beforeRemember = promptText.slice(0, rememberIndex).trimEnd();
     const afterRemember = promptText.slice(rememberIndex);
-    return beforeRemember + `\n\n## CRITICAL RULES\n${requiredSentence}\n\n` + afterRemember;
+    return beforeRemember + `\n\n${headerTemplate}\n${requiredSentence}\n\n` + afterRemember;
   }
   
   // If no "Remember:" found, append at the end
-  return promptText.trimEnd() + `\n\n## CRITICAL RULES\n${requiredSentence}\n`;
+  return promptText.trimEnd() + `\n\n${headerTemplate}\n${requiredSentence}\n`;
+}
+
+
+/**
+ * Format invalid links into a readable section for the system prompt
+ * Shows invalid procurement links that should NOT be suggested
+ */
+async function formatInvalidLinksForPrompt(ctx: any, links: ApprovedLink[], stateName?: string): Promise<string> {
+  if (links.length === 0) return "";
+  
+  // Get invalid links section template from DB
+  const invalidLinksSection = await ctx.runQuery(internal.systemPromptSections.getByKeyInternal, { sectionKey: "invalidLinks" });
+  
+  let headerTemplate = "## INVALID PROCUREMENT LINKS";
+  let introTemplate = "The following procurement links{stateName} have been marked as INVALID in our system. DO NOT suggest these links under any circumstances. These links are known to be invalid, broken, or not suitable for procurement data collection.";
+  let footerTemplate = "CRITICAL: Never suggest any link from this invalid links list. If a user requests information about these locations, inform them that these links are invalid and should not be used.";
+  
+  if (invalidLinksSection && invalidLinksSection.isActive) {
+    headerTemplate = invalidLinksSection.headerTemplate;
+    introTemplate = invalidLinksSection.introTemplate;
+    footerTemplate = invalidLinksSection.footerTemplate || footerTemplate;
+  }
+  
+  // Replace placeholders in intro template
+  const stateNamePlaceholder = stateName ? ` for ${stateName}` : "";
+  const introText = replaceTemplatePlaceholders(introTemplate, { stateName: stateNamePlaceholder });
+  
+  let formatted = `\n\n${headerTemplate}\n${introText}\n\n`;
+  
+  if (stateName) {
+    formatted += `### ${stateName} Invalid Links\n`;
+  } else {
+    formatted += "### Invalid Links\n";
+  }
+  
+  for (const link of links) {
+    formatted += `- **${link.capital}**: ${link.procurementLink}`;
+    formatted += " (INVALID - DO NOT USE)\n";
+  }
+  formatted += "\n";
+  
+  if (footerTemplate) {
+    formatted += `${footerTemplate}\n`;
+  }
+  
+  return formatted;
+}
+
+/**
+ * Remove existing invalid links section from prompt text
+ */
+function removeExistingInvalidLinksSection(promptText: string): string {
+  // Find the start of the invalid links section
+  let sectionStart = promptText.indexOf("\n\n## INVALID PROCUREMENT LINKS");
+  if (sectionStart === -1) {
+    sectionStart = promptText.indexOf("## INVALID PROCUREMENT LINKS");
+  }
+  
+  if (sectionStart === -1) {
+    return promptText; // No section found, return as-is
+  }
+  
+  // Include leading newlines if present
+  let actualStart = sectionStart;
+  if (sectionStart > 0 && promptText[sectionStart - 1] === '\n') {
+    if (sectionStart > 1 && promptText[sectionStart - 2] === '\n') {
+      actualStart = sectionStart - 2; // Include both newlines
+    } else {
+      actualStart = sectionStart - 1; // Include single newline
+    }
+  }
+  
+  // Find the end of the section by looking for the next "##" or "Remember:" or end of string
+  const afterSection = promptText.slice(sectionStart);
+  const nextSection = afterSection.indexOf("\n\n## ", 1); // Start search after the first "##"
+  const rememberIndex = afterSection.indexOf("\n\nRemember:");
+  
+  let endIndex = afterSection.length;
+  if (nextSection !== -1 && rememberIndex !== -1) {
+    endIndex = Math.min(nextSection, rememberIndex);
+  } else if (nextSection !== -1) {
+    endIndex = nextSection;
+  } else if (rememberIndex !== -1) {
+    endIndex = rememberIndex;
+  }
+  
+  // Remove the section
+  const beforeSection = promptText.slice(0, actualStart);
+  const afterRemoved = afterSection.slice(endIndex);
+  
+  // Clean up extra newlines
+  const cleaned = (beforeSection.trimEnd() + "\n" + afterRemoved.trimStart()).trim();
+  
+  return cleaned;
+}
+
+/**
+ * Inject invalid links section into the system prompt
+ * Note: basePrompt should already have any existing invalid links section removed
+ */
+function injectInvalidLinksIntoPrompt(basePrompt: string, invalidLinksSection: string): string {
+  if (!invalidLinksSection) return basePrompt;
+  
+  // Insert the invalid links section after approved links section (if it exists) or before "Remember:"
+  const approvedLinksIndex = basePrompt.indexOf("## ALREADY APPROVED PROCUREMENT LINKS");
+  const rememberIndex = basePrompt.lastIndexOf("Remember:");
+  
+  if (approvedLinksIndex !== -1) {
+    // Find the end of the approved links section
+    const afterApproved = basePrompt.slice(approvedLinksIndex);
+    const nextAfterApproved = afterApproved.indexOf("\n\n## ", 1);
+    const rememberAfterApproved = afterApproved.indexOf("\n\nRemember:");
+    
+    let insertPoint = approvedLinksIndex + afterApproved.length;
+    if (nextAfterApproved !== -1 && rememberAfterApproved !== -1) {
+      insertPoint = approvedLinksIndex + Math.min(nextAfterApproved, rememberAfterApproved);
+    } else if (rememberAfterApproved !== -1) {
+      insertPoint = approvedLinksIndex + rememberAfterApproved;
+    } else if (nextAfterApproved !== -1) {
+      insertPoint = approvedLinksIndex + nextAfterApproved;
+    }
+    
+    return basePrompt.slice(0, insertPoint) + invalidLinksSection + "\n\n" + basePrompt.slice(insertPoint);
+  } else if (rememberIndex !== -1) {
+    // No approved links section, insert before "Remember:"
+    return basePrompt.slice(0, rememberIndex) + invalidLinksSection + "\n\n" + basePrompt.slice(rememberIndex);
+  }
+  
+  // If "Remember:" not found, append at the end
+  return basePrompt + invalidLinksSection;
 }
 
 /**
@@ -1007,6 +1341,12 @@ export const updatePrimaryWithApprovedLinks = mutation({
       .withIndex("by_status", (q) => q.eq("status", "approved"))
       .collect();
     
+    // Get all invalid procurement links directly from database
+    const invalidLinks = await ctx.db
+      .query("procurementUrls")
+      .withIndex("by_status", (q) => q.eq("status", "invalid"))
+      .collect();
+    
     // Transform to lookup format
     type FormattedLink = {
       state: string;
@@ -1019,6 +1359,17 @@ export const updatePrimaryWithApprovedLinks = mutation({
     };
     
     const formattedLinks: FormattedLink[] = approvedLinks.map((link) => ({
+      state: link.state,
+      capital: link.capital,
+      officialWebsite: link.officialWebsite,
+      procurementLink: link.procurementLink,
+      entityType: null,
+      linkType: null,
+      requiresRegistration: link.requiresRegistration ?? null,
+    }));
+    
+    // Transform invalid links to lookup format
+    const formattedInvalidLinks: FormattedLink[] = invalidLinks.map((link) => ({
       state: link.state,
       capital: link.capital,
       officialWebsite: link.officialWebsite,
@@ -1076,18 +1427,30 @@ export const updatePrimaryWithApprovedLinks = mutation({
     }
     
     // Format approved links for the prompt
-    const linksSection = formatApprovedLinksForPrompt(formattedLinks);
+    const linksSection = await formatApprovedLinksForPrompt(ctx, formattedLinks);
     
-    // Get the base prompt (remove any existing approved links section)
+    // Format invalid links for the prompt
+    const invalidLinksSection = await formatInvalidLinksForPrompt(ctx, formattedInvalidLinks);
+    
+    // Get the base prompt (remove any existing approved links and invalid links sections)
     let basePrompt = removeExistingApprovedLinksSection(primaryPrompt.systemPromptText);
+    basePrompt = removeExistingInvalidLinksSection(basePrompt);
     
     // If we have approved links, inject them into the prompt
     let updatedPromptText = linksSection 
       ? injectApprovedLinksIntoPrompt(basePrompt, linksSection)
       : basePrompt;
     
+    // If we have invalid links, inject them into the prompt
+    if (invalidLinksSection) {
+      updatedPromptText = injectInvalidLinksIntoPrompt(updatedPromptText, invalidLinksSection);
+    }
+    
     // Update critical section with non-viable leads sentence
-    updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
+    updatedPromptText = await injectNonViableLeadsSentence(ctx, updatedPromptText);
+    
+    // Inject all active generic sections (excluding special sections that need data)
+    updatedPromptText = await injectAllActiveGenericSections(ctx, updatedPromptText);
     
     // Update the primary prompt in the database
     await ctx.db.patch(primaryPrompt._id, {
@@ -1180,6 +1543,12 @@ export const updatePromptWithStateLinks = mutation({
       .withIndex("by_state_status", (q) => q.eq("state", stateName).eq("status", "approved"))
       .collect();
     
+    // Get invalid procurement links for the specific state
+    const invalidLinks = await ctx.db
+      .query("procurementUrls")
+      .withIndex("by_state_status", (q) => q.eq("state", stateName).eq("status", "invalid"))
+      .collect();
+    
     // Transform to lookup format - only include fields needed for prompt
     const formattedLinks: ApprovedLink[] = approvedLinks.map((link) => ({
       state: link.state,
@@ -1191,19 +1560,42 @@ export const updatePromptWithStateLinks = mutation({
       requiresRegistration: link.requiresRegistration ?? null,
     }));
     
-    // Format approved links for the prompt (state-specific)
-    const linksSection = formatApprovedLinksForState(formattedLinks, stateName);
+    // Transform invalid links to lookup format
+    const formattedInvalidLinks: ApprovedLink[] = invalidLinks.map((link) => ({
+      state: link.state,
+      capital: link.capital,
+      officialWebsite: "", // Not needed for prompt
+      procurementLink: link.procurementLink,
+      entityType: null, // Not needed for prompt
+      linkType: null, // Not needed for prompt
+      requiresRegistration: link.requiresRegistration ?? null,
+    }));
     
-    // Get the base prompt (remove any existing approved links section)
+    // Format approved links for the prompt (state-specific)
+    const linksSection = await formatApprovedLinksForState(ctx, formattedLinks, stateName);
+    
+    // Format invalid links for the prompt (state-specific)
+    const invalidLinksSection = await formatInvalidLinksForPrompt(ctx, formattedInvalidLinks, stateName);
+    
+    // Get the base prompt (remove any existing approved links and invalid links sections)
     let basePrompt = removeExistingApprovedLinksSection(prompt.systemPromptText);
+    basePrompt = removeExistingInvalidLinksSection(basePrompt);
     
     // If we have approved links, inject them into the prompt
     let updatedPromptText = linksSection 
       ? injectApprovedLinksIntoPrompt(basePrompt, linksSection)
       : basePrompt;
     
+    // If we have invalid links, inject them into the prompt
+    if (invalidLinksSection) {
+      updatedPromptText = injectInvalidLinksIntoPrompt(updatedPromptText, invalidLinksSection);
+    }
+    
     // Update critical section with non-viable leads sentence
-    updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
+    updatedPromptText = await injectNonViableLeadsSentence(ctx, updatedPromptText);
+    
+    // Inject all active generic sections (excluding special sections that need data)
+    updatedPromptText = await injectAllActiveGenericSections(ctx, updatedPromptText, stateName);
     
     // Calculate token estimates and costs for analytics
     // Use gpt-5-mini pricing as default (the model used in procurement chat)
@@ -1619,7 +2011,10 @@ export const updatePromptWithLeadSourceLinks = mutation({
       : basePrompt;
     
     // Update critical section with non-viable leads sentence
-    updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
+    updatedPromptText = await injectNonViableLeadsSentence(ctx, updatedPromptText);
+    
+    // Inject all active generic sections (excluding special sections that need data)
+    updatedPromptText = await injectAllActiveGenericSections(ctx, updatedPromptText, stateName);
     
     // Calculate token estimates and costs for analytics
     const model = "gpt-5-mini";
@@ -1734,8 +2129,25 @@ export const updateAllPromptsWithStateData = mutation({
             .withIndex("by_status", (q) => q.eq("status", "approved"))
             .collect();
 
+          // Get ALL invalid procurement links (not state-specific)
+          const allInvalidLinks = await ctx.db
+            .query("procurementUrls")
+            .withIndex("by_status", (q) => q.eq("status", "invalid"))
+            .collect();
+
           // Transform to lookup format
           const formattedProcurementLinks: ApprovedLink[] = allApprovedLinks.map((link) => ({
+            state: link.state,
+            capital: link.capital,
+            officialWebsite: "", // Not needed for prompt
+            procurementLink: link.procurementLink,
+            entityType: null,
+            linkType: null,
+            requiresRegistration: link.requiresRegistration ?? null,
+          }));
+
+          // Transform invalid links to lookup format
+          const formattedInvalidLinks: ApprovedLink[] = allInvalidLinks.map((link) => ({
             state: link.state,
             capital: link.capital,
             officialWebsite: "", // Not needed for prompt
@@ -1749,26 +2161,36 @@ export const updateAllPromptsWithStateData = mutation({
           const allLeadSourceLinks = await getAllLeadSourceLinks(ctx);
 
           // Format procurement links section (use full format for default prompts)
-          const procurementLinksSection = formatApprovedLinksForPromptFull(formattedProcurementLinks);
+          const procurementLinksSection = await formatApprovedLinksForPromptFull(ctx, formattedProcurementLinks);
+          
+          // Format invalid links section
+          const invalidLinksSection = await formatInvalidLinksForPrompt(ctx, formattedInvalidLinks);
           
           // Format lead source links section (use default format)
           const leadSourceLinksSection = formatLeadSourceLinksForDefaultPrompt(allLeadSourceLinks);
 
           // Get the base prompt and remove any existing sections
           let basePrompt = removeExistingApprovedLinksSection(prompt.systemPromptText);
+          basePrompt = removeExistingInvalidLinksSection(basePrompt);
           basePrompt = removeExistingLeadSourceLinksSection(basePrompt);
 
-          // Inject both sections into the prompt
+          // Inject all sections into the prompt
           let updatedPromptText = basePrompt;
           if (procurementLinksSection) {
             updatedPromptText = injectApprovedLinksIntoPrompt(updatedPromptText, procurementLinksSection);
+          }
+          if (invalidLinksSection) {
+            updatedPromptText = injectInvalidLinksIntoPrompt(updatedPromptText, invalidLinksSection);
           }
           if (leadSourceLinksSection) {
             updatedPromptText = injectLeadSourceLinksIntoPrompt(updatedPromptText, leadSourceLinksSection);
           }
 
           // Update critical section with non-viable leads sentence
-          updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
+          updatedPromptText = await injectNonViableLeadsSentence(ctx, updatedPromptText);
+
+          // Inject all active generic sections (excluding special sections that need data)
+          updatedPromptText = await injectAllActiveGenericSections(ctx, updatedPromptText);
 
           // Update the prompt in the database
           await ctx.db.patch(prompt._id, {
@@ -1815,6 +2237,12 @@ export const updateAllPromptsWithStateData = mutation({
             .withIndex("by_state_status", (q) => q.eq("state", stateName).eq("status", "approved"))
             .collect();
 
+          // Get invalid procurement links for the state
+          const invalidLinks = await ctx.db
+            .query("procurementUrls")
+            .withIndex("by_state_status", (q) => q.eq("state", stateName).eq("status", "invalid"))
+            .collect();
+
           // Only extract the procurementLink URL - agents only need the URL to know what's already collected
           const formattedLinks: ApprovedLink[] = approvedLinks.map((link) => ({
             state: link.state,
@@ -1826,14 +2254,35 @@ export const updateAllPromptsWithStateData = mutation({
             requiresRegistration: link.requiresRegistration ?? null,
           }));
 
-          const linksSection = formatApprovedLinksForPrompt(formattedLinks);
+          // Transform invalid links to lookup format
+          const formattedInvalidLinks: ApprovedLink[] = invalidLinks.map((link) => ({
+            state: link.state,
+            capital: link.capital,
+            officialWebsite: "", // Not needed for prompt
+            procurementLink: link.procurementLink,
+            entityType: null, // Not needed for prompt
+            linkType: null, // Not needed for prompt
+            requiresRegistration: link.requiresRegistration ?? null,
+          }));
+
+          const linksSection = await formatApprovedLinksForState(ctx, formattedLinks, stateName);
+          const invalidLinksSection = await formatInvalidLinksForPrompt(ctx, formattedInvalidLinks, stateName);
           let basePrompt = removeExistingApprovedLinksSection(prompt.systemPromptText);
+          basePrompt = removeExistingInvalidLinksSection(basePrompt);
           let updatedPromptText = linksSection
             ? injectApprovedLinksIntoPrompt(basePrompt, linksSection)
             : basePrompt;
+          
+          // If we have invalid links, inject them into the prompt
+          if (invalidLinksSection) {
+            updatedPromptText = injectInvalidLinksIntoPrompt(updatedPromptText, invalidLinksSection);
+          }
 
           // Update critical section with non-viable leads sentence
-          updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
+          updatedPromptText = await injectNonViableLeadsSentence(ctx, updatedPromptText);
+
+          // Inject all active generic sections (excluding special sections that need data)
+          updatedPromptText = await injectAllActiveGenericSections(ctx, updatedPromptText, stateName);
 
           await ctx.db.patch(prompt._id, {
             systemPromptText: updatedPromptText,
@@ -1860,7 +2309,10 @@ export const updateAllPromptsWithStateData = mutation({
             : basePrompt;
 
           // Update critical section with non-viable leads sentence
-          updatedPromptText = injectNonViableLeadsSentence(updatedPromptText);
+          updatedPromptText = await injectNonViableLeadsSentence(ctx, updatedPromptText);
+
+          // Inject all active generic sections (excluding special sections that need data)
+          updatedPromptText = await injectAllActiveGenericSections(ctx, updatedPromptText, stateName);
 
           await ctx.db.patch(prompt._id, {
             systemPromptText: updatedPromptText,

@@ -550,6 +550,11 @@ export const importJsonWithSchemaEvolution = action({
       cleanLead.category = lead.category || undefined;
       cleanLead.subcategory = lead.subcategory || undefined;
 
+      // Preserve leadHuntWorkflowId if present (used by lead hunt workflow)
+      if (lead.leadHuntWorkflowId !== undefined) {
+        cleanLead.leadHuntWorkflowId = lead.leadHuntWorkflowId;
+      }
+
       // Handle any additional fields from the imported data
       newFields.forEach(field => {
         if (lead[field] !== undefined) {

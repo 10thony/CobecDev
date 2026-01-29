@@ -36,6 +36,8 @@ import {
   Layers,
   MapPin,
   MoreVertical,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface LeadHuntChatProps {
@@ -267,10 +269,17 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
   const [showHistory, setShowHistory] = useState(true);
   const [selectedSystemPromptId, setSelectedSystemPromptId] = useState<Id<"chatSystemPrompts"> | null | undefined>(undefined);
   const [isCanceling, setIsCanceling] = useState(false);
+  const [displayedSystemPromptText, setDisplayedSystemPromptText] = useState<string>('');
+  const [isEditingSystemPrompt, setIsEditingSystemPrompt] = useState(false);
+  const [editedSystemPromptText, setEditedSystemPromptText] = useState<string>('');
+  const [isSystemPromptCollapsed, setIsSystemPromptCollapsed] = useState(true);
   const [showPromptSettings, setShowPromptSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mainChatAreaRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const isStartingWorkflowRef = useRef(false);
+  const hasAutoLoadedRef = useRef(false);
+  const userClearedWorkflowRef = useRef(false);
 
   // System Prompt Management State
   const [editingPrompt, setEditingPrompt] = useState<SystemPrompt | null>(null);
@@ -356,15 +365,52 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
     return promptTypes?.find(t => t.name === "leads")?._id;
   }, [promptTypes]);
 
+  // Get primary prompt (must be after leadsTypeId is defined)
+  const primaryPrompt = useQuery(
+    api.chatSystemPrompts.getPrimary,
+    leadsTypeId ? { typeId: leadsTypeId } : "skip"
+  );
+
   const leadsPrompts = useMemo(() => {
     if (!systemPrompts || !leadsTypeId) return undefined;
     return systemPrompts.filter(p => p.type === leadsTypeId);
   }, [systemPrompts, leadsTypeId]);
 
-  // Auto-scroll to bottom when workflow updates
+  // Update displayed system prompt text when selection changes
+  useEffect(() => {
+    if (!currentWorkflowId) {
+      if (selectedSystemPromptId === undefined) {
+        // Use primary prompt
+        if (primaryPrompt) {
+          setDisplayedSystemPromptText(primaryPrompt.systemPromptText);
+          setEditedSystemPromptText(primaryPrompt.systemPromptText);
+        } else {
+          setDisplayedSystemPromptText('');
+          setEditedSystemPromptText('');
+        }
+      } else if (selectedSystemPromptId === null) {
+        // No prompt selected
+        setDisplayedSystemPromptText('');
+        setEditedSystemPromptText('');
+      } else {
+        // Use selected prompt
+        const selectedPrompt = leadsPrompts?.find(p => p._id === selectedSystemPromptId);
+        if (selectedPrompt) {
+          setDisplayedSystemPromptText(selectedPrompt.systemPromptText);
+          setEditedSystemPromptText(selectedPrompt.systemPromptText);
+        } else {
+          setDisplayedSystemPromptText('');
+          setEditedSystemPromptText('');
+        }
+      }
+      setIsEditingSystemPrompt(false);
+    }
+  }, [selectedSystemPromptId, primaryPrompt, leadsPrompts, currentWorkflowId]);
+
+  // Auto-scroll to bottom when workflow updates or system prompt is displayed/edited
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [currentWorkflow]);
+  }, [currentWorkflow, displayedSystemPromptText, isEditingSystemPrompt]);
 
   // Match sidebar height to main chat area height on desktop
   useEffect(() => {
@@ -399,8 +445,17 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
     };
   }, [showHistory, currentWorkflow]);
 
-  // Auto-load most recent active workflow
+  // Auto-load most recent active workflow ONLY on initial mount
+  // Don't auto-load if user has explicitly cleared currentWorkflowId or is starting a new workflow
   useEffect(() => {
+    // Don't auto-load if:
+    // 1. We've already auto-loaded once
+    // 2. User is starting a new workflow
+    // 3. User explicitly cleared the workflow (clicked "New Hunt")
+    if (hasAutoLoadedRef.current || isStartingWorkflowRef.current || userClearedWorkflowRef.current) {
+      return;
+    }
+    // Only auto-load if there's no current workflow AND we haven't auto-loaded yet
     if (!currentWorkflowId && workflows && workflows.length > 0) {
       const active = workflows.filter(w => w.status === "running" || w.status === "paused");
       if (active.length > 0) {
@@ -408,6 +463,7 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
         setCurrentWorkflowId(mostRecent._id);
         setSelectedSystemPromptId(mostRecent.systemPromptId || undefined);
         setUserInput(mostRecent.userInput);
+        hasAutoLoadedRef.current = true;
       }
     }
   }, [currentWorkflowId, workflows]);
@@ -417,6 +473,8 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
     setUserInput('');
     setSelectedSystemPromptId(undefined);
     setError(null);
+    // Mark that user explicitly cleared the workflow to prevent auto-load
+    userClearedWorkflowRef.current = true;
   };
 
   const handleOpenPromptSettings = async () => {
@@ -878,6 +936,8 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
       setSelectedSystemPromptId(workflow.systemPromptId || undefined);
       setUserInput(workflow.userInput);
     }
+    // Reset the user cleared flag since user is explicitly selecting a workflow
+    userClearedWorkflowRef.current = false;
   };
 
   const handleDeleteWorkflow = async (workflowId: Id<"leadHuntWorkflows">, e: React.MouseEvent) => {
@@ -914,6 +974,9 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
     }
 
     setError(null);
+    isStartingWorkflowRef.current = true;
+    // Clear the user cleared flag since we're starting a new workflow
+    userClearedWorkflowRef.current = false;
     startTransition(async () => {
       try {
         const newWorkflowId = await createWorkflow({
@@ -927,6 +990,10 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
         // Start the workflow
         await startWorkflow({ workflowId: newWorkflowId });
         
+        // Reset the flag once the workflow is started
+        // The workflows query will update automatically
+        isStartingWorkflowRef.current = false;
+        
         // Notify parent if callback provided
         if (onLeadsFound) {
           onLeadsFound(newWorkflowId);
@@ -934,6 +1001,8 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
       } catch (error) {
         console.error('Error starting workflow:', error);
         setError(`Failed to start hunt: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Reset the flag on error so auto-load can work again
+        isStartingWorkflowRef.current = false;
       }
     });
   };
@@ -1117,12 +1186,12 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
       </div>
 
       {/* Main Chat Area */}
-      <div ref={mainChatAreaRef} className="flex-1 flex flex-col min-w-0 relative z-10">
+      <div ref={mainChatAreaRef} className="flex-1 flex flex-col min-w-0 min-h-0 relative z-10" style={{ flexShrink: 1 }}>
         <TronPanel 
           title="Lead Hunt Assistant" 
           icon={<Search className="w-5 h-5" />}
           glowColor="cyan"
-          className="flex-1 flex flex-col overflow-hidden"
+          className="flex-1 flex flex-col overflow-hidden flex-shrink min-h-0"
           headerAction={
             <div className="flex items-center gap-2 sm:gap-3">
               {/* History Toggle Button */}
@@ -1159,23 +1228,106 @@ export function LeadHuntChat({ onLeadsFound }: LeadHuntChatProps = {}) {
           }
         >
           {/* Messages/Workflow Status */}
-          <div className="flex-1 overflow-y-auto space-y-4 mb-4 px-2 sm:px-0">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-4 mb-4 px-2 sm:px-0" style={{ flexShrink: 1 }}>
             {!currentWorkflowId && (
-              <div className="text-center text-tron-gray py-8 sm:py-12">
-                <Search className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 opacity-50" />
-                <p className="text-sm sm:text-base">Start a conversation to find procurement leads!</p>
-                <p className="text-xs sm:text-sm mt-2">Try: "Find procurement leads for Florida focusing on IT services"</p>
-                <TronButton
-                  onClick={handleNewHunt}
-                  variant="primary"
-                  color="cyan"
-                  size="sm"
-                  icon={<Plus className="w-4 h-4" />}
-                  className="mt-4"
-                >
-                  Start New Hunt
-                </TronButton>
-              </div>
+              <>
+                {/* System Prompt Display */}
+                {displayedSystemPromptText && (
+                  <div className="flex justify-end">
+                    <div className="max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] rounded-lg p-3 sm:p-4 bg-tron-cyan/20 border border-tron-cyan/30 text-tron-white overflow-hidden">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="text-xs font-semibold text-tron-cyan/80">System Prompt</span>
+                      </div>
+                      {isEditingSystemPrompt ? (
+                        <div className="space-y-2">
+                          <textarea
+                            value={editedSystemPromptText}
+                            onChange={(e) => setEditedSystemPromptText(e.target.value)}
+                            rows={8}
+                            className="w-full px-3 py-2 bg-tron-bg-deep border border-tron-cyan/30 rounded text-tron-white text-sm focus:outline-none focus:border-tron-cyan resize-none"
+                            placeholder="System prompt text..."
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setDisplayedSystemPromptText(editedSystemPromptText);
+                                setIsEditingSystemPrompt(false);
+                              }}
+                              className="px-3 py-1.5 bg-tron-cyan/20 hover:bg-tron-cyan/30 border border-tron-cyan/30 rounded text-tron-cyan text-xs font-medium transition-colors"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditedSystemPromptText(displayedSystemPromptText);
+                                setIsEditingSystemPrompt(false);
+                              }}
+                              className="px-3 py-1.5 bg-tron-bg-panel hover:bg-tron-bg-deep border border-tron-cyan/20 rounded text-tron-gray text-xs font-medium transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                          <p className="text-xs text-tron-gray/80 mt-1">
+                            Note: The workflow will use the original prompt from the database. To use this edited version, update the prompt in System Prompt Settings first.
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          {!isSystemPromptCollapsed && (
+                            <p className="text-sm whitespace-pre-wrap mb-2">{displayedSystemPromptText}</p>
+                          )}
+                          <div className="flex items-center justify-end gap-2 pt-2 border-t border-tron-cyan/20">
+                            <button
+                              onClick={() => setIsSystemPromptCollapsed(!isSystemPromptCollapsed)}
+                              className="px-2 py-1 text-xs text-tron-cyan hover:bg-tron-cyan/20 rounded transition-colors flex items-center gap-1"
+                              title={isSystemPromptCollapsed ? "Expand system prompt" : "Collapse system prompt"}
+                            >
+                              {isSystemPromptCollapsed ? (
+                                <>
+                                  <ChevronDown className="w-3 h-3" />
+                                  <span>Expand</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronUp className="w-3 h-3" />
+                                  <span>Collapse</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => setIsEditingSystemPrompt(true)}
+                              className="px-2 py-1 text-xs text-tron-cyan hover:bg-tron-cyan/20 rounded transition-colors flex items-center gap-1"
+                              title="Edit system prompt"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {!displayedSystemPromptText && (
+                  <div className="text-center text-tron-gray py-8 sm:py-12">
+                    <Search className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+                    <p className="text-sm sm:text-base">Start a conversation to find procurement leads!</p>
+                    <p className="text-xs sm:text-sm mt-2">Try: "Find procurement leads for Florida focusing on IT services"</p>
+                    <TronButton
+                      onClick={handleNewHunt}
+                      variant="primary"
+                      color="cyan"
+                      size="sm"
+                      icon={<Plus className="w-4 h-4" />}
+                      className="mt-4"
+                    >
+                      Start New Hunt
+                    </TronButton>
+                  </div>
+                )}
+              </>
             )}
 
             {currentWorkflow && (

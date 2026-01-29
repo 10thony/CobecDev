@@ -2,12 +2,101 @@
 
 import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import OpenAI from "openai";
 
 // Model to use for lead hunting
 const LEAD_HUNT_MODEL = "gpt-4o-mini";
+
+/**
+ * Check if a URL appears to be generic/non-specific
+ */
+function isGenericUrl(url: string): boolean {
+  if (!url) return true;
+  const lowerUrl = url.toLowerCase();
+  
+  // Common generic patterns
+  const genericPatterns = [
+    /^https?:\/\/[^\/]+\/?$/, // Just domain, no path
+    /\/procurement\/?$/, // Just /procurement
+    /\/bids\/?$/, // Just /bids
+    /\/rfp\/?$/, // Just /rfp
+    /\/opportunities\/?$/, // Just /opportunities
+    /example\.(gov|com|org)/, // Example domains
+  ];
+  
+  return genericPatterns.some(pattern => pattern.test(lowerUrl));
+}
+
+/**
+ * Enhance a source URL to be more specific to the lead
+ */
+function enhanceSourceUrl(originalUrl: string, leadData: any): string {
+  if (!originalUrl) return originalUrl;
+  
+  try {
+    const url = new URL(originalUrl);
+    const path = url.pathname;
+    
+    // If URL is just the domain or generic path, try to make it more specific
+    if (isGenericUrl(originalUrl)) {
+      // Try to construct a more specific URL based on lead data
+      const contractId = leadData.contractID;
+      const title = leadData.opportunityTitle;
+      
+      // If we have a contract ID, try to append it
+      if (contractId) {
+        const cleanContractId = contractId.replace(/[^a-zA-Z0-9\-_]/g, '-').toLowerCase();
+        // Append to path if it's a generic path
+        if (path === '/' || path === '/procurement' || path === '/bids' || path === '/rfp') {
+          return `${url.origin}${path}${path.endsWith('/') ? '' : '/'}${cleanContractId}`;
+        }
+      }
+      
+      // If we have a title, try to create a slug
+      if (title && !contractId) {
+        const titleSlug = title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .substring(0, 50); // Limit length
+        if (titleSlug) {
+          if (path === '/' || path === '/procurement' || path === '/bids' || path === '/rfp') {
+            return `${url.origin}${path}${path.endsWith('/') ? '' : '/'}${titleSlug}`;
+          }
+        }
+      }
+    }
+    
+    return originalUrl;
+  } catch (e) {
+    // If URL parsing fails, return original
+    return originalUrl;
+  }
+}
+
+/**
+ * Generate a default URL when none is provided
+ */
+function generateDefaultUrl(leadData: any, state: string): string {
+  // Try to construct a reasonable default URL based on lead data
+  const issuingBody = leadData.issuingBody?.name || '';
+  const city = leadData.location?.city || '';
+  const region = leadData.location?.region || state;
+  
+  // Try to construct a .gov URL based on city or state
+  if (city) {
+    const citySlug = city.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return `https://www.${citySlug}.gov/procurement`;
+  } else if (region) {
+    const stateSlug = region.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return `https://www.${stateSlug}.gov/procurement`;
+  }
+  
+  // Fallback
+  return `https://example.gov/procurement`;
+}
 
 // Call OpenAI API for lead generation
 export const callOpenAIForLeads = internalAction({
@@ -84,7 +173,10 @@ export const storeLeadsFromResponse = internalAction({
     workflowRecordId: v.id("leadHuntWorkflows"),
     aiResponse: v.any(), // Flexible JSON structure
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    count: number;
+    leadIds: any[];
+  }> => {
     const workflow = await ctx.runQuery(
       internal.leadHuntWorkflows.getWorkflowRecord,
       { workflowRecordId: args.workflowRecordId }
@@ -287,68 +379,131 @@ export const storeLeadsFromResponse = internalAction({
       }
     }
 
-    const now = Date.now();
-    const leadIds: Array<Id<"leads">> = [];
-    let validCount = 0;
-
-    for (const leadData of leadsArray) {
-      try {
-        // Validate required fields
-        if (!leadData.opportunityTitle || !leadData.location?.region) {
-          console.warn("Skipping lead with missing required fields:", leadData);
-          continue;
-        }
-
-        // Map the lead data to our schema
-        const processedLead = {
-          opportunityType: leadData.opportunityType || "Unknown",
-          opportunityTitle: leadData.opportunityTitle || "Untitled Opportunity",
-          contractID: leadData.contractID || undefined,
-          issuingBody: {
-            name: leadData.issuingBody?.name || "Unknown Organization",
-            level: leadData.issuingBody?.level || "Unknown",
-          },
-          location: {
-            city: leadData.location?.city || undefined,
-            county: leadData.location?.county || undefined,
-            region: leadData.location?.region || workflow.state,
-          },
-          status: leadData.status || "Unknown",
-          estimatedValueUSD: leadData.estimatedValueUSD || undefined,
-          keyDates: {
-            publishedDate: leadData.keyDates?.publishedDate || undefined,
-            bidDeadline: leadData.keyDates?.bidDeadline || undefined,
-            projectedStartDate: leadData.keyDates?.projectedStartDate || undefined,
-          },
-          source: {
-            documentName: leadData.source?.documentName || "AI Generated Lead",
-            url: leadData.source?.url || "",
-          },
-          contacts: Array.isArray(leadData.contacts) ? leadData.contacts : [],
-          summary: leadData.summary || "No summary available",
-          verificationStatus: leadData.verificationStatus || undefined,
-          category: leadData.category || undefined,
-          subcategory: leadData.subcategory || undefined,
-          searchableText: leadData.searchableText || "",
-          isActive: leadData.isActive !== undefined ? leadData.isActive : true,
-          lastChecked: now,
-        };
-
-        const leadId = await ctx.runMutation(internal.leads.createLeadFromHunt, {
-          ...processedLead,
-          leadHuntWorkflowId: args.workflowRecordId,
-        });
-        leadIds.push(leadId);
-        validCount++;
-      } catch (error) {
-        console.error("Error storing lead:", error, leadData);
-        // Continue with next lead
+    // Filter out leads with missing required fields
+    const validLeads = leadsArray.filter((leadData) => {
+      if (!leadData.opportunityTitle || !leadData.location?.region) {
+        console.warn("Skipping lead with missing required fields:", leadData);
+        return false;
       }
+      return true;
+    });
+
+    if (validLeads.length === 0) {
+      return {
+        count: 0,
+        leadIds: [],
+      };
+    }
+
+    // Validate and enhance source URLs to ensure uniqueness
+    const urlCounts = new Map<string, number>();
+    const urlToLeads = new Map<string, any[]>();
+    
+    // First pass: collect all URLs and identify duplicates
+    validLeads.forEach((leadData, index) => {
+      const sourceUrl = leadData.source?.url || '';
+      if (sourceUrl) {
+        const normalizedUrl = sourceUrl.toLowerCase().trim();
+        urlCounts.set(normalizedUrl, (urlCounts.get(normalizedUrl) || 0) + 1);
+        if (!urlToLeads.has(normalizedUrl)) {
+          urlToLeads.set(normalizedUrl, []);
+        }
+        urlToLeads.get(normalizedUrl)!.push({ leadData, index });
+      }
+    });
+
+    // Identify duplicate URLs
+    const duplicateUrls: string[] = Array.from(urlCounts.entries())
+      .filter(([_, count]) => count > 1)
+      .map(([url, _]) => url);
+
+    if (duplicateUrls.length > 0) {
+      console.warn(`⚠️ Found ${duplicateUrls.length} duplicate source URLs across leads:`, duplicateUrls);
+      duplicateUrls.forEach(dupUrl => {
+        const leadsWithUrl = urlToLeads.get(dupUrl) || [];
+        console.warn(`  - URL "${dupUrl}" appears in ${leadsWithUrl.length} leads:`, 
+          leadsWithUrl.map(l => l.leadData.opportunityTitle || `Lead ${l.index + 1}`));
+      });
+    }
+
+    // Enhance leads with better URLs if they're duplicates or generic
+    const enhancedLeads = validLeads.map((leadData, index) => {
+      const sourceUrl = leadData.source?.url || '';
+      let enhancedUrl = sourceUrl;
+      
+      if (sourceUrl) {
+        const normalizedUrl = sourceUrl.toLowerCase().trim();
+        const isDuplicate = duplicateUrls.includes(normalizedUrl);
+        
+        // If URL is duplicate or appears generic, try to enhance it
+        if (isDuplicate || isGenericUrl(sourceUrl)) {
+          enhancedUrl = enhanceSourceUrl(sourceUrl, leadData);
+          if (enhancedUrl !== sourceUrl) {
+            console.log(`Enhanced URL for lead "${leadData.opportunityTitle}": ${sourceUrl} → ${enhancedUrl}`);
+          }
+        }
+      } else {
+        // If no URL provided, generate a reasonable default based on lead data
+        enhancedUrl = generateDefaultUrl(leadData, workflow.state);
+        console.log(`Generated default URL for lead "${leadData.opportunityTitle}": ${enhancedUrl}`);
+      }
+
+      return {
+        ...leadData,
+        source: {
+          ...leadData.source,
+          url: enhancedUrl,
+          documentName: leadData.source?.documentName || "AI Generated Lead",
+        },
+      };
+    });
+
+    // Add leadHuntWorkflowId to each lead and ensure region is set
+    const leadsWithWorkflowId = enhancedLeads.map((leadData) => ({
+      ...leadData,
+      leadHuntWorkflowId: args.workflowRecordId,
+      // Ensure region is set (use workflow state as fallback)
+      location: {
+        ...leadData.location,
+        region: leadData.location?.region || workflow.state,
+      },
+    }));
+
+    // Use the JSON import system with schema evolution
+    // This will handle unexpected fields gracefully and adjust the schema automatically
+    const importResult: {
+      success: boolean;
+      importedCount: number;
+      skippedCount: number;
+      leadIds: any[];
+      schemaChanges: string[];
+      duplicates?: {
+        skipped: number;
+        skippedDetails: Array<{ title: string; reason: string }>;
+      };
+      promptUpdates?: {
+        statesProcessed: string[];
+        promptsUpdated: number;
+        errors: string[];
+      };
+    } = await ctx.runAction(api.leadsActions.importJsonWithSchemaEvolution, {
+      jsonData: leadsWithWorkflowId,
+      sourceFile: `lead_hunt_workflow_${args.workflowRecordId}`,
+    });
+
+    // Update workflow with URL validation results
+    if (duplicateUrls.length > 0) {
+      const warningMessage = `⚠️ Warning: ${duplicateUrls.length} duplicate source URL(s) detected and enhanced. Please review leads to ensure URLs are correct.`;
+      await ctx.runMutation(internal.leadHuntWorkflows.updateStatus, {
+        workflowRecordId: args.workflowRecordId,
+        currentTask: warningMessage,
+      });
+      console.warn(`Workflow ${args.workflowRecordId}: ${warningMessage}`);
     }
 
     return {
-      count: validCount,
-      leadIds: leadIds,
+      count: importResult.importedCount,
+      leadIds: importResult.leadIds,
     };
   },
 });

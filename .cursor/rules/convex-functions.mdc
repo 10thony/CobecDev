@@ -1,0 +1,141 @@
+---
+description: Convex backend function patterns and conventions
+globs: convex/**/*.ts
+alwaysApply: false
+---
+
+# Convex Function Patterns
+
+## Function Imports
+```typescript
+import { mutation, query, action, internalMutation, internalQuery } from "./_generated/server";
+import { v } from "convex/values";
+import { internal, api } from "./_generated/api";
+```
+
+## Validation with `v`
+
+```typescript
+// ✅ GOOD - Use v validators
+args: {
+  id: v.id("leads"),
+  name: v.string(),
+  count: v.optional(v.number()),
+  tags: v.array(v.string()),
+  metadata: v.object({
+    source: v.string(),
+    timestamp: v.number(),
+  }),
+}
+
+// ❌ BAD - Don't use plain TypeScript types in args
+args: {
+  id: string,  // Wrong!
+}
+```
+
+## Timestamps
+
+Always use `Date.now()` for consistency:
+```typescript
+const now = Date.now();
+await ctx.db.insert("tableName", {
+  ...data,
+  createdAt: now,
+  updatedAt: now,
+});
+```
+
+## Query Patterns
+
+```typescript
+// Get single document
+const doc = await ctx.db.get(args.id);
+if (!doc) throw new Error("Not found");
+
+// Query with index
+const results = await ctx.db
+  .query("leads")
+  .withIndex("by_status", (q) => q.eq("status", "active"))
+  .order("desc")
+  .take(10);
+
+// Collect all matching
+const all = await ctx.db
+  .query("leads")
+  .withIndex("by_region", (q) => q.eq("location.region", args.region))
+  .collect();
+```
+
+## Mutation Return Values
+
+Return the created/updated ID:
+```typescript
+export const create = mutation({
+  args: { name: v.string() },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("items", {
+      name: args.name,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    return id; // Return the ID
+  },
+});
+```
+
+## Actions for External APIs
+
+```typescript
+export const processWithAI = action({
+  args: { prompt: v.string() },
+  handler: async (ctx, args) => {
+    // Can call external APIs
+    const response = await fetch("https://api.openai.com/...");
+    
+    // Can call mutations/queries via ctx.runMutation/ctx.runQuery
+    await ctx.runMutation(internal.module.saveToDB, { data: response });
+    
+    return response;
+  },
+});
+```
+
+## Internal Functions
+
+Use for functions only called by other Convex functions:
+```typescript
+export const internalProcess = internalMutation({
+  args: { data: v.any() },
+  handler: async (ctx, args) => {
+    // Only callable from other Convex functions
+  },
+});
+
+// Call with internal reference
+await ctx.runMutation(internal.module.internalProcess, { data });
+```
+
+## Vector Search
+
+```typescript
+// In schema
+.vectorIndex("by_embedding", {
+  vectorField: "embedding",
+  dimensions: 1536,
+  filterFields: ["category"],
+})
+
+// In query
+const results = await ctx.db
+  .query("resumes")
+  .withIndex("by_embedding")
+  .vectorSearch("embedding", embedding, { limit: 10 });
+```
+
+## Verification
+
+After making changes, always run:
+```bash
+bunx convex dev --once
+```

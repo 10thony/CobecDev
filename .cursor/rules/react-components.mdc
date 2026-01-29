@@ -1,0 +1,186 @@
+---
+description: React component patterns and Tron theme styling
+globs: src/**/*.tsx
+alwaysApply: false
+---
+
+# React Component Patterns
+
+## Component Structure
+
+```tsx
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+
+interface Props {
+  itemId: string;
+  onComplete?: () => void;
+}
+
+export function MyComponent({ itemId, onComplete }: Props) {
+  // 1. Convex hooks first
+  const data = useQuery(api.module.getData, { id: itemId });
+  const updateItem = useMutation(api.module.updateItem);
+  
+  // 2. Local state
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // 3. Effects
+  useEffect(() => {
+    // ...
+  }, [dependency]);
+  
+  // 4. Event handlers
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    try {
+      await updateItem({ id: itemId, data: newData });
+      onComplete?.();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // 5. Early returns for loading/error states
+  if (data === undefined) {
+    return <LoadingSpinner />;
+  }
+  
+  // 6. Main render
+  return (
+    <div className="tron-panel p-4">
+      {/* Content */}
+    </div>
+  );
+}
+```
+
+## Tron Theme Classes
+
+### Backgrounds
+```tsx
+// Page backgrounds
+className="bg-tron-bg-deep"     // #0f0f15 - Darkest, for page bg
+
+// Container backgrounds
+className="bg-tron-bg-panel"    // #1a1a24 - Panels, sidebars
+className="bg-tron-bg-card"     // #252530 - Cards, elevated content
+className="bg-tron-bg-elevated" // #2f2f3a - Highest elevation
+```
+
+### Text Colors
+```tsx
+className="text-tron-white"    // #f5f5f0 - Primary text
+className="text-tron-gray"     // #8b949e - Secondary text
+className="text-tron-muted"    // #6b7280 - Muted text
+className="text-tron-dim"      // #4b5563 - Dimmed text
+```
+
+### Accent Colors (Use Sparingly)
+```tsx
+className="text-tron-cyan"           // #00d4ff - Primary accent
+className="bg-tron-cyan/10"          // Subtle background
+className="border-tron-cyan/30"      // Subtle border
+className="hover:border-tron-cyan/60" // Hover state
+```
+
+### Status Colors
+```tsx
+className="text-neon-success"  // #00ff88 - Success
+className="text-neon-warning"  // #ffaa00 - Warning
+className="text-neon-error"    // #ff4444 - Error
+className="text-neon-info"     // #00ccff - Info
+```
+
+### Glass Effects
+```tsx
+// Frosted glass panel
+className="glass-panel"
+
+// Frosted glass card
+className="glass-card"
+
+// Standard panel
+className="tron-panel"
+
+// Standard card
+className="tron-card"
+```
+
+### Glow Effects
+```tsx
+className="shadow-tron-glow"        // Cyan glow
+className="shadow-tron-glow-success" // Green glow
+className="shadow-tron-glow-error"   // Red glow
+className="tron-text-glow"          // Text glow
+```
+
+### Animations
+```tsx
+className="animate-tron-pulse"       // Pulse opacity
+className="animate-tron-glow-pulse"  // Glow intensity pulse
+className="animate-tron-scan"        // Scan line effect
+```
+
+## Common Patterns
+
+### Loading States
+```tsx
+if (data === undefined) {
+  return (
+    <div className="flex items-center justify-center p-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tron-cyan" />
+    </div>
+  );
+}
+```
+
+### Empty States
+```tsx
+if (data.length === 0) {
+  return (
+    <div className="text-center py-12 text-tron-gray">
+      <p>No items found</p>
+    </div>
+  );
+}
+```
+
+### Buttons
+```tsx
+// Primary action
+<button className="px-4 py-2 bg-tron-cyan/20 border border-tron-cyan/50 rounded-lg text-tron-cyan hover:bg-tron-cyan/30 transition-colors">
+  Primary Action
+</button>
+
+// Secondary/subtle
+<button className="px-4 py-2 bg-tron-bg-card border border-tron-cyan/20 rounded-lg text-tron-gray hover:text-tron-cyan hover:border-tron-cyan/40 transition-colors">
+  Secondary
+</button>
+```
+
+### Forms
+```tsx
+<input
+  type="text"
+  className="w-full px-3 py-2 bg-tron-bg-card border border-tron-cyan/20 rounded-lg text-tron-white placeholder-tron-muted focus:border-tron-cyan/50 focus:outline-none"
+  placeholder="Enter value..."
+/>
+```
+
+## Toast Notifications
+
+```tsx
+import { toast } from "sonner";
+
+// Success
+toast.success("Operation completed");
+
+// Error
+toast.error("Something went wrong");
+
+// With description
+toast.success("Lead created", {
+  description: "The new lead has been added to the system",
+});
+```
