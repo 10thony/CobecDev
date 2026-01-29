@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -87,6 +88,7 @@ interface LeadsManagementProps {
 }
 
 export function LeadsManagement({ className = '' }: LeadsManagementProps) {
+  const { isSignedIn } = useAuth();
   const [selectedLeadId, setSelectedLeadId] = useState<Id<"leads"> | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -670,6 +672,7 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
           <h1 className="text-3xl font-bold text-tron-white">Leads Management</h1>
           <p className="text-lg text-tron-gray">Manage procurement opportunity leads</p>
         </div>
+        {isSignedIn && (
         <div 
           className="relative group"
           onMouseEnter={() => {
@@ -815,10 +818,11 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
               </div>
             </div>
         </div>
+        )}
       </div>
 
-      {/* Lead Link Verification Status */}
-      <LeadLinkVerificationStatus />
+      {/* Lead Link Verification Status - authenticated users only */}
+      {isSignedIn && <LeadLinkVerificationStatus />}
 
       <div className={`grid grid-cols-1 gap-8 ${selectedLead ? 'lg:grid-cols-3' : 'lg:grid-cols-1'}`}>
         {/* Leads List */}
@@ -1206,7 +1210,8 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                       }`}
                       onClick={() => setSelectedLeadId(lead._id)}
                     >
-                      {/* Tooltip Menu Button - Top Right */}
+                      {/* Tooltip Menu Button - Top Right (authenticated users only) */}
+                      {isSignedIn && (
                       <div className="absolute top-3 right-3 z-10">
                         <button
                           onClick={(e) => {
@@ -1263,6 +1268,7 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                           </div>
                         )}
                       </div>
+                      )}
 
                       {/* Header */}
                       <div className="mb-3 pr-8">
@@ -1340,6 +1346,7 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                 className="max-h-[calc(100vh-3rem)]"
                 headerAction={
                   <div className="flex gap-2">
+                    {isSignedIn && (
                     <TronButton
                       onClick={() => setIsEditing(true)}
                       variant="ghost"
@@ -1349,6 +1356,7 @@ export function LeadsManagement({ className = '' }: LeadsManagementProps) {
                     >
                       <Edit className="w-5 h-5" />
                     </TronButton>
+                    )}
                     <TronButton
                       onClick={() => setSelectedLeadId(null)}
                       variant="ghost"
